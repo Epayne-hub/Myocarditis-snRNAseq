@@ -1,0 +1,229 @@
+---
+title: "Stratification: different types of Macrophages, activated Fibroblasts"
+author: "Emily Payne"
+date: "2024-11-01"
+output: html_document
+---
+
+```{r setup, include = FALSE}
+options (width = 100)
+knitr::opts_chunk$set(warning = FALSE, meassage = FALSE)
+seed <- 1234
+```
+
+```{r}
+suppressPackageStartupMessages({
+  library(ExploreSCdataSeurat3)
+  library(runSeurat3)
+  library(Seurat)
+  library(ggpubr)
+  library(pheatmap)
+  library(SingleCellExperiment)
+  library(dplyr)
+  library(tidyverse)
+  library(viridis)
+  library(muscat)
+  library(circlize)
+  library(destiny)
+  library(scater)
+  library(metap)
+  library(multtest)
+  library(clusterProfiler)
+  library(org.Hs.eg.db)
+  library(msigdbr)
+  library(enrichplot)
+  library(DOSE)
+  library(grid)
+  library(gridExtra)
+  library(ggupset)
+  library(VennDiagram)
+  library(NCmisc)
+  library(RColorBrewer)
+  library(EnhancedVolcano)
+  library(textshaping)
+  library(wordcloud)
+  library(pathview)
+  library(workflowr)
+})
+
+```
+
+
+```{r}
+##load merged file 
+seuratM <- readRDS("~/Desktop/Emily/Myocarditis snRNAseq/data/01 Merged Seurat files/seuratM_all_metadata_withAMvsHealthy_ventricle_sex_TC con_27.10.2024.rds")
+
+table(seuratM$dataset)
+table(seuratM$RNA_snn_res.0.25)
+table(seuratM$orig.ident)
+```
+
+
+```{r}
+
+# Stratification by resident macrophages MCP1
+
+datList <- NULL
+for(con in unique(seuratM$patient)){
+  seuratSub <- subset(seuratM, patient==con)
+  print(dim(seuratSub))
+  dat_con <- as.data.frame(table(seuratSub$clusterName)) %>%
+  mutate(percent=Freq/ncol(seuratSub)) %>% mutate(patient=con)
+  datList[[con]] <- dat_con
+}
+
+
+dat_all <- do.call("rbind", datList)
+
+
+head(dat_all)
+
+# Filter MCP1
+dat_all <- filter(dat_all, Var1 == ("MCP1"))
+
+dat_all$MCP1grp <- NA
+
+dat_all$MCP1grp [dat_all$percent > 0.12] <- "MCP1 High > 12%"
+dat_all$MCP1grp [dat_all$percent <= 0.12 & dat_all$percent >=0.06] <- "MCP1 Intermediate 6-12%"
+dat_all$MCP1grp [dat_all$percent < 0.06] <- "MCP1 Low <6%"
+
+seuratM$MCP1grp <- paste0(dat_all$MCP1grp, '_', dat_all$patient)
+
+table(dat_all$MCP1grp)
+
+
+#View(dat_all)
+
+# Create the plot
+ggplot(dat_all, aes(x = MCP1grp, y = percent, fill = MCP1grp)) +
+  geom_boxplot(outlier.shape = NA, alpha = 0.8) +  # Box plot without outliers
+  geom_jitter(size = 0.5, width = 0.2, aes(color = MCP1grp)) +  # Jittered points
+  theme_classic() +
+  ggtitle("Frequencies of the Macrophages type 1 - resident macrophages") +
+  xlab("MCP1 groups") +
+  ylab("MCP1 Frequency") +
+  stat_compare_means(method = "anova", label = "p.signif", hide.ns = FALSE) +
+  stat_compare_means(label = "p.format", comparisons = list(c("MCP1 High > 12%", "MCP1 Intermediate 6-12%", "MCP1 Low <6%"), method = "kruskal"))
+
+```
+
+
+```{r}
+
+# Stratification by inflammatory Macrophages MCP2
+
+datList <- NULL
+for(con in unique(seuratM$patient)){
+  seuratSub <- subset(seuratM, patient==con)
+  print(dim(seuratSub))
+  dat_con <- as.data.frame(table(seuratSub$clusterName)) %>%
+  mutate(percent=Freq/ncol(seuratSub)) %>% mutate(patient=con)
+  datList[[con]] <- dat_con
+}
+
+
+dat_all <- do.call("rbind", datList)
+
+
+#View(dat_all)
+
+
+# Filter MCP2 cluster and subgroup into high, intermediate and low
+
+dat_all <- filter (dat_all, Var1 == c("MCP2"))
+
+dat_all$MCP2grp <- NA
+
+dat_all$MCP2grp[dat_all$percent > 0.05] <- "MCP2 High > 5%"
+dat_all$MCP2grp[dat_all$percent <= 0.05 & dat_all$percent >= 0.01] <- "MCP2 Intermediate 1-5%"
+dat_all$MCP2grp[dat_all$percent < 0.01] <- "MCP2 Low <1%"
+
+seuratM$MCP2grp_patient <- paste0(dat_all$MCP2grp, '_', dat_all$patient)
+
+table(dat_all$MCP2grp)
+#write.table(dat_all, file= "/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/docs/Markers_dat_all_clusters_MCP2_high_low", sep = "\t",quote=F,row.names=F,col.names=T)
+
+# MCP2 --> 2 high, 6 intermediate, 35 low
+
+head(dat_all)
+
+# Create the plot
+ggplot(dat_all, aes(x = MCP2grp, y = percent, fill = MCP2grp)) +
+  geom_boxplot(outlier.shape = NA, alpha = 0.8) +  # Box plot without outliers
+  geom_jitter(size = 0.5, width = 0.2, aes(color = MCP2grp)) +  # Jittered points
+  theme_classic() +
+  ggtitle("Frequencies of the Macrophages type 2 - inflammatory subtype") +
+  xlab("MCP2 groups") +
+  ylab("MCP2 Frequency") +
+  stat_compare_means(method = "anova", label = "p.signif", hide.ns = FALSE) +
+  stat_compare_means(label = "p.format", comparisons = list(c("MCP2 High > 5%", "MCP2 Intermediate 1-5%", "MCP2 Low <1%"), method = "kruskal"))
+
+
+```
+
+
+
+```{r}
+
+
+# Stratification by Fibroblasts
+
+datList <- NULL
+for(con in unique(seuratM$patient)){
+  seuratSub <- subset(seuratM, patient==con)
+  print(dim(seuratSub))
+  dat_con <- as.data.frame(table(seuratSub$clusterName)) %>%
+  mutate(percent=Freq/ncol(seuratSub)) %>% mutate(patient=con)
+  datList[[con]] <- dat_con
+}
+
+
+dat_all <- do.call("rbind", datList)
+
+
+head(dat_all)
+
+# Filter Fb2
+dat_all <- filter(dat_all, Var1 == ("Fb2"))
+
+#View(dat_all) 
+dat_all$Fb2grp <- NA
+
+dat_all$Fb2grp  [dat_all$percent >= 0.01] <- "Fb2 High >= 1%"
+dat_all$Fb2grp  [dat_all$percent < 0.01] <- "Fb2 Low < 1%"
+
+seuratM$Fb2grp <- paste0(dat_all$Fb2grp, '_', dat_all$patient)
+
+table(dat_all$Fb2grp)
+
+
+
+#write.table(dat_all, file= "/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/docs/Markers_dat_all_clusters_Fb2 Fibroblasts_high_low", sep = "\t",quote=F,row.names=F,col.names=T)
+
+
+head(dat_all)
+
+
+# Create the plot
+ggplot(dat_all, aes(x = Fb2grp, y = percent, fill = Fb2grp)) +
+  geom_boxplot(outlier.shape = NA, alpha = 0.8) +  # Box plot without outliers
+  geom_jitter(size = 2, width = 0.2, aes(color = Fb2grp)) +  # Jittered points
+  theme_classic() +
+  ggtitle("Frequencies of Fibroblasts type 2 - proinflammatory subtype") +
+  xlab("Fb2 groups") +
+  ylab("Fb2 Frequency") +
+  stat_compare_means(method = "anova", label = "p.signif", hide.ns = FALSE) +
+  stat_compare_means(label = "p.format", comparisons = list(c("Fb2 High >= 1%", "Fb2 Low <1%"), method = "kruskal"))
+
+```
+
+
+
+
+```{r}
+date()
+sessionInfo()
+
+```
+
+

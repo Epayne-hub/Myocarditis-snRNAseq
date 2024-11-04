@@ -1,0 +1,3024 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+
+<meta name="date" content="2024-09-21" />
+
+<title>T cell abundancance Differential expression</title>
+
+<script src="site_libs/header-attrs-2.28/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/jqueryui-1.13.2/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+
+<link rel="icon" href="https://github.com/workflowr/workflowr-assets/raw/main/img/reproducible.png">
+<!-- Add a small amount of space between sections. -->
+<style type="text/css">
+div.section {
+  padding-top: 12px;
+}
+</style>
+
+
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark the anchor link active (and if it's in a dropdown, also mark that active)
+  var dropdown = menuAnchor.closest('li.dropdown');
+  if (window.bootstrap) { // Bootstrap 4+
+    menuAnchor.addClass('active');
+    dropdown.find('> .dropdown-toggle').addClass('active');
+  } else { // Bootstrap 3
+    menuAnchor.parent().addClass('active');
+    dropdown.addClass('active');
+  }
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "\e259";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "\e258";
+  font-family: 'Glyphicons Halflings';
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+
+
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+@media print {
+.toc-content {
+  /* see https://github.com/w3c/csswg-drafts/issues/4434 */
+  float: right;
+}
+}
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">Myocarditis snRNAseq</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">Home</a>
+</li>
+<li>
+  <a href="about.html">About</a>
+</li>
+<li>
+  <a href="license.html">License</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+
+
+<h1 class="title toc-ignore">T cell abundancance Differential
+expression</h1>
+<h4 class="date">2024-09-21</h4>
+
+</div>
+
+
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-report" data-toggle="collapse" data-target="#workflowr-report">
+<span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+workflowr <span class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span>
+</button>
+</p>
+<div id="workflowr-report" class="collapse">
+<ul class="nav nav-tabs">
+<li class="active">
+<a data-toggle="tab" href="#summary">Summary</a>
+</li>
+<li>
+<a data-toggle="tab" href="#checks"> Checks <span
+class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span> </a>
+</li>
+<li>
+<a data-toggle="tab" href="#versions">Past versions</a>
+</li>
+</ul>
+<div class="tab-content">
+<div id="summary" class="tab-pane fade in active">
+<p>
+<strong>Last updated:</strong> 2024-11-03
+</p>
+<p>
+<strong>Checks:</strong> <span
+class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> 5
+<span class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span> 2
+</p>
+<p>
+<strong>Knit directory:</strong> <code>Myocarditis
+snRNAseq/analysis/</code> <span
+class="glyphicon glyphicon-question-sign" aria-hidden="true"
+title="This is the local directory in which the code in this file was executed.">
+</span>
+</p>
+<p>
+This reproducible <a href="https://rmarkdown.rstudio.com">R Markdown</a>
+analysis was created with <a
+  href="https://github.com/workflowr/workflowr">workflowr</a> (version
+1.7.1). The <em>Checks</em> tab describes the reproducibility checks
+that were applied when the results were created. The <em>Past
+versions</em> tab lists the development history.
+</p>
+<hr>
+</div>
+<div id="checks" class="tab-pane fade">
+<div id="workflowr-checks" class="panel-group">
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRMarkdownfilestronguncommittedchanges">
+<span class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span> <strong>R Markdown file:</strong> uncommitted
+changes </a>
+</p>
+</div>
+<div id="strongRMarkdownfilestronguncommittedchanges"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>The R Markdown is untracked by Git. To know which version of the R
+Markdown file created these results, you’ll want to first commit it to
+the Git repo. If you’re still working on the analysis, you can ignore
+this warning. When you’re finished, you can run
+<code>wflow_publish</code> to commit the R Markdown file and build the
+HTML.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongEnvironmentstrongempty">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Environment:</strong> empty </a>
+</p>
+</div>
+<div id="strongEnvironmentstrongempty" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! The global environment was empty. Objects defined in the
+global environment can affect the analysis in your R Markdown file in
+unknown ways. For reproduciblity it’s best to always run the code in an
+empty environment.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSeedstrongcodesetseed12345code">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Seed:</strong>
+<code>set.seed(12345)</code> </a>
+</p>
+</div>
+<div id="strongSeedstrongcodesetseed12345code"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>The command <code>set.seed(12345)</code> was run prior to running the
+code in the R Markdown file. Setting a seed ensures that any results
+that rely on randomness, e.g. subsampling or permutations, are
+reproducible.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSessioninformationstrongrecorded">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Session information:</strong>
+recorded </a>
+</p>
+</div>
+<div id="strongSessioninformationstrongrecorded"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! Recording the operating system, R version, and package
+versions is critical for reproducibility.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongCachestrongnone">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Cache:</strong> none </a>
+</p>
+</div>
+<div id="strongCachestrongnone" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Nice! There were no cached chunks for this analysis, so you can be
+confident that you successfully produced the results during this
+run.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongFilepathsstrongabsolute">
+<span class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span> <strong>File paths:</strong> absolute </a>
+</p>
+</div>
+<div id="strongFilepathsstrongabsolute" class="panel-collapse collapse">
+<div class="panel-body">
+<p>
+Using absolute paths to the files within your workflowr project makes it
+difficult for you and others to run your code on a different machine.
+Change the absolute path(s) below to the suggested relative path(s) to
+make your code more reproducible.
+</p>
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th style="text-align:left;">
+absolute
+</th>
+<th style="text-align:left;">
+relative
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/data/01 Merged Seurat
+files/Myocarditis_by_Tc_condition_metadata_04.10.24.rds
+</td>
+<td style="text-align:left;">
+../data/01 Merged Seurat
+files/Myocarditis_by_Tc_condition_metadata_04.10.24.rds
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/data/01 Merged Seurat
+files/Myocarditis_RDS_04.10.2024.rds
+</td>
+<td style="text-align:left;">
+../data/01 Merged Seurat files/Myocarditis_RDS_04.10.2024.rds
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/docs/dat_all2_abundance
+by condition_4-10%_04.10.2024
+</td>
+<td style="text-align:left;">
+../docs/dat_all2_abundance by condition_4-10%_04.10.2024
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+/Users/immbio/Desktop/Emily/Myocarditis
+snRNAseq/docs/dat_all2_con_pat_Tc highvs.low_04.10.2024_final
+</td>
+<td style="text-align:left;">
+../docs/dat_all2_con_pat_Tc highvs.low_04.10.2024_final
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/docs/DEGenesMCP2_all
+markers for all TC conditions 12.10.2024
+</td>
+<td style="text-align:left;">
+../docs/DEGenesMCP2_all markers for all TC conditions 12.10.2024
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/docs/egoMCP2 for TC
+high 12.10.2024
+</td>
+<td style="text-align:left;">
+../docs/egoMCP2 for TC high 12.10.2024
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/docs/Markers/egoMCP2
+for TC intermediate 12.10.2024
+</td>
+<td style="text-align:left;">
+../docs/Markers/egoMCP2 for TC intermediate 12.10.2024
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/docs/Markers/egoMCP2
+for TC low 12.10.2024
+</td>
+<td style="text-align:left;">
+../docs/Markers/egoMCP2 for TC low 12.10.2024
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/docs/Markers/egoMCP2
+for TC vlow 12.10.2024
+</td>
+<td style="text-align:left;">
+../docs/Markers/egoMCP2 for TC vlow 12.10.2024
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/docs/Markers/DE Genes
+CM for all TCell conditions
+</td>
+<td style="text-align:left;">
+../docs/Markers/DE Genes CM for all TCell conditions
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/docs/Markers/egoCM for
+TC high 12.10.2024
+</td>
+<td style="text-align:left;">
+../docs/Markers/egoCM for TC high 12.10.2024
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/docs/Markers/egoCM for
+TC int 12.10.2024
+</td>
+<td style="text-align:left;">
+../docs/Markers/egoCM for TC int 12.10.2024
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/docs/Markers/egoCM for
+TC low 12.10.2024
+</td>
+<td style="text-align:left;">
+../docs/Markers/egoCM for TC low 12.10.2024
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/docs/Markers/egoCM for
+TC very low 12.10.2024
+</td>
+<td style="text-align:left;">
+../docs/Markers/egoCM for TC very low 12.10.2024
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/docs/Markers/DE Genes
+Tcell cluster for all TCell conditions
+</td>
+<td style="text-align:left;">
+../docs/Markers/DE Genes Tcell cluster for all TCell conditions
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/docs/Markers/egoTC for
+TC high 12.10.2024
+</td>
+<td style="text-align:left;">
+../docs/Markers/egoTC for TC high 12.10.2024
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/docs/Markers/egoTC for
+TC intermediate 12.10.2024
+</td>
+<td style="text-align:left;">
+../docs/Markers/egoTC for TC intermediate 12.10.2024
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/docs/Markers/egoTC for
+TC low 12.10.2024
+</td>
+<td style="text-align:left;">
+../docs/Markers/egoTC for TC low 12.10.2024
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/docs/Markers/egoTC for
+TC very low 12.10.2024
+</td>
+<td style="text-align:left;">
+../docs/Markers/egoTC for TC very low 12.10.2024
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/docs/Markers/egoFb for
+TC high 12.10.2024
+</td>
+<td style="text-align:left;">
+../docs/Markers/egoFb for TC high 12.10.2024
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/docs/Markers/egoFb for
+TC very low 12.10.2024
+</td>
+<td style="text-align:left;">
+../docs/Markers/egoFb for TC very low 12.10.2024
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/data/01 Merged Seurat
+files/Myocarditis_clusters_TCmetadata_27.09.2024.rds
+</td>
+<td style="text-align:left;">
+../data/01 Merged Seurat
+files/Myocarditis_clusters_TCmetadata_27.09.2024.rds
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+/Users/immbio/Desktop/Emily/Myocarditis
+snRNAseq/docs/Markers_dat_all_clusters_Tcell_high_lowV2
+</td>
+<td style="text-align:left;">
+../docs/Markers_dat_all_clusters_Tcell_high_lowV2
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/data/01 Merged Seurat
+files/Myocarditis_clusters_Tc_condition_26.09.24.rds
+</td>
+<td style="text-align:left;">
+../data/01 Merged Seurat
+files/Myocarditis_clusters_Tc_condition_26.09.24.rds
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomEpaynehubMyocarditissnRNAseqtree4daf12687e1b1561624f77778fa38396be0bb8detargetblank4daf126a">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Repository version:</strong>
+<a href="https://github.com/Epayne-hub/Myocarditis-snRNAseq/tree/4daf12687e1b1561624f77778fa38396be0bb8de" target="_blank">4daf126</a>
+</a>
+</p>
+</div>
+<div
+id="strongRepositoryversionstrongahrefhttpsgithubcomEpaynehubMyocarditissnRNAseqtree4daf12687e1b1561624f77778fa38396be0bb8detargetblank4daf126a"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>
+Great! You are using Git for version control. Tracking code development
+and connecting the code version to the results is critical for
+reproducibility.
+</p>
+<p>
+The results in this page were generated with repository version
+<a href="https://github.com/Epayne-hub/Myocarditis-snRNAseq/tree/4daf12687e1b1561624f77778fa38396be0bb8de" target="_blank">4daf126</a>.
+See the <em>Past versions</em> tab to see a history of the changes made
+to the R Markdown and HTML files.
+</p>
+<p>
+Note that you need to be careful to ensure that all relevant files for
+the analysis have been committed to Git prior to generating the results
+(you can use <code>wflow_publish</code> or
+<code>wflow_git_commit</code>). workflowr only checks the R Markdown
+file, but you know if there are other scripts or data files that it
+depends on. Below is the status of the Git repository when the results
+were generated:
+</p>
+<pre><code>
+Ignored files:
+    Ignored:    .DS_Store
+    Ignored:    .Rhistory
+    Ignored:    .Rproj.user/
+    Ignored:    analysis/.DS_Store
+    Ignored:    analysis/.Rhistory
+    Ignored:    data/00 Inbox Documents and Pictures /
+    Ignored:    data/01 Merged Seurat files/
+    Ignored:    data/AM/
+    Ignored:    data/Berlin/
+    Ignored:    data/CM/
+    Ignored:    data/Healthy/
+    Ignored:    data/Sarcoidosis/
+
+Untracked files:
+    Untracked:  T cell abundance DE Kopie.Rmd
+    Untracked:  analysis/Comparison AM by sex.Rmd
+    Untracked:  analysis/DE Genes by Disease Condition.Rmd
+    Untracked:  analysis/DE genes AMsub vs. Healthy_V2.Rmd
+    Untracked:  analysis/Fibroblast subset V2 reclustering.Rmd
+    Untracked:  analysis/Install.packages_MFZ.R
+    Untracked:  analysis/MCP and TC reembedding.Rmd
+    Untracked:  analysis/Macrophage DE subset V2.Rmd
+    Untracked:  analysis/Macrophage DE subset.Rmd
+    Untracked:  analysis/Macrophage GSEA.Rmd
+    Untracked:  analysis/Macrophage Reembedding.Rmd
+    Untracked:  analysis/Macrophage embedding.Rmd
+    Untracked:  analysis/Macrophage heatmap.Rmd
+    Untracked:  analysis/Merging/
+    Untracked:  analysis/Myocarditis snRNAseq QC and merging_V2_Tchigh vs. low.Rmd
+    Untracked:  analysis/Relative Abundances and heatmap.Rmd
+    Untracked:  analysis/Relative abundances.Rmd
+    Untracked:  analysis/Stratification by T cell condition and DE genes.Rmd
+    Untracked:  analysis/Stratification-by-T-cell-condition-and-DE-genes.Rmd
+    Untracked:  analysis/Stratification_exploratory by mcp and fb.Rmd
+    Untracked:  analysis/T cell condition Differential expression.Rmd
+    Untracked:  analysis/TC high vs. low condition.Rmd
+    Untracked:  analysis/Tcell embedding and GSEA.Rmd
+    Untracked:  analysis/V1/
+
+Unstaged changes:
+    Deleted:    _workflowr.yml
+    Modified:   analysis/Myocarditis snRNAseq.Rmd
+    Deleted:    analysis/license.Rmd
+    Deleted:    data/README.md
+
+</code></pre>
+<p>
+Note that any generated files, e.g. HTML, png, CSS, etc., are not
+included in this status report because it is ok for generated content to
+have uncommitted changes.
+</p>
+</div>
+</div>
+</div>
+</div>
+<hr>
+</div>
+<div id="versions" class="tab-pane fade">
+<p>
+There are no past versions. Publish this analysis with
+<code>wflow_publish()</code> to start tracking its development.
+</p>
+<hr>
+</div>
+</div>
+</div>
+<pre class="r"><code>suppressPackageStartupMessages({
+  library(ExploreSCdataSeurat3)
+  library(runSeurat3)
+  library(Seurat)
+  library(ggpubr)
+  library(pheatmap)
+  library(SingleCellExperiment)
+  library(dplyr)
+  library(tidyverse)
+  library(viridis)
+  library(muscat)
+  library(circlize)
+  library(destiny)
+  library(scater)
+  library(metap)
+  library(multtest)
+  library(clusterProfiler)
+  library(org.Hs.eg.db)
+  library(msigdbr)
+  library(enrichplot)
+  library(DOSE)
+  library(grid)
+  library(gridExtra)
+  library(ggupset)
+  library(VennDiagram)
+  library(NCmisc)
+  library(RColorBrewer)
+  library(EnhancedVolcano)
+  library(textshaping)
+  library(wordcloud)
+  library(pathview)
+  library(workflowr)
+})</code></pre>
+<pre class="r"><code>##load merged file 
+seuratM &lt;- readRDS(&quot;/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/data/01 Merged Seurat files/Myocarditis_by_Tc_condition_metadata_04.10.24.rds&quot;)
+
+
+table(seuratM$dataset)</code></pre>
+<pre><code>
+     312581_05-5_20230308_Hu_nucseq_SG36_EMB_GEM      312581_06-6_20230308_Hu_nucseq_SG37_EMB_GEM 
+                                            4323                                             1123 
+   353921_28-28_20240529_Hu_nucseq_Immpath_EMB18    353921_29-29_20240529_Hu_nucseq_Immpath_EMB24 
+                                             208                                              105 
+   353921_30-30_20240529_Hu_nucseq_Immpath_EMB25    353921_31-31_20240529_Hu_nucseq_Immpath_EMB27 
+                                             227                                              579 
+   353921_32-32_20240529_Hu_nucseq_Immpath_EMB29    353921_33-33_20240529_Hu_nucseq_Immpath_EMB30 
+                                             335                                              730 
+   353921_34-34_20240529_Hu_nucseq_Immpath_EMB35    353921_35-35_20240529_Hu_nucseq_Immpath_EMB37 
+                                            1217                                              604 
+359861_09-11_20240723_Hu_nucseq_Ber_Pat5_EM979_1 359861_10-13_20240723_Hu_nucseq_Ber_Pat5_EM979_2 
+                                             771                                             1476 
+ 359861_11-1_20240730_Hu_nucseq_Ber_Pat1_EMB1537  359861_12-2_20240730_Hu_nucseq_Ber_Pat2_EMB1041 
+                                             316                                              608 
+    359861_16-8_20240730_Hu_nucseq_Immpath_EMB47     359861_17-9_20240730_Hu_nucseq_Immpath_EMB48 
+                                             513                                              426 
+     o27533_1_12-12_20220203_Hu_nucseq_EMB31_GEM        o27936_1_7-7_20220309_Hu_nucseq_EMB32_GEM 
+                                             236                                             1192 
+ o28576_1_01-1_20220525_Hu_nucseq_Graz_1_EMB_GEM  o28576_1_02-2_20220525_Hu_nucseq_Graz_2_EMB_GEM 
+                                            2740                                             1684 
+ o28576_1_03-3_20220525_Hu_nucseq_Graz_3_EMB_GEM  o28576_1_04-4_20220525_Hu_nucseq_Graz_4_EMB_GEM 
+                                            2396                                              545 
+ o28576_1_05-5_20220525_Hu_nucseq_Graz_5_EMB_GEM  o28576_1_06-6_20220525_Hu_nucseq_Graz_6_EMB_GEM 
+                                             781                                              491 
+ o28576_1_07-7_20220525_Hu_nucseq_Graz_7_EMB_GEM   o28576_1_08-8_20220525_Hu_nucseq_Graz_8_HH_GEM 
+                                             653                                             3921 
+o28576_1_12-12_20220525_Hu_nucseq_Graz_12_HH_GEM      o28576_1_13-13_20220525_Hu_nucseq_EMB32_GEM 
+                                            3818                                             1428 
+    o292731_1-1_20220818_Hu_nucseq_Graz_9_HH_GEM    o292731_2-2_20220818_Hu_nucseq_Graz_13_HH_GEM 
+                                            4908                                             9882 
+    o292731_3-3_20220818_Hu_nucseq_SG_33_EMB_GEM     o292731_4-4_20220818_Hu_nucseq_SG_34_EMB_GEM 
+                                            6286                                              620 
+    o292731_5-5_20220818_Hu_nucseq_SG_35_EMB_GEM   o294781_01-1_20220912_Hu_nucseq_Graz_21_HH_GEM 
+                                            2363                                             1442 
+  o294781_02-2_20220912_Hu_nucseq_Graz_22_HH_GEM   o294781_03-3_20220912_Hu_nucseq_Graz_23_HH_GEM 
+                                            1998                                              841 
+  o294781_04-4_20220912_Hu_nucseq_Graz_24_HH_GEM  o294781_05-5_20220912_Hu_nucseq_Graz_14_EMB_GEM 
+                                            1480                                             1268 
+ o294781_06-6_20220912_Hu_nucseq_Graz_15_EMB_GEM  o294781_09-9_20220912_Hu_nucseq_Graz_18_EMB_GEM 
+                                            4439                                             2280 
+o294781_10-10_20220912_Hu_nucseq_Graz_19_EMB_GEM o294781_11-11_20220912_Hu_nucseq_Graz_20_EMB_GEM 
+                                             111                                             2706 </code></pre>
+<pre class="r"><code>table(seuratM$RNA_snn_res.0.25)</code></pre>
+<pre><code>
+    0     1     2     3     4     5     6     7     8     9    10    11    12    13    14 
+17699 13639 12754  8222  5475  4836  3723  2365  2156   905   882   694   380   249    91 </code></pre>
+<pre class="r"><code>table(seuratM$orig.ident)</code></pre>
+<pre><code>
+      
+74070 </code></pre>
+<pre class="r"><code>Idents(seuratM) &lt;- seuratM$RNA_snn_res.0.25
+DimPlot(seuratM, reduction = &quot;umap&quot;, pt.size = 0.1, label = TRUE)</code></pre>
+<img src="figure/Stratification%20by%20T%20cell%20condition%20and%20DE%20genes.Rmd/Plot%20umap-1.png" width="672" style="display: block; margin: auto;" />
+<div class="alert alert-warning">
+<strong>Warning!</strong> The custom <code>fig.path</code> you set was
+ignored by workflowr.
+</div>
+<pre class="r"><code>unique(seuratM$clusterName)</code></pre>
+<pre><code> [1] PeriFb1       Fb1           VSMC          BEC1          Cardiomyocyte Fb3          
+ [7] TC            MCP1          BEC2          INT1          MCP2          NC           
+[13] Fb2           AdipoC        PeriFb2      
+Levels: Cardiomyocyte Fb1 Fb2 Fb3 INT1 PeriFb1 PeriFb2 VSMC NC BEC1 BEC2 AdipoC MCP1 MCP2 TC</code></pre>
+<pre class="r"><code>#### Rename clusters
+
+seuratM$clusterName &lt;- &quot;clusterName&quot;
+Idents(seuratM) &lt;- seuratM$clusterName
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% &quot;0&quot; )] &lt;- &quot;Fb1&quot;
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% &quot;1&quot; )] &lt;- &quot;BEC1&quot;
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% &quot;2&quot; )] &lt;- &quot;PeriFb1&quot;
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% &quot;3&quot; )] &lt;- &quot;Cardiomyocyte&quot;
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% &quot;4&quot; )] &lt;- &quot;MCP1&quot;
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% &quot;5&quot; )] &lt;- &quot;TC&quot;
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% &quot;6&quot; )] &lt;- &quot;MCP2&quot;
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% &quot;7&quot; )] &lt;- &quot;BEC2&quot;
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% &quot;8&quot; )] &lt;- &quot;VSMC&quot;
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% &quot;9&quot; )] &lt;- &quot;NC&quot;
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% &quot;10&quot; )] &lt;- &quot;INT1&quot;
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% &quot;11&quot; )] &lt;- &quot;Fb2&quot;
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% &quot;12&quot; )] &lt;- &quot;Fb3&quot;
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% &quot;13&quot; )] &lt;- &quot;PeriFb2&quot;
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% &quot;14&quot; )] &lt;- &quot;AdipoC&quot;
+
+
+colclusterName &lt;- c(&quot;#D53E4F&quot;, &quot;#f4a582&quot;, &quot;#FEE08B&quot;,&quot;#feb24c&quot;,&quot;#67001f&quot;, &quot;#01665e&quot;,&quot;#66C2A5&quot;,&quot;#c7eae5&quot;,&quot;#BEAED4&quot;, &quot;#355C7D&quot;,&quot;#3288BD&quot;,&quot;#8c510a&quot; ,&quot;#fde0dd&quot;,&quot;#B45B5C&quot;,&quot;#dd1c77&quot;)
+
+                    
+names(colclusterName) &lt;- c(&quot;Cardiomyocyte&quot;,&quot;Fb1&quot;,&quot;Fb2&quot;,&quot;Fb3&quot;, &quot;INT1&quot;, &quot;PeriFb1&quot;, &quot;PeriFb2&quot;, &quot;VSMC&quot;,&quot;NC&quot;, &quot;BEC1&quot;,&quot;BEC2&quot;, &quot;AdipoC&quot;, &quot;MCP1&quot;,&quot;MCP2&quot;,&quot;TC&quot;)
+
+colpat_sub&lt;- c(&quot;#dfc27d&quot;,&quot;#BE3144&quot;,&quot;#355C7D&quot;, &quot;#779d8d&quot;)
+
+seuratM$clusterName &lt;- factor(seuratM$clusterName, levels=c(&quot;Cardiomyocyte&quot;, &quot;Fb1&quot;, &quot;Fb2&quot;, &quot;Fb3&quot;, &quot;INT1&quot;,&quot;PeriFb1&quot;, &quot;PeriFb2&quot;, &quot;VSMC&quot;, &quot;NC&quot;, &quot;BEC1&quot;, &quot;BEC2&quot;, &quot;AdipoC&quot;, &quot;MCP1&quot;, &quot;MCP2&quot;, &quot;TC&quot;))
+
+
+Idents(seuratM) &lt;- seuratM$clusterName
+DimPlot(seuratM, reduction = &quot;umap&quot;, pt.size = 0.1, label = TRUE, cols = colclusterName)</code></pre>
+<img src="figure/Stratification%20by%20T%20cell%20condition%20and%20DE%20genes.Rmd/unnamed-chunk-3-1.png" width="672" style="display: block; margin: auto;" />
+<div class="alert alert-warning">
+<strong>Warning!</strong> The custom <code>fig.path</code> you set was
+ignored by workflowr.
+</div>
+<pre class="r"><code>#saveRDS(seuratM, file=&quot;/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/data/01 Merged Seurat files/Myocarditis_RDS_04.10.2024.rds&quot;)</code></pre>
+<pre class="r"><code>###patient
+datList &lt;- NULL
+for(con in unique(seuratM$patient)){
+  seuratSub &lt;- subset(seuratM, patient==con)
+  print(dim(seuratSub))
+  dat_con &lt;- as.data.frame(table(seuratSub$clusterName)) %&gt;%
+  mutate(percent=Freq/ncol(seuratSub)) %&gt;% mutate(patient=con)
+  datList[[con]] &lt;- dat_con
+}</code></pre>
+<pre><code>[1] 39114  4323
+[1] 39114  1123
+[1] 39114   208
+[1] 39114   579
+[1] 39114   335
+[1] 39114  1217
+[1] 39114   604
+[1] 39114   513
+[1] 39114   426
+[1] 39114   236
+[1] 39114  1192
+[1] 39114  2740
+[1] 39114  1684
+[1] 39114  6286
+[1] 39114  4439
+[1] 39114  2247
+[1] 39114   316
+[1] 39114   608
+[1] 39114   105
+[1] 39114   227
+[1] 39114   730
+[1] 39114  2396
+[1] 39114   545
+[1] 39114   781
+[1] 39114   491
+[1] 39114   653
+[1] 39114  1428
+[1] 39114   620
+[1] 39114  1268
+[1] 39114  2280
+[1] 39114   111
+[1] 39114  3921
+[1] 39114  3818
+[1] 39114  4908
+[1] 39114  9882
+[1] 39114  1442
+[1] 39114  1998
+[1] 39114   841
+[1] 39114  1480
+[1] 39114  2363
+[1] 39114  2706</code></pre>
+<pre class="r"><code>dat_all &lt;- do.call(&quot;rbind&quot;, datList)
+
+#View(dat_all)</code></pre>
+<pre class="r"><code>###patient_patsub
+
+datList2 &lt;- NULL
+for(con in unique(seuratM$patient_pat_sub)){
+  seuratSub &lt;- subset(seuratM, patient_pat_sub==con)
+  print(dim(seuratSub))
+  dat_con &lt;- as.data.frame(table(seuratSub$clusterName)) %&gt;%
+  mutate(percent=Freq/ncol(seuratSub)) %&gt;% mutate(patient_pat_sub=con)
+  datList2[[con]] &lt;- dat_con
+}</code></pre>
+<pre><code>[1] 39114  4323
+[1] 39114  1123
+[1] 39114   208
+[1] 39114   579
+[1] 39114   335
+[1] 39114  1217
+[1] 39114   604
+[1] 39114   513
+[1] 39114   426
+[1] 39114   236
+[1] 39114  1192
+[1] 39114  2740
+[1] 39114  1684
+[1] 39114  6286
+[1] 39114  4439
+[1] 39114  2247
+[1] 39114   316
+[1] 39114   608
+[1] 39114   105
+[1] 39114   227
+[1] 39114   730
+[1] 39114  2396
+[1] 39114   545
+[1] 39114   781
+[1] 39114   491
+[1] 39114   653
+[1] 39114  1428
+[1] 39114   620
+[1] 39114  1268
+[1] 39114  2280
+[1] 39114   111
+[1] 39114  3921
+[1] 39114  3818
+[1] 39114  4908
+[1] 39114  9882
+[1] 39114  1442
+[1] 39114  1998
+[1] 39114   841
+[1] 39114  1480
+[1] 39114  2363
+[1] 39114  2706</code></pre>
+<pre class="r"><code>dat_all2 &lt;- do.call(&quot;rbind&quot;, datList2)
+
+library(stringr)
+# Split patient_pat_sub into patient and pat_sub 
+dat_all2 &lt;- as.data.frame(dat_all2) 
+ 
+dat_all2[c(&#39;patient&#39;, &#39;pat_sub&#39;)] &lt;- str_split_fixed(dat_all2$patient_pat_sub, &#39;_&#39;, 2)
+
+# View(dat_all2)
+ 
+#write.table(dat_all2, file= &quot;/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/docs/dat_all2_abundance by condition_4-10%_04.10.2024&quot;, sep=&quot;\t&quot;,quote=F,row.names=F,col.names=T)</code></pre>
+<pre class="r"><code># Filter &quot;TC&quot; cluster
+dat_all2 &lt;- filter(dat_all2, Var1 == &quot;TC&quot;)
+
+# New column
+dat_all2$Tgrp &lt;- NA  
+
+# T cell categories
+dat_all2$Tgrp[dat_all2$percent &gt; 0.1] &lt;- &quot;Tcell High&quot;
+dat_all2$Tgrp[dat_all2$percent &lt; 0.1 &amp; dat_all2$percent &gt;= 0.05] &lt;- &quot;Tcell Intermediate&quot;
+dat_all2$Tgrp[dat_all2$percent &lt; 0.05 &amp; dat_all2$percent &gt;= 0.02] &lt;- &quot;Tcell Low&quot;
+dat_all2$Tgrp[dat_all2$percent &lt; 0.02] &lt;- &quot;Tcell Very Low&quot;
+
+table(dat_all2$Tgrp)</code></pre>
+<pre><code>
+        Tcell High Tcell Intermediate          Tcell Low     Tcell Very Low 
+                 5                  4                 12                 20 </code></pre>
+<pre class="r"><code>#write.table(dat_all2, file= &quot;/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/docs/dat_all2_con_pat_Tc highvs.low_04.10.2024_final&quot;, sep=&quot;\t&quot;,quote=F,row.names=F,col.names=T)
+
+ggplot(dat_all2, aes(x = Tgrp, y = percent, fill = Tgrp)) +
+  geom_boxplot(outlier.shape = NA, alpha = 0.5) +  
+  geom_jitter(size = 0.8, width = 0.2, aes(color = Tgrp)) +  
+  theme_classic() +
+  ggtitle(&quot;Frequencies of T cells&quot;) +
+  xlab(&quot;T cell groups&quot;) +
+  ylab(&quot;T Cell Frequency&quot;) +
+  stat_compare_means(method = &quot;kruskal&quot;, label = &quot;p.signif&quot;, hide.ns = FALSE) +
+  stat_compare_means(label = &quot;p.format&quot;, comparisons = list(c(&quot;Tcell High&quot;, &quot;Tcell Intermediate&quot;, &quot;Tcell Low&quot;, &quot;T cell Very Low&quot;)), method = &quot;kruskal&quot;)  </code></pre>
+<img src="figure/Stratification%20by%20T%20cell%20condition%20and%20DE%20genes.Rmd/subgroup%20Tcell%20conditions-1.png" width="672" style="display: block; margin: auto;" />
+<div class="alert alert-warning">
+<strong>Warning!</strong> The custom <code>fig.path</code> you set was
+ignored by workflowr.
+</div>
+<pre class="r"><code>## with cutoffs high &gt;10%, intermediate 4-10%, low 2-4%, very low &lt;2% -&gt; 
+# N patients: high N = 5, intermediate N = 6, low N = 10, very low N = 20 
+# N nuclei: high = 9034, intermediate = 10840, low = 18066 , very low = 36130 
+
+
+## with cutoffs high &gt;10%, intermediate 5-10%, low 2-5%, very low &lt;2% -&gt; 
+# N patients: high N = 5, intermediate N = 4, low N = 12, very low N = 20 
+# N nuclei: high = 9034, intermediate = 7227, low = 21679 , very low = 36130 
+
+#View(dat_all2)</code></pre>
+<pre class="r"><code>#seuratM$clusterName &lt;- dat_all2$Var1
+
+#seuratM@meta.data &lt;- dat_all2
+
+# Factor in meta.data with TC condition
+seuratM$TC &lt;- dat_all2$Tgrp
+Idents(seuratM) &lt;- seuratM$TC
+TC_condition &lt;- seuratM$TC
+Idents(seuratM) &lt;- seuratM@meta.data$TC
+
+table(seuratM$TC)</code></pre>
+<pre><code>
+        Tcell High Tcell Intermediate          Tcell Low     Tcell Very Low 
+              9034               7227              21679              36130 </code></pre>
+<pre class="r"><code>TC_condition &lt;- c(&quot;Tcell Very High&quot;, &quot;Tcell High&quot;, &quot;Tcell Intermediate&quot;, &quot;Tcell Low&quot;, &quot;Tcell Very Low&quot;)
+
+seuratM$pat_TC &lt;- paste0(dat_all2$Tgrp, &#39;_&#39;, dat_all2$patient)
+
+seuratM$pat_percent_TC &lt;- paste0(dat_all2$percent, &#39;_&#39;, dat_all2$patient)
+
+seuratM$pat_sub_TC &lt;- paste0(dat_all2$Tgrp, &#39;_&#39;, dat_all2$pat_sub)
+
+seuratM$pat_sub_percent_TC &lt;- paste0(dat_all2$percent, &#39;_&#39;, dat_all2$pat_sub)
+
+seuratM$TC &lt;- paste0(dat_all2$Tgrp)</code></pre>
+<pre class="r"><code>table(seuratM$pat_TC)</code></pre>
+<pre><code>
+         Tcell High_AM 01          Tcell High_AM 16          Tcell High_AM 17 
+                     1807                      1807                      1807 
+         Tcell High_AM 18         Tcell High_CMP 13  Tcell Intermediate_AM 06 
+                     1807                      1806                      1807 
+ Tcell Intermediate_AM 13 Tcell Intermediate_CMP 01 Tcell Intermediate_CMP 12 
+                     1807                      1807                      1806 
+          Tcell Low_AM 08           Tcell Low_AM 09           Tcell Low_AM 14 
+                     1807                      1807                      1807 
+          Tcell Low_AM 15          Tcell Low_CMP 03          Tcell Low_CMP 04 
+                     1807                      1807                      1806 
+         Tcell Low_CMP 05          Tcell Low_CMP 07          Tcell Low_CMP 10 
+                     1806                      1806                      1807 
+         Tcell Low_CMP 11  Tcell Low_Sarcoidosis 01  Tcell Low_Sarcoidosis 02 
+                     1807                      1806                      1806 
+     Tcell Very Low_AM 02      Tcell Very Low_AM 03      Tcell Very Low_AM 04 
+                     1807                      1807                      1807 
+     Tcell Very Low_AM 05      Tcell Very Low_AM 07      Tcell Very Low_AM 10 
+                     1807                      1807                      1807 
+     Tcell Very Low_AM 11      Tcell Very Low_AM 12     Tcell Very Low_CMP 02 
+                     1807                      1807                      1807 
+    Tcell Very Low_CMP 06     Tcell Very Low_CMP 08     Tcell Very Low_CMP 09 
+                     1806                      1806                      1807 
+Tcell Very Low_Healthy 01 Tcell Very Low_Healthy 02 Tcell Very Low_Healthy 03 
+                     1806                      1806                      1806 
+Tcell Very Low_Healthy 04 Tcell Very Low_Healthy 05 Tcell Very Low_Healthy 06 
+                     1806                      1806                      1806 
+Tcell Very Low_Healthy 07 Tcell Very Low_Healthy 08 
+                     1806                      1806 </code></pre>
+<pre class="r"><code>table(seuratM$pat_percent_TC)</code></pre>
+<pre><code>
+                          0_AM 11         0.00410846343467543_AM 07 
+                             1807                              1807 
+       0.00765696784073507_CMP 06    0.00789313904068002_Healthy 04 
+                             1806                              1806 
+   0.00855745721271394_Healthy 03    0.00890518596123625_Healthy 02 
+                             1806                              1806 
+        0.00938967136150235_AM 10          0.012719298245614_CMP 08 
+                             1807                              1806 
+    0.0128378378378378_Healthy 08         0.0137729549248748_CMP 09 
+                             1806                              1807 
+         0.0144230769230769_AM 04     0.0152565880721221_Healthy 05 
+                             1807                              1806 
+         0.0164237797825584_AM 02          0.0169189670525378_AM 03 
+                             1807                              1807 
+         0.0172711571675302_AM 05         0.0176211453744493_CMP 02 
+                             1807                              1807 
+    0.0178359096313912_Healthy 07     0.0186176995664371_Healthy 01 
+                             1806                              1806 
+         0.0192953020134228_AM 12     0.0195195195195195_Healthy 06 
+                             1807                              1806 
+         0.0207838479809976_AM 14         0.0217669654289373_CMP 11 
+                             1807                              1807 
+0.0236986881083369_Sarcoidosis 01          0.0248344370860927_AM 08 
+                             1806                              1807 
+        0.0252365930599369_CMP 07          0.0253411306042885_AM 09 
+                             1806                              1807 
+         0.0324397386798829_AM 15          0.036986301369863_CMP 03 
+                             1807                              1807 
+        0.0387096774193548_CMP 05         0.0392156862745098_CMP 04 
+                             1806                              1806 
+0.0447154471544715_Sarcoidosis 02         0.0477064220183486_CMP 10 
+                             1806                              1807 
+         0.065173116089613_CMP 12          0.0656716417910448_AM 06 
+                             1806                              1807 
+        0.0666666666666667_CMP 01          0.0773722627737226_AM 13 
+                             1807                              1807 
+         0.117117117117117_CMP 13           0.138157894736842_AM 18 
+                             1806                              1807 
+          0.207387627948376_AM 16           0.259493670886076_AM 17 
+                             1807                              1807 
+          0.449252306713331_AM 01 
+                             1807 </code></pre>
+<pre class="r"><code>table(seuratM$pat_sub_TC)</code></pre>
+<pre><code>
+         Tcell High_AM         Tcell High_CMP  Tcell Intermediate_AM Tcell Intermediate_CMP 
+                  7228                   1806                   3614                   3613 
+          Tcell Low_AM          Tcell Low_CMP  Tcell Low_Sarcoidosis      Tcell Very Low_AM 
+                  7228                  10839                   3612                  14456 
+    Tcell Very Low_CMP Tcell Very Low_Healthy 
+                  7226                  14448 </code></pre>
+<pre class="r"><code>table(seuratM$pat_sub_percent_TC)</code></pre>
+<pre><code>
+                          0_AM         0.00410846343467543_AM        0.00765696784073507_CMP 
+                          1807                           1807                           1806 
+   0.00789313904068002_Healthy    0.00855745721271394_Healthy    0.00890518596123625_Healthy 
+                          1806                           1806                           1806 
+        0.00938967136150235_AM          0.012719298245614_CMP     0.0128378378378378_Healthy 
+                          1807                           1806                           1806 
+        0.0137729549248748_CMP          0.0144230769230769_AM     0.0152565880721221_Healthy 
+                          1807                           1807                           1806 
+         0.0164237797825584_AM          0.0169189670525378_AM          0.0172711571675302_AM 
+                          1807                           1807                           1807 
+        0.0176211453744493_CMP     0.0178359096313912_Healthy     0.0186176995664371_Healthy 
+                          1807                           1806                           1806 
+         0.0192953020134228_AM     0.0195195195195195_Healthy          0.0207838479809976_AM 
+                          1807                           1806                           1807 
+        0.0217669654289373_CMP 0.0236986881083369_Sarcoidosis          0.0248344370860927_AM 
+                          1807                           1806                           1807 
+        0.0252365930599369_CMP          0.0253411306042885_AM          0.0324397386798829_AM 
+                          1806                           1807                           1807 
+         0.036986301369863_CMP         0.0387096774193548_CMP         0.0392156862745098_CMP 
+                          1807                           1806                           1806 
+0.0447154471544715_Sarcoidosis         0.0477064220183486_CMP          0.065173116089613_CMP 
+                          1806                           1807                           1806 
+         0.0656716417910448_AM         0.0666666666666667_CMP          0.0773722627737226_AM 
+                          1807                           1807                           1807 
+         0.117117117117117_CMP           0.138157894736842_AM           0.207387627948376_AM 
+                          1806                           1807                           1807 
+          0.259493670886076_AM           0.449252306713331_AM 
+                          1807                           1807 </code></pre>
+<pre class="r"><code>Idents(seuratM) &lt;- seuratM$TC
+
+colTC &lt;- c(&quot;#BE3144&quot;,&quot;#de2d26&quot;,&quot;#fc9272&quot;, &quot;#fee0d2&quot;)
+names(colTC) &lt;- c(&quot;Tcell High&quot;, &quot;Tcell Intermediate&quot;, &quot;Tcell Low&quot;, &quot;Tcell Very Low&quot;)
+
+seuratM$TC &lt;- factor(seuratM$TC, levels = c(&quot;Tcell High&quot;, &quot;Tcell Intermediate&quot;, &quot;Tcell Low&quot;, &quot;Tcell Very Low&quot;))
+
+DimPlot(seuratM, reduction = &quot;umap&quot;, pt.size = 0.1, group.by = &quot;pat_sub_TC&quot;)</code></pre>
+<img src="figure/Stratification%20by%20T%20cell%20condition%20and%20DE%20genes.Rmd/add%20condition%20to%20list-1.png" width="672" style="display: block; margin: auto;" />
+<div class="alert alert-warning">
+<strong>Warning!</strong> The custom <code>fig.path</code> you set was
+ignored by workflowr.
+</div>
+<pre class="r"><code>DimPlot(seuratM, reduction = &quot;umap&quot;, pt.size = 0.1, group.by = &quot;TC&quot;, cols = colTC)</code></pre>
+<img src="figure/Stratification%20by%20T%20cell%20condition%20and%20DE%20genes.Rmd/add%20condition%20to%20list-2.png" width="672" style="display: block; margin: auto;" />
+<div class="alert alert-warning">
+<strong>Warning!</strong> The custom <code>fig.path</code> you set was
+ignored by workflowr.
+</div>
+<pre class="r"><code>DimPlot(seuratM, reduction = &quot;umap&quot;, pt.size = 0.1, group.by = &quot;pat_sub&quot;)</code></pre>
+<img src="figure/Stratification%20by%20T%20cell%20condition%20and%20DE%20genes.Rmd/add%20condition%20to%20list-3.png" width="672" style="display: block; margin: auto;" />
+<div class="alert alert-warning">
+<strong>Warning!</strong> The custom <code>fig.path</code> you set was
+ignored by workflowr.
+</div>
+<pre class="r"><code>Idents(seuratM) &lt;- seuratM$clusterName
+DimPlot(seuratM, reduction = &quot;umap&quot;, pt.size = 0.1, label = TRUE, cols = colclusterName)</code></pre>
+<img src="figure/Stratification%20by%20T%20cell%20condition%20and%20DE%20genes.Rmd/add%20condition%20to%20list-4.png" width="672" style="display: block; margin: auto;" />
+<div class="alert alert-warning">
+<strong>Warning!</strong> The custom <code>fig.path</code> you set was
+ignored by workflowr.
+</div>
+<pre class="r"><code>Idents(seuratM) &lt;- seuratM$TC
+orderTC &lt;- c(&quot;Tcell Very High&quot;, &quot;Tcell High&quot;, &quot;Tcell Intermediate&quot;, &quot;Tcell Low&quot;, &quot;Tcell Very Low&quot;)
+
+DimPlot(seuratM, reduction = &quot;umap&quot;, pt.size = 0.1, group.by = &quot;TC&quot;, cols = colTC)</code></pre>
+<img src="figure/Stratification%20by%20T%20cell%20condition%20and%20DE%20genes.Rmd/unnamed-chunk-8-1.png" width="672" style="display: block; margin: auto;" />
+<div class="alert alert-warning">
+<strong>Warning!</strong> The custom <code>fig.path</code> you set was
+ignored by workflowr.
+</div>
+<pre class="r"><code>seuratTC_high &lt;- subset(seuratM, TC == &quot;Tcell High&quot;)
+DimPlot(seuratTC_high, reduction = &quot;umap&quot;, pt.size = 0.1, cols = colTC, raster=FALSE)</code></pre>
+<img src="figure/Stratification%20by%20T%20cell%20condition%20and%20DE%20genes.Rmd/unnamed-chunk-8-2.png" width="672" style="display: block; margin: auto;" />
+<div class="alert alert-warning">
+<strong>Warning!</strong> The custom <code>fig.path</code> you set was
+ignored by workflowr.
+</div>
+<pre class="r"><code>seuratTC_intermediate &lt;- subset(seuratM, TC == &quot;Tcell Intermediate&quot;)
+DimPlot(seuratTC_intermediate, reduction = &quot;umap&quot;, pt.size = 0.1, cols = colTC, raster=FALSE)</code></pre>
+<img src="figure/Stratification%20by%20T%20cell%20condition%20and%20DE%20genes.Rmd/unnamed-chunk-8-3.png" width="672" style="display: block; margin: auto;" />
+<div class="alert alert-warning">
+<strong>Warning!</strong> The custom <code>fig.path</code> you set was
+ignored by workflowr.
+</div>
+<pre class="r"><code>seuratTC_low &lt;- subset(seuratM, TC == &quot;Tcell Low&quot;)
+DimPlot(seuratTC_low, reduction = &quot;umap&quot;, pt.size = 0.1, cols = colTC, raster=FALSE)</code></pre>
+<img src="figure/Stratification%20by%20T%20cell%20condition%20and%20DE%20genes.Rmd/unnamed-chunk-8-4.png" width="672" style="display: block; margin: auto;" />
+<div class="alert alert-warning">
+<strong>Warning!</strong> The custom <code>fig.path</code> you set was
+ignored by workflowr.
+</div>
+<pre class="r"><code>seuratTC_verylow &lt;- subset(seuratM, TC == &quot;Tcell Very Low&quot;)
+DimPlot(seuratTC_verylow, reduction = &quot;umap&quot;, pt.size = 0.05, cols = colTC, raster=FALSE)</code></pre>
+<img src="figure/Stratification%20by%20T%20cell%20condition%20and%20DE%20genes.Rmd/unnamed-chunk-8-5.png" width="672" style="display: block; margin: auto;" />
+<div class="alert alert-warning">
+<strong>Warning!</strong> The custom <code>fig.path</code> you set was
+ignored by workflowr.
+</div>
+<pre class="r"><code>### label split by T cell Grp
+
+DimPlot(seuratM, reduction = &quot;umap&quot;, group.by = &quot;clusterName&quot;, cols=colclusterName,
+        split.by = &quot;TC&quot;, shuffle = T)+
+  theme_void()</code></pre>
+<img src="figure/Stratification%20by%20T%20cell%20condition%20and%20DE%20genes.Rmd/unnamed-chunk-8-6.png" width="672" style="display: block; margin: auto;" />
+<div class="alert alert-warning">
+<strong>Warning!</strong> The custom <code>fig.path</code> you set was
+ignored by workflowr.
+</div>
+<pre class="r"><code>seuratTC_vhigh_vs_vlow &lt;- subset(seuratM, TC %in% c(&quot;Tcell Very High&quot;, &quot;Tcell Very Low&quot;))
+
+seuratTC_high_vs_vlow &lt;- subset(seuratM, TC %in% c(&quot;Tcell High&quot;, &quot;Tcell Very Low&quot;))
+
+
+levels(seuratTC_high_vs_vlow)</code></pre>
+<pre><code>[1] &quot;Tcell High&quot;     &quot;Tcell Very Low&quot;</code></pre>
+<pre class="r"><code>Idents(seuratTC_high_vs_vlow) &lt;- seuratTC_high_vs_vlow$clusterName
+
+table(seuratTC_high_vs_vlow$orig.ident)</code></pre>
+<pre><code>
+      
+45164 </code></pre>
+<pre class="r"><code># 45164 nuclei for Tcell High vs. Very Low
+
+DimPlot(seuratTC_high_vs_vlow, reduction = &quot;umap&quot;, pt.size = 0.1, raster=FALSE, cols = colclusterName, label = T)</code></pre>
+<img src="figure/Stratification%20by%20T%20cell%20condition%20and%20DE%20genes.Rmd/Cellcount%20per%20Tcell%20condition-1.png" width="672" style="display: block; margin: auto;" />
+<div class="alert alert-warning">
+<strong>Warning!</strong> The custom <code>fig.path</code> you set was
+ignored by workflowr.
+</div>
+<pre class="r"><code>cellcount_TC_high_vs_vlow &lt;- data.frame(table(seuratTC_high_vs_vlow$RNA_snn_res.0.25))
+colnames(cellcount_TC_high_vs_vlow) &lt;- c(&quot;clusterName&quot;, &quot;Freq&quot;)
+hsize &lt;- 1.5
+
+ggplot(cellcount_TC_high_vs_vlow, aes(x = clusterName, y = Freq, fill = clusterName)) +
+  geom_col(color = &quot;white&quot;) + 
+  theme_classic() +  
+  ggtitle(&quot;Cell Number by Cluster&quot;) +
+  theme(plot.title = element_text(hjust = 0.5, size = 15)) +
+  geom_text(aes(label = Freq), vjust = -0.3, size = 3) +  
+  xlab(&quot;Cluster Names&quot;) +  
+  ylab(&quot;Frequency (Cell Count)&quot;)  </code></pre>
+<img src="figure/Stratification%20by%20T%20cell%20condition%20and%20DE%20genes.Rmd/Cellcount%20per%20Tcell%20condition-2.png" width="672" style="display: block; margin: auto;" />
+<div class="alert alert-warning">
+<strong>Warning!</strong> The custom <code>fig.path</code> you set was
+ignored by workflowr.
+</div>
+<pre class="r"><code>#cell count per patient, greatest contribution
+cellcount_TC_high_vs_vlow_pat &lt;- data.frame(table(seuratTC_high_vs_vlow$patient))
+colnames(cellcount_TC_high_vs_vlow_pat) &lt;- c(&quot;patient&quot;, &quot;Freq&quot;)
+hsize &lt;- 1.5
+
+ggplot(cellcount_TC_high_vs_vlow_pat, aes(x = patient, y = Freq, fill = patient)) +
+  geom_col(color = &quot;white&quot;) +  
+  theme_classic() +  
+  ggtitle(&quot;Cell Number by Patient&quot;) +
+  theme(plot.title = element_text(hjust = 0.5, size = 15)) +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
+  geom_text(aes(label = Freq), vjust = -0.3, size = 3) +  
+  xlab(&quot;Patients&quot;) +  
+  ylab(&quot;Frequency (Cell Count)&quot;)  </code></pre>
+<img src="figure/Stratification%20by%20T%20cell%20condition%20and%20DE%20genes.Rmd/Cellcount%20per%20Tcell%20condition-3.png" width="672" style="display: block; margin: auto;" />
+<div class="alert alert-warning">
+<strong>Warning!</strong> The custom <code>fig.path</code> you set was
+ignored by workflowr.
+</div>
+<pre class="r"><code>#cell count per condition
+cellcount_TC_high_vs_vlow_con &lt;- data.frame(table(seuratTC_high_vs_vlow$pat_sub))
+colnames(cellcount_TC_high_vs_vlow_con) &lt;- c(&quot;Condition&quot;, &quot;Freq&quot;)
+hsize &lt;- 1.5
+
+ggplot(cellcount_TC_high_vs_vlow_con, aes(x = hsize, y = Freq, fill = Condition)) +
+  #scale_fill_manual(values = colpat2) +
+  geom_col(color = &quot;white&quot;) +
+  coord_polar(theta = &quot;y&quot;) +
+  xlim(c(0.2, hsize + 0.5)) +
+  theme_void() +
+  ggtitle(&quot;Tcell High vs. Very Low per condition&quot;) +
+  theme(plot.title = element_text(hjust = 0.5, size = 15)) +
+  geom_text(aes(label = Freq), position = position_stack(vjust = 0.5))</code></pre>
+<img src="figure/Stratification%20by%20T%20cell%20condition%20and%20DE%20genes.Rmd/Cellcount%20per%20Tcell%20condition-4.png" width="672" style="display: block; margin: auto;" />
+<div class="alert alert-warning">
+<strong>Warning!</strong> The custom <code>fig.path</code> you set was
+ignored by workflowr.
+</div>
+<pre class="r"><code># Healthy 17250, AM 17730, CMP 7095, Sarcoidosis 3089, highest nucleus number patient Healthy 04</code></pre>
+<pre class="r"><code>seuratMCP2 &lt;- subset(seuratM, clusterName %in% &quot;MCP2&quot;)
+table(seuratMCP2$clusterName)</code></pre>
+<pre><code>
+Cardiomyocyte           Fb1           Fb2           Fb3          INT1       PeriFb1       PeriFb2 
+            0             0             0             0             0             0             0 
+         VSMC            NC          BEC1          BEC2        AdipoC          MCP1          MCP2 
+            0             0             0             0             0             0          3723 
+           TC 
+            0 </code></pre>
+<pre class="r"><code>Idents(seuratMCP2) &lt;- seuratMCP2$TC
+
+DimPlot(seuratMCP2, reduction = &quot;umap&quot;)</code></pre>
+<img src="figure/Stratification%20by%20T%20cell%20condition%20and%20DE%20genes.Rmd/Subset%20Macrophage%202%20cluster)-1.png" width="672" style="display: block; margin: auto;" />
+<div class="alert alert-warning">
+<strong>Warning!</strong> The custom <code>fig.path</code> you set was
+ignored by workflowr.
+</div>
+<pre class="r"><code>levels(seuratMCP2)</code></pre>
+<pre><code>[1] &quot;Tcell High&quot;         &quot;Tcell Intermediate&quot; &quot;Tcell Low&quot;          &quot;Tcell Very Low&quot;    </code></pre>
+<pre class="r"><code>table(seuratMCP2$TC)</code></pre>
+<pre><code>
+        Tcell High Tcell Intermediate          Tcell Low     Tcell Very Low 
+               447                372               1098               1806 </code></pre>
+<pre class="r"><code># for MCP2 Tcell High N = 447, Tcell Intermediate N = 372, Tcell Low = 1098, Tcell Very Low = 1806 
+
+DEGenesMCP2_adj &lt;- FindAllMarkers(seuratMCP2, only.pos = T, logfc.threshold = 0.2) %&gt;% 
+  dplyr::filter(p_val_adj &lt; 0.05)</code></pre>
+<pre><code>Calculating cluster Tcell High</code></pre>
+<pre><code>Calculating cluster Tcell Intermediate</code></pre>
+<pre><code>Calculating cluster Tcell Low</code></pre>
+<pre><code>Calculating cluster Tcell Very Low</code></pre>
+<pre class="r"><code>head(DEGenesMCP2_adj)</code></pre>
+<pre><code>                                  p_val avg_log2FC pct.1 pct.2    p_val_adj            cluster
+ENSG00000205334.LINC01460  7.497081e-08   5.728434 0.011 0.000 2.932408e-03         Tcell High
+ENSG00000259257.AC037479.1 4.389537e-07   4.064885 0.013 0.001 1.716923e-02         Tcell High
+ENSG00000207525.Y-RNA      7.872426e-07   3.691521 0.018 0.002 3.079221e-02         Tcell High
+ENSG00000151778.SERP2      1.917343e-09   7.164440 0.011 0.000 7.499497e-05 Tcell Intermediate
+ENSG00000249931.GOLGA8K    8.226729e-07   2.422089 0.016 0.001 3.217803e-02 Tcell Intermediate
+                                                 gene
+ENSG00000205334.LINC01460   ENSG00000205334.LINC01460
+ENSG00000259257.AC037479.1 ENSG00000259257.AC037479.1
+ENSG00000207525.Y-RNA           ENSG00000207525.Y-RNA
+ENSG00000151778.SERP2           ENSG00000151778.SERP2
+ENSG00000249931.GOLGA8K       ENSG00000249931.GOLGA8K</code></pre>
+<pre class="r"><code>DEGenesMCP2 &lt;- FindAllMarkers(seuratMCP2, only.pos = T, logfc.threshold = 0.2) </code></pre>
+<pre><code>Calculating cluster Tcell High</code></pre>
+<pre><code>Calculating cluster Tcell Intermediate</code></pre>
+<pre><code>Calculating cluster Tcell Low</code></pre>
+<pre><code>Calculating cluster Tcell Very Low</code></pre>
+<pre class="r"><code>head(DEGenesMCP2)</code></pre>
+<pre><code>                                  p_val avg_log2FC pct.1 pct.2   p_val_adj    cluster
+ENSG00000205334.LINC01460  7.497081e-08   5.728434 0.011 0.000 0.002932408 Tcell High
+ENSG00000259257.AC037479.1 4.389537e-07   4.064885 0.013 0.001 0.017169235 Tcell High
+ENSG00000207525.Y-RNA      7.872426e-07   3.691521 0.018 0.002 0.030792207 Tcell High
+ENSG00000224738.AC099850.1 3.278316e-06   3.760512 0.016 0.002 0.128228067 Tcell High
+ENSG00000214188.ST7-OT4    8.294053e-06   2.116012 0.025 0.005 0.324413597 Tcell High
+ENSG00000272417.AC034229.4 1.098356e-05   3.164953 0.011 0.001 0.429611025 Tcell High
+                                                 gene
+ENSG00000205334.LINC01460   ENSG00000205334.LINC01460
+ENSG00000259257.AC037479.1 ENSG00000259257.AC037479.1
+ENSG00000207525.Y-RNA           ENSG00000207525.Y-RNA
+ENSG00000224738.AC099850.1 ENSG00000224738.AC099850.1
+ENSG00000214188.ST7-OT4       ENSG00000214188.ST7-OT4
+ENSG00000272417.AC034229.4 ENSG00000272417.AC034229.4</code></pre>
+<pre class="r"><code>#View(DEGenesMCP2)
+
+#write.table(DEGenesMCP2, file= &quot;/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/docs/DEGenesMCP2_all markers for all TC conditions 12.10.2024&quot;, sep=&quot;\t&quot;,quote=F,row.names=F,col.names=T)
+
+# Notes: MCP2 enriched genes for Tcell High condition:
+
+
+#LINCO1460: RNA gene
+# Y-RNA:RNA gene
+# SERP2: SERP2 (Stress Associated Endoplasmic Reticulum Protein Family Member 2).  Protects unfolded target proteins against degradation during ER stress
+# GOLGA8K: Golgi organization
+
+# non significant according to adjusted p value: 
+
+#ST7-OT4 (ST7 Overlapping Transcript 4) is an RNA Gene, and is affiliated with the lncRNA class. Diseases associated with ST7-OT4 include Type C Thymoma.
+# GALNT5 catalyzes the first step in the mucin-type O-glycosylation of Golgi proteins
+# BNIP1 This gene is a member of the BCL2/adenovirus E1B 19 kd-interacting protein (BNIP) family. ER stress associated apoptosis
+# SLC5A2: sodium sugar transporter
+# LRRC37A3: encodes membrane protein
+# GPX1 Catalyzes the reduction of hydroperoxides in a glutathione-dependent manner thus regulating cellular redox homeostasis
+# NUP88 nuclear protein comples
+# SP100: tumor suppressor, also plays a role for virus induced infections (CMV, EBV)
+# GTF2IRD1: regeneration of muscle
+# MST1R: receptor for  macrophage-stimulating protein (MSP) with tyrosine kinase activity.
+# ZFPM1: Zink finger protein: erythroid and megakaryocytic cell differentiation, GATA pathway
+# LCP1: Plays a role in the activation of T cells in response to costimulation through TCR/CD3 and CD2 or CD28
+# COL4A3
+# TTYH1
+# PPIA associated with cyclosporin A-mediated immunosuppression.
+# TP 73 Participates in the apoptotic response to DNA damage. Isoforms containing the transactivation domain are pro-apoptotic, isoforms lacking the domain are anti-apoptotic and block the function of p53 and transactivating p73 isoforms. May be a tumor suppressor protein. Is an activator of FOXJ1 expression (By similarity)
+# CLEC12B (C-Type Lectin Domain Family 12 Member B): NK negative regulation of natural killer cell mediated cytotoxicity; and negative regulation of signaling receptor activity
+# CD46 Acts as a cofactor for complement factor I, costimulatory factor for T cells --&gt; induces the differentiation of CD4+ into T regulatory 1 cells
+# NFIC: adenovirus replication
+# FPR1: High affinity receptor for N-formyl-methionyl peptides (fMLP), which are powerful neutrophil chemotactic factors
+# LACTB
+#IL2RG and CCRL2, NFKB1
+# C1orf127 Predicted to be involved in heart development.
+# CD247; IL6R, CCRL2
+
+#  TC intermediate
+# IRF2BP1, VWA8, APOL4,MAP3K10
+# osmotic stress SLC12A6/XRCC6/MAP7
+# cell adhesion integrin TESC/ADAM9/ITGAE
+
+
+## TC Low
+# CCL19/IL1R1/BCL3
+# CLPTM1 (T cell development)/ZC3H8 (repressor GATA3 Induces thymocyte apoptosis when overexpressed, which may indicate a role in regulation of thymocyte homeostasis)
+
+# TC Very Low
+# TNFSF13, WDFY1 (TLR4 regulation), NFKBID, WFIKKN1/SUDS3, OAS2 (IFNbeta regulation), STMN3/KPNB1
+# ZFPM1/CD46/PIK3CD/IL2RG/IL6R/FANCD2
+# CRB2 positive regulation of BMP pathway</code></pre>
+<pre class="r"><code>DEGenesMCP2 &lt;- DEGenesMCP2 %&gt;% 
+  mutate(Gene=gene) %&gt;%
+  mutate(gene=gsub(&quot;^.*\\.&quot;, &quot;&quot;, Gene))  %&gt;%
+  mutate(EnsID=gsub(&quot;\\..*&quot;,&quot;&quot;, Gene))
+
+##GSEA Macrophage type 2 (inflammatory)
+DEGenes_MCP2_TChigh &lt;- DEGenesMCP2 %&gt;% filter(cluster == &quot;Tcell High&quot;)
+egoMCP2 &lt;- enrichGO(gene = unique(DEGenes_MCP2_TChigh$EnsID),
+                          OrgDb = org.Hs.eg.db,
+                          keyType = &#39;ENSEMBL&#39;,
+                          ont = &quot;BP&quot;,
+                          pAdjustMethod = &quot;BH&quot;)
+                          #pvalueCutoff = 0.05,
+                          #qvalueCutoff = 0.05)
+egoMCP2 &lt;- setReadable(egoMCP2, OrgDb = org.Hs.eg.db)
+
+#write.table(egoMCP2@result, file= &quot;/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/docs/egoMCP2 for TC high 12.10.2024&quot;, sep=&quot;\t&quot;,quote=F,row.names=F,col.names=T)
+
+
+summary(egoMCP2@result$p.adjust)</code></pre>
+<pre><code>   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+ 0.4046  0.4046  0.4599  0.4970  0.5606  0.8657 </code></pre>
+<pre class="r"><code>summary(egoMCP2@result$pvalue)</code></pre>
+<pre><code>     Min.   1st Qu.    Median      Mean   3rd Qu.      Max. 
+0.0006677 0.1024524 0.2303233 0.2781144 0.4228804 0.8657305 </code></pre>
+<pre class="r"><code>egoMCP2_df &lt;- as.data.frame(egoMCP2@result)
+
+egoMCP2_df &lt;- egoMCP2_df %&gt;%
+  arrange(desc(zScore))
+
+ggplot(egoMCP2_df[1:12, ], aes(x = reorder(Description, zScore), y = zScore)) +
+  geom_bar(stat = &quot;identity&quot;, aes(fill = zScore)) +
+  coord_flip() +
+  theme_classic() +
+  scale_fill_gradient2(low = &quot;blue&quot;, mid = &quot;white&quot;, high = &quot;red&quot;) +
+  labs(title = &quot;Macrophage type 2 Differential Expression by Z-score for T cell High Condition&quot;, y = &quot;Z-score&quot;, x = &quot;Description&quot;)</code></pre>
+<img src="figure/Stratification%20by%20T%20cell%20condition%20and%20DE%20genes.Rmd/Inflammatory%20Macrophages%20(MCP2)%20cluster%20for%20Tcell%20High-1.png" width="672" style="display: block; margin: auto;" />
+<div class="alert alert-warning">
+<strong>Warning!</strong> The custom <code>fig.path</code> you set was
+ignored by workflowr.
+</div>
+<pre class="r"><code># redundant gene ontology description
+description_mapping &lt;- c(&quot;negative regulation of B cell mediated immunity&quot; = &quot;negative regulation of humoral immune response mediated by circulating immunoglobulin&quot;,
+  &quot;negative regulation of humoral immune response&quot; = &quot;negative regulation of humoral immune response mediated by circulating immunoglobulin&quot;,
+  &quot;negative regulation of immunoglobulin mediated immune response&quot; = &quot;negative regulation of humoral immune response mediated by circulating immunoglobulin&quot;,
+  &quot;negative regulation of complement activation&quot; = &quot;regulation of complement activation&quot;,
+  &quot;regulation of regulatory T cell differentiation&quot; = &quot;regulatory T cell differentiation&quot;,
+  &quot;lymphocyte differentiation&quot; = &quot;T cell differentiation&quot;,
+  &quot;lymphocyte activation involved in immune response&quot; = &quot;T cell activation involved in immune response&quot;,
+  &quot;regulation of T cell differentiation&quot;  = &quot;T cell differentiation&quot;,
+  &quot;T cell differentiation involved in immune response&quot; = &quot;T cell differentiation&quot;,
+  &quot;CD4-positive or CD8-positive, alpha-beta T cell lineage commitment&quot; = &quot;alpha-beta T cell lineage commitment&quot;,
+   &quot;sphingosine biosynthetic process&quot; = &quot;spingoid metabolic process&quot;,   
+   &quot;sphingoid biosynthetic process&quot; = &quot;spingoid metabolic process&quot;,
+  &quot;T-helper cell lineage commitment&quot; = &quot;alpha-beta T cell lineage commitment&quot;)
+
+
+egoMCP2@result &lt;- egoMCP2@result %&gt;%
+  mutate(Description = case_when(
+    Description == &quot;negative regulation of humoral immune response mediated by circulating immunoglobulin&quot; ~ &quot;negative regulation of humoral immune response&quot;,
+    Description == &quot;negative regulation of B cell mediated immunity&quot; ~ &quot;negative regulation of humoral immune response&quot;,
+    Description == &quot;negative regulation of immunoglobulin mediated immune response&quot; ~ &quot;negative regulation of humoral immune response&quot;,
+    Description == &quot;negative regulation of complement activation&quot; ~ &quot;regulation of complement activation&quot;,
+    Description == &quot;regulation of regulatory T cell differentiation&quot; ~ &quot;regulatory T cell differentiation&quot;,
+    Description == &quot;lymphocyte differentiation&quot; ~ &quot;T cell differentiation&quot;,
+    Description == &quot;cell activation involved in immune response&quot; ~ &quot;leukocyte activation involved in immune response&quot;,
+    Description == &quot;lymphocyte activation involved in immune response&quot; ~ &quot;T cell activation involved in immune response&quot;,
+    Description == &quot;CD4-positive or CD8-positive, alpha-beta T cell lineage commitment&quot; ~ &quot;alpha-beta T cell lineage commitment&quot; ,
+    Description == &quot;regulation of T cell differentiation&quot;  ~ &quot;T cell differentiation&quot;,
+    Description == &quot;sphingosine biosynthetic process&quot; ~ &quot;spingoid metabolic process&quot;,   
+    Description == &quot;sphingoid biosynthetic process&quot; ~ &quot;spingoid metabolic process&quot;,
+    Description == &quot;T-helper cell lineage commitment&quot; ~ &quot;alpha-beta T cell lineage commitment&quot;,
+    TRUE ~ Description
+  ))
+
+# Check for remaining NA values after mapping
+na_rows &lt;- egoMCP2@result %&gt;%
+  filter(is.na(Description))
+
+egoMCP2@result$Description &lt;- replace(
+  egoMCP2@result$Description, 
+  egoMCP2@result$Description %in% names(description_mapping), 
+  description_mapping[egoMCP2@result$Description])
+
+#print(egoMCP2@result$Description)
+
+egoMCP2_revised &lt;- egoMCP2@result %&gt;%
+  group_by(Description) %&gt;%
+  summarise(
+    Count = sum(Count),
+    GeneRatio = sum(as.numeric(GeneRatio)),
+    p.adjust = min(p.adjust),  
+    .groups = &#39;drop&#39;
+  )
+
+egoMCP2_revised &lt;- egoMCP2_revised %&gt;%
+  mutate(Zscore = (Count - mean(Count)) / sd(Count))
+
+#View(egoMCP2_revised)
+
+
+egoMCP2_df_revised &lt;- egoMCP2_revised 
+ggplot(egoMCP2_df_revised[1:20, ], aes(x = reorder(Description, Zscore), y = Zscore)) +
+  geom_bar(stat = &quot;identity&quot;, aes(fill = Zscore)) +
+  coord_flip() +
+  theme_classic() +
+  scale_fill_gradient2(low = &quot;blue&quot;, mid = &quot;white&quot;, high = &quot;red&quot;) +
+  labs(
+    title = &quot;Macrophage Type 2 Differential Expression by Z-score for T Cell High Condition&quot;, 
+    y = &quot;Z-score&quot;, 
+    x = &quot;Description&quot;)</code></pre>
+<img src="figure/Stratification%20by%20T%20cell%20condition%20and%20DE%20genes.Rmd/Inflammatory%20Macrophages%20(MCP2)%20cluster%20for%20Tcell%20High-2.png" width="672" style="display: block; margin: auto;" />
+<div class="alert alert-warning">
+<strong>Warning!</strong> The custom <code>fig.path</code> you set was
+ignored by workflowr.
+</div>
+<pre class="r"><code># NA 
+na_rows &lt;- egoMCP2@result %&gt;%
+  filter(is.na(Description))</code></pre>
+<pre class="r"><code>DEGenes_MCP2_TCint &lt;- DEGenesMCP2 %&gt;% filter(cluster == &quot;Tcell Intermediate&quot;)
+egoMCP2_int &lt;- enrichGO(gene = unique(DEGenes_MCP2_TCint$EnsID),
+                          OrgDb = org.Hs.eg.db,
+                          keyType = &#39;ENSEMBL&#39;,
+                          ont = &quot;BP&quot;,
+                          pAdjustMethod = &quot;BH&quot;)
+                          #pvalueCutoff = 0.05,
+                          #qvalueCutoff = 0.05)
+egoMCP2_int &lt;- setReadable(egoMCP2_int, OrgDb = org.Hs.eg.db)
+
+#View(egoMCP2_int@result)
+
+#write.table(egoMCP2_int@result, file= &quot;/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/docs/Markers/egoMCP2 for TC intermediate 12.10.2024&quot;, sep=&quot;\t&quot;,quote=F,row.names=F,col.names=T)
+
+egoMCP2_int_df &lt;- as.data.frame(egoMCP2_int@result)
+ggplot(egoMCP2_int@result[1:10, ], aes(x = reorder(Description, zScore), y = zScore)) +
+  geom_bar(stat = &quot;identity&quot;, aes(fill = zScore)) +
+  coord_flip() +
+  theme_classic() +
+  scale_fill_gradient2(low = &quot;blue&quot;, mid = &quot;white&quot;, high = &quot;red&quot;) +
+  labs(title = &quot;Macrophage type 2 Differential Expression by Z-score for T cell Intermediate Condition&quot;, y = &quot;Z-score&quot;, x = &quot;Description&quot;)</code></pre>
+<img src="figure/Stratification%20by%20T%20cell%20condition%20and%20DE%20genes.Rmd/Inflammatory%20Macrophages%20(MCP2)%20cluster%20for%20Tcell%20Intermediate-1.png" width="672" style="display: block; margin: auto;" />
+<div class="alert alert-warning">
+<strong>Warning!</strong> The custom <code>fig.path</code> you set was
+ignored by workflowr.
+</div>
+<pre class="r"><code>DEGenes_MCP2_TClow &lt;- DEGenesMCP2 %&gt;% filter(cluster == &quot;Tcell Low&quot;)
+egoMCP2_low &lt;- enrichGO(gene = unique(DEGenes_MCP2_TClow$EnsID),
+                          OrgDb = org.Hs.eg.db,
+                          keyType = &#39;ENSEMBL&#39;,
+                          ont = &quot;BP&quot;,
+                          pAdjustMethod = &quot;BH&quot;)
+                          #pvalueCutoff = 0.05,
+                          #qvalueCutoff = 0.05)
+egoMCP2_low &lt;- setReadable(egoMCP2_low, OrgDb = org.Hs.eg.db)
+
+#View(egoMCP2_low@result)
+
+# write.table(egoMCP2_low@result, file= &quot;/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/docs/Markers/egoMCP2 for TC low 12.10.2024&quot;, sep=&quot;\t&quot;,quote=F,row.names=F,col.names=T)
+
+egoMCP2_low_df &lt;- as.data.frame(egoMCP2_low@result)
+ggplot(egoMCP2_low_df[1:7, ], aes(x = reorder(Description, zScore), y = zScore)) +
+  geom_bar(stat = &quot;identity&quot;, aes(fill = zScore)) +
+  coord_flip() +
+  theme_classic() +
+  scale_fill_gradient2(low = &quot;blue&quot;, mid = &quot;white&quot;, high = &quot;red&quot;) +
+  labs(title = &quot;Macrophage type 2 Differential Expression by Z-score for T cell Intermediate Condition&quot;, y = &quot;Z-score&quot;, x = &quot;Description&quot;)</code></pre>
+<img src="figure/Stratification%20by%20T%20cell%20condition%20and%20DE%20genes.Rmd/Inflammatory%20Macrophages%20(MCP2)%20cluster%20for%20Tcell%20Low-1.png" width="672" style="display: block; margin: auto;" />
+<div class="alert alert-warning">
+<strong>Warning!</strong> The custom <code>fig.path</code> you set was
+ignored by workflowr.
+</div>
+<pre class="r"><code>DEGenes_MCP2_TCvlow &lt;- DEGenesMCP2 %&gt;% filter(cluster == &quot;Tcell Very Low&quot;)
+egoMCP2_vlow &lt;- enrichGO(gene = unique(DEGenes_MCP2_TCvlow$EnsID),
+                          OrgDb = org.Hs.eg.db,
+                          keyType = &#39;ENSEMBL&#39;,
+                          ont = &quot;BP&quot;,
+                          pAdjustMethod = &quot;BH&quot;)
+                          #pvalueCutoff = 0.05,
+                          #qvalueCutoff = 0.05)
+egoMCP2_vlow &lt;- setReadable(egoMCP2_vlow, OrgDb = org.Hs.eg.db)
+
+#View(egoMCP2_vlow@result)
+
+#write.table (egoMCP2_vlow@result, file= &quot;/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/docs/Markers/egoMCP2 for TC vlow 12.10.2024&quot;, sep=&quot;\t&quot;,quote=F,row.names=F,col.names=T)
+
+egoMCP2_vlow_df &lt;- as.data.frame(egoMCP2_vlow@result)
+#by zScore
+ggplot(egoMCP2_vlow_df[1:8, ], aes(x = reorder(Description, zScore), y = zScore)) +
+  geom_bar(stat = &quot;identity&quot;, aes(fill = zScore)) +
+  coord_flip() +
+  theme_classic() +
+  scale_fill_gradient2(low = &quot;blue&quot;, mid = &quot;white&quot;, high = &quot;red&quot;) +
+  labs(title = &quot;Macrophage type 2 Differential Expression by Z-score for T cell Intermediate Condition&quot;, y = &quot;Z-score&quot;, x = &quot;Description&quot;)</code></pre>
+<img src="figure/Stratification%20by%20T%20cell%20condition%20and%20DE%20genes.Rmd/Inflammatory%20Macrophages%20(MCP2)%20cluster%20for%20Tcell%20Very%20Low-1.png" width="672" style="display: block; margin: auto;" />
+<div class="alert alert-warning">
+<strong>Warning!</strong> The custom <code>fig.path</code> you set was
+ignored by workflowr.
+</div>
+<pre class="r"><code>seuratCM &lt;- subset(seuratM, clusterName %in% &quot;Cardiomyocyte&quot;)
+table(seuratCM$clusterName)</code></pre>
+<pre><code>
+Cardiomyocyte           Fb1           Fb2           Fb3          INT1       PeriFb1       PeriFb2 
+         8222             0             0             0             0             0             0 
+         VSMC            NC          BEC1          BEC2        AdipoC          MCP1          MCP2 
+            0             0             0             0             0             0             0 
+           TC 
+            0 </code></pre>
+<pre class="r"><code>table(seuratCM$patient)</code></pre>
+<pre><code>
+    Healthy 01     Healthy 02     Healthy 03     Healthy 04     Healthy 05     Healthy 06 
+           714            115            656           2224             58            159 
+    Healthy 07     Healthy 08          AM 01          AM 02          AM 03          AM 04 
+            54            118            206            801            109             76 
+         AM 05          AM 06          AM 07          AM 08          AM 09          AM 10 
+            64             62            233             84            192             62 
+         AM 11          AM 12          AM 13          AM 14          AM 15          AM 16 
+            47            178            208            109            116             26 
+         AM 17          AM 18         CMP 01         CMP 02         CMP 03         CMP 04 
+            10             30              9             18            107             40 
+        CMP 05         CMP 06         CMP 07         CMP 08         CMP 09         CMP 10 
+           179             88             50            332            240             45 
+        CMP 11         CMP 12         CMP 13 Sarcoidosis 01 Sarcoidosis 02 
+            39             12              1            305             46 </code></pre>
+<pre class="r"><code>table(seuratCM$pat_sub)</code></pre>
+<pre><code>
+    Healthy          AM         CMP Sarcoidosis 
+       4098        2613        1160         351 </code></pre>
+<pre class="r"><code>Idents(seuratCM) &lt;- seuratCM$TC
+
+DimPlot(seuratCM, reduction = &quot;umap&quot;)</code></pre>
+<img src="figure/Stratification%20by%20T%20cell%20condition%20and%20DE%20genes.Rmd/Subset%20Cardiomyocyte%20Cluster%20for%20DE%20and%20GSEA-1.png" width="672" style="display: block; margin: auto;" />
+<div class="alert alert-warning">
+<strong>Warning!</strong> The custom <code>fig.path</code> you set was
+ignored by workflowr.
+</div>
+<pre class="r"><code>levels(seuratCM)</code></pre>
+<pre><code>[1] &quot;Tcell High&quot;         &quot;Tcell Intermediate&quot; &quot;Tcell Low&quot;          &quot;Tcell Very Low&quot;    </code></pre>
+<pre class="r"><code>table(seuratCM$TC)</code></pre>
+<pre><code>
+        Tcell High Tcell Intermediate          Tcell Low     Tcell Very Low 
+               967                780               2462               4013 </code></pre>
+<pre class="r"><code>DEGenesCM &lt;- FindAllMarkers(seuratCM, only.pos = T, logfc.threshold = 0.2) </code></pre>
+<pre><code>Calculating cluster Tcell High</code></pre>
+<pre><code>Calculating cluster Tcell Intermediate</code></pre>
+<pre><code>Calculating cluster Tcell Low</code></pre>
+<pre><code>Calculating cluster Tcell Very Low</code></pre>
+<pre class="r"><code>head(DEGenesCM)</code></pre>
+<pre><code>                                   p_val avg_log2FC pct.1 pct.2 p_val_adj    cluster
+ENSG00000203402.AL591503.1  2.341135e-05  2.4104270 0.010 0.002 0.9157114 Tcell High
+ENSG00000285651.AL450992.2  4.114984e-05  0.8866111 0.044 0.022 1.0000000 Tcell High
+ENSG00000149260.CAPN5       5.480005e-05  2.5597893 0.012 0.003 1.0000000 Tcell High
+ENSG00000273156.AC124016.1  8.047416e-05  1.1917015 0.036 0.018 1.0000000 Tcell High
+ENSG00000186280.KDM4D       9.238261e-05  1.6816182 0.012 0.003 1.0000000 Tcell High
+ENSG00000278469.Metazoa-SRP 1.180221e-04  1.5662815 0.028 0.012 1.0000000 Tcell High
+                                                   gene
+ENSG00000203402.AL591503.1   ENSG00000203402.AL591503.1
+ENSG00000285651.AL450992.2   ENSG00000285651.AL450992.2
+ENSG00000149260.CAPN5             ENSG00000149260.CAPN5
+ENSG00000273156.AC124016.1   ENSG00000273156.AC124016.1
+ENSG00000186280.KDM4D             ENSG00000186280.KDM4D
+ENSG00000278469.Metazoa-SRP ENSG00000278469.Metazoa-SRP</code></pre>
+<pre class="r"><code>#View(DEGenesCM)
+
+#write.table (DEGenesCM, file= &quot;/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/docs/Markers/DE Genes CM for all TCell conditions&quot;, sep=&quot;\t&quot;,quote=F,row.names=F,col.names=T)</code></pre>
+<pre class="r"><code>##adjust table
+DEGenesCM &lt;- DEGenesCM %&gt;% 
+  mutate(Gene=gene) %&gt;%
+  mutate(gene=gsub(&quot;^.*\\.&quot;, &quot;&quot;, Gene))  %&gt;%
+  mutate(EnsID=gsub(&quot;\\..*&quot;,&quot;&quot;, Gene))
+
+##GSEA Cardiomyocyte
+DEGenes_CM_TChigh &lt;- DEGenesCM %&gt;% filter(cluster == &quot;Tcell High&quot;)
+egoCM &lt;- enrichGO(gene = unique(DEGenes_CM_TChigh$EnsID),
+                          OrgDb = org.Hs.eg.db,
+                          keyType = &#39;ENSEMBL&#39;,
+                          ont = &quot;BP&quot;,
+                          pAdjustMethod = &quot;BH&quot;)
+                          #pvalueCutoff = 0.05,
+                          #qvalueCutoff = 0.05)
+
+egoCM &lt;- setReadable(egoCM, OrgDb = org.Hs.eg.db)
+
+#write.table(egoCM@result, file= &quot;/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/docs/Markers/egoCM for TC high 12.10.2024&quot;, sep=&quot;\t&quot;,quote=F,row.names=F,col.names=T)
+
+#print(egoCM@result)
+
+### Gene Ontology results for T cell High Condition
+
+# mitosis, replication
+# response IL-7 and repair: STIP1/CRKL/IL7R/IL2RG/P4HB/RAD23B/GIPC1/ATIC/FOSL2/PDIA3/BTK
+# alpha beta T cell differentation: RIPK2/CD3E/TGFBR2/LGALS9/CD81/CD55 STAT4/LEF1/GATA3/RHOA/RIPK2/HMGB1/KMT2A/RC3H2/SLC4A2/SOCS1/ATP7A/JUNB/ZBTB16/TGFBR2/ENTPD7/MALT1/ITPKB/NFKBIZ/ZFPM1/IFNG/IL2RG/LY9/FOXP3/LGALS9/BCL3/RARA/ARMC5/SMAD7/TNFSF8/BRD2/ADA/JAK1/IL18/CD83/IL18R1/RPL22/SOCS5/PNP/FOSL2/BCL6/TNFSF4/SYK/GPR18/CTSL
+# Response IL-12: STAT4/RIPK2/JAK2/P4HB/TYK2/IL12RB2/PLCB1
+# somatic recombination and immune responses: STAT4/LEF1/GATA3/RHOA/RIPK2/HMGB1/KMT2A/RC3H2/SLC4A2/SOCS1/ATP7A/JUNB/ZBTB16/TGFBR2/ENTPD7/MALT1/ITPKB/NFKBIZ/ZFPM1/IFNG/IL2RG/LY9/FOXP3/LGALS9/BCL3/RARA/ARMC5/SMAD7/TNFSF8/BRD2/ADA/JAK1/IL18/CD83/IL18R1/RPL22/SOCS5/PNP/FOSL2/BCL6/TNFSF4/SYK/GPR18/CTSL
+# interleukin-15-mediated signaling pathway: IL2RB/IL15/IL2RG/JAK1/PLCB1/IL15RA
+# Tcell extravasation IL27RA/CD99L2/CRKL/F11R/MED23/FADD/RIPK3/ICAM1
+
+summary(egoCM@result$p.adjust)</code></pre>
+<pre><code>   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+ 0.2029  0.3519  0.4155  0.4430  0.5098  0.7544 </code></pre>
+<pre class="r"><code>summary(egoCM@result$pvalue)</code></pre>
+<pre><code>    Min.  1st Qu.   Median     Mean  3rd Qu.     Max. 
+0.000247 0.090680 0.210122 0.250433 0.382509 0.754443 </code></pre>
+<pre class="r"><code>egoCM_df &lt;- as.data.frame(egoCM@result)
+egoCM_df &lt;- egoCM_df %&gt;%
+  arrange(desc(zScore))
+
+#by zScore
+ggplot(egoCM_df[1:20, ], aes(x = reorder(Description, zScore), y = zScore)) +
+  geom_bar(stat = &quot;identity&quot;, aes(fill = zScore)) +
+  coord_flip() +
+  theme_classic() +
+  scale_fill_gradient2(low = &quot;blue&quot;, mid = &quot;white&quot;, high = &quot;red&quot;) +
+  labs(title = &quot;Cardiomyocyte Differential Expression by zScore for T cell High Condition&quot;, y = &quot;z Score&quot;, x = &quot;Description&quot;)</code></pre>
+<img src="figure/Stratification%20by%20T%20cell%20condition%20and%20DE%20genes.Rmd/Cardiomyocyte%20T%20cell%20High%20Condition-1.png" width="672" style="display: block; margin: auto;" />
+<div class="alert alert-warning">
+<strong>Warning!</strong> The custom <code>fig.path</code> you set was
+ignored by workflowr.
+</div>
+<pre class="r"><code>egoCM_df &lt;- egoCM_df %&gt;%
+  arrange(desc(RichFactor))
+
+# By RichFactor
+ggplot(egoCM_df[1:21, ], aes(x = reorder(Description, RichFactor), y = RichFactor)) +
+  geom_bar(stat = &quot;identity&quot;, aes(fill = RichFactor)) +
+  coord_flip() +
+  theme_classic() +
+  scale_fill_gradient2(low = &quot;blue&quot;, mid = &quot;white&quot;, high = &quot;red&quot;) +
+  labs(title = &quot;Cardiomyocyte Differential Expression by Rich Factor for T cell High Condition&quot;, y = &quot;RichFactor&quot;, x = &quot;Description&quot;)</code></pre>
+<img src="figure/Stratification%20by%20T%20cell%20condition%20and%20DE%20genes.Rmd/Cardiomyocyte%20T%20cell%20High%20Condition-2.png" width="672" style="display: block; margin: auto;" />
+<div class="alert alert-warning">
+<strong>Warning!</strong> The custom <code>fig.path</code> you set was
+ignored by workflowr.
+</div>
+<p>`</p>
+<pre class="r"><code>##GSEA Cardiomyocyte
+DEGenes_CM_TCint &lt;- DEGenesCM %&gt;% filter(cluster == &quot;Tcell Intermediate&quot;)
+egoCM_int &lt;- enrichGO(gene = unique(DEGenes_CM_TCint$EnsID),
+                          OrgDb = org.Hs.eg.db,
+                          keyType = &#39;ENSEMBL&#39;,
+                          ont = &quot;BP&quot;,
+                          pAdjustMethod = &quot;BH&quot;)
+                          #pvalueCutoff = 0.05,
+                          #qvalueCutoff = 0.05)
+
+egoCM_int &lt;- setReadable(egoCM_int, OrgDb = org.Hs.eg.db)
+head(egoCM_int)</code></pre>
+<pre><code> [1] ID             Description    GeneRatio      BgRatio        RichFactor     FoldEnrichment
+ [7] zScore         pvalue         p.adjust       qvalue         geneID         Count         
+&lt;0 rows&gt; (or 0-length row.names)</code></pre>
+<pre class="r"><code>#View(egoCM_int@result)
+
+#write.table(egoCM_int@result, file= &quot;/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/docs/Markers/egoCM for TC int 12.10.2024&quot;, sep=&quot;\t&quot;,quote=F,row.names=F,col.names=T)
+
+# Fc receptor mediated stimulatory signaling pathway:NR4A3/CD47
+# positive regulation of cardiac muscle hypertrophy:    NR4A3/MTPN
+# IL-12 response: CD47
+# chemokine (C-C motif) ligand 5 production, toll-like receptor 7 signaling pathway: DDX3X
+# positive regulation of monocyte extravasation: CD47
+# regulation of CD8-positive, alpha-beta T cell differentian: SOCS1:Essential negative regulator of type I and type II interferon (IFN) signaling
+# respiratory burst involved in defense response: RPS19
+
+egoCM_int_df &lt;- as.data.frame(egoCM_int@result)
+
+egoCM_int_df &lt;- egoCM_int_df %&gt;%
+ arrange(desc(zScore))
+
+# by zScore
+ggplot(egoCM_int_df[1:21, ], aes(x = reorder(Description, zScore), y = zScore)) +
+  geom_bar(stat = &quot;identity&quot;, aes(fill = zScore)) +
+  coord_flip() +
+  theme_classic() +
+  scale_fill_gradient2(low = &quot;blue&quot;, mid = &quot;white&quot;, high = &quot;red&quot;) +
+  labs(title = &quot;Cardiomyocyte Differential Expression by zScore for T cell Intermediate Condition&quot;, y = &quot;z Score&quot;, x = &quot;Description&quot;)</code></pre>
+<img src="figure/Stratification%20by%20T%20cell%20condition%20and%20DE%20genes.Rmd/Cardiomyocyte%20Cluster%20T%20cell%20Intermediate-1.png" width="672" style="display: block; margin: auto;" />
+<div class="alert alert-warning">
+<strong>Warning!</strong> The custom <code>fig.path</code> you set was
+ignored by workflowr.
+</div>
+<pre class="r"><code>egoCM_int_df &lt;- egoCM_int_df %&gt;%
+  arrange(desc(RichFactor))
+
+#By RichFactor
+ggplot(egoCM_int_df[1:21, ], aes(x = reorder(Description, RichFactor), y = RichFactor)) +
+  geom_bar(stat = &quot;identity&quot;, aes(fill = RichFactor)) +
+  coord_flip() +
+  theme_classic() +
+  scale_fill_gradient2(low = &quot;blue&quot;, mid = &quot;white&quot;, high = &quot;red&quot;) +
+  labs(title = &quot;Cardiomyocyte Differential Expression by Rich Factor for T cell Intermediate Condition&quot;, y = &quot;RichFactor&quot;, x = &quot;Description&quot;)</code></pre>
+<img src="figure/Stratification%20by%20T%20cell%20condition%20and%20DE%20genes.Rmd/Cardiomyocyte%20Cluster%20T%20cell%20Intermediate-2.png" width="672" style="display: block; margin: auto;" />
+<div class="alert alert-warning">
+<strong>Warning!</strong> The custom <code>fig.path</code> you set was
+ignored by workflowr.
+</div>
+<pre class="r"><code>##GSEA Cardiomyocyte T cell low
+
+DEGenes_CM_TClow &lt;- DEGenesCM %&gt;% filter(cluster == &quot;Tcell Low&quot;)
+egoCM_low &lt;- enrichGO(gene = unique(DEGenes_CM_TClow$EnsID),
+                          OrgDb = org.Hs.eg.db,
+                          keyType = &#39;ENSEMBL&#39;,
+                          ont = &quot;BP&quot;,
+                          pAdjustMethod = &quot;BH&quot;)
+                          #pvalueCutoff = 0.05,
+                          #qvalueCutoff = 0.05)
+
+egoCM_low &lt;- setReadable(egoCM_low, OrgDb = org.Hs.eg.db)
+head(egoCM_low)</code></pre>
+<pre><code>                   ID                                                          Description
+GO:0071372 GO:0071372           cellular response to follicle-stimulating hormone stimulus
+GO:0010713 GO:0010713                    negative regulation of collagen metabolic process
+GO:0010998 GO:0010998 regulation of translational initiation by eIF2 alpha phosphorylation
+GO:0035296 GO:0035296                                          regulation of tube diameter
+GO:0097746 GO:0097746                                    blood vessel diameter maintenance
+GO:0035150 GO:0035150                                              regulation of tube size
+           GeneRatio   BgRatio RichFactor FoldEnrichment    zScore       pvalue   p.adjust
+GO:0071372      2/39  10/21288 0.20000000      109.16923 14.657457 0.0001458090 0.03474769
+GO:0010713      2/39  12/21288 0.16666667       90.97436 13.356254 0.0002133584 0.03474769
+GO:0010998      2/39  12/21288 0.16666667       90.97436 13.356254 0.0002133584 0.03474769
+GO:0035296      4/39 163/21288 0.02453988       13.39500  6.805534 0.0002211022 0.03474769
+GO:0097746      4/39 163/21288 0.02453988       13.39500  6.805534 0.0002211022 0.03474769
+GO:0035150      4/39 165/21288 0.02424242       13.23263  6.757786 0.0002316513 0.03474769
+              qvalue                  geneID Count
+GO:0071372 0.0295457              EDNRA/GCLC     2
+GO:0010713 0.0295457              CIITA/CST3     2
+GO:0010998 0.0295457               NCK1/FECH     2
+GO:0035296 0.0295457 EDNRA/ADRB2/KCNMB2/GCLC     4
+GO:0097746 0.0295457 EDNRA/ADRB2/KCNMB2/GCLC     4
+GO:0035150 0.0295457 EDNRA/ADRB2/KCNMB2/GCLC     4</code></pre>
+<pre class="r"><code>#write.table(egoCM_low@result, file= &quot;/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/docs/Markers/egoCM for TC low 12.10.2024&quot;, sep=&quot;\t&quot;,quote=F,row.names=F,col.names=T)
+
+
+#View(egoCM_low@result)
+
+# response HGF: GCLC
+# positive regulation of T cell activation: NCK1
+# response to transforming growth factor beta: INTS9
+# B cell mediated immunity: FCMR
+# positive regulation of canonical NF-kappaB signal transduction: EDNRA
+
+
+egoCM_low_df &lt;- as.data.frame(egoCM_low@result)
+
+
+egoCM_low_df &lt;- egoCM_low_df %&gt;%
+ arrange(desc(zScore))
+
+# by zScore
+ggplot(egoCM_low_df[1:21, ], aes(x = reorder(Description, zScore), y = zScore)) +
+  geom_bar(stat = &quot;identity&quot;, aes(fill = zScore)) +
+  coord_flip() +
+  theme_classic() +
+  scale_fill_gradient2(low = &quot;blue&quot;, mid = &quot;white&quot;, high = &quot;red&quot;) +
+  labs(title = &quot;Cardiomyocyte Differential Expression by zScore for T cell Low Condition&quot;, y = &quot;z Score&quot;, x = &quot;Description&quot;)</code></pre>
+<img src="figure/Stratification%20by%20T%20cell%20condition%20and%20DE%20genes.Rmd/Cardiomyocyte%20Cluster%20T%20cell%20Low%20Condition-1.png" width="672" style="display: block; margin: auto;" />
+<div class="alert alert-warning">
+<strong>Warning!</strong> The custom <code>fig.path</code> you set was
+ignored by workflowr.
+</div>
+<pre class="r"><code>egoCM_low_df &lt;- egoCM_low_df %&gt;%
+  arrange(desc(RichFactor))
+
+#by RichFactor
+ggplot(egoCM_low_df[1:21, ], aes(x = reorder(Description, RichFactor), y = RichFactor)) +
+  geom_bar(stat = &quot;identity&quot;, aes(fill = RichFactor)) +
+  coord_flip() +
+  theme_classic() +
+  scale_fill_gradient2(low = &quot;blue&quot;, mid = &quot;white&quot;, high = &quot;red&quot;) +
+  labs(title = &quot;Cardiomyocyte Differential Expression by Rich Factor for T cell Low Condition&quot;, y = &quot;RichFactor&quot;, x = &quot;Description&quot;)</code></pre>
+<img src="figure/Stratification%20by%20T%20cell%20condition%20and%20DE%20genes.Rmd/Cardiomyocyte%20Cluster%20T%20cell%20Low%20Condition-2.png" width="672" style="display: block; margin: auto;" />
+<div class="alert alert-warning">
+<strong>Warning!</strong> The custom <code>fig.path</code> you set was
+ignored by workflowr.
+</div>
+<pre class="r"><code>##GSEA Cardiomyocyte T cell Very Low
+DEGenes_CM_TCvlow &lt;- DEGenesCM %&gt;% filter(cluster == &quot;Tcell Very Low&quot;)
+egoCM_vlow &lt;- enrichGO(gene = unique(DEGenes_CM_TCvlow$EnsID),
+                          OrgDb = org.Hs.eg.db,
+                          keyType = &#39;ENSEMBL&#39;,
+                          ont = &quot;BP&quot;,
+                          pAdjustMethod = &quot;BH&quot;)
+                          #pvalueCutoff = 0.05,
+                          #qvalueCutoff = 0.05)
+
+egoCM_vlow &lt;- setReadable(egoCM_vlow, OrgDb = org.Hs.eg.db)
+head(egoCM_vlow)</code></pre>
+<pre><code>                   ID                         Description GeneRatio  BgRatio RichFactor
+GO:0006970 GO:0006970          response to osmotic stress      5/72 90/21288 0.05555556
+GO:0071470 GO:0071470 cellular response to osmotic stress      4/72 54/21288 0.07407407
+           FoldEnrichment   zScore       pvalue   p.adjust     qvalue                     geneID
+GO:0006970       16.42593 8.543125 1.351161e-05 0.01891626 0.01720953 MICU1/MYLK/ATF2/CASP1/CLN3
+GO:0071470       21.90123 8.958693 3.347147e-05 0.02343003 0.02131604      MICU1/MYLK/CASP1/CLN3
+           Count
+GO:0006970     5
+GO:0071470     4</code></pre>
+<pre class="r"><code>#write.table(egoCM_vlow@result, file= &quot;/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/docs/Markers/egoCM for TC very low 12.10.2024&quot;, sep=&quot;\t&quot;,quote=F,row.names=F,col.names=T)
+
+
+#View(egoCM_vlow@result)
+
+# positive regulation of dendritic cell cytokine production, positive regulation of T-helper 17: CLEC7A/PLCG2
+# regulation of cellular response to osmotic stress: MICU1/CLN3
+# phagosome-lysosome fusion: SPG11/CLN3. 
+# positive regulation of interleukin-2 production: CLEC7A/PLCG2
+# positive regulation of granulocyte differentiation:   HCLS1
+# ERBB3 signaling pathway: RTN4
+# NK T cell differentiation: ATF2
+# positive regulation of interleukin-18 production: CASP1
+# viral life cycle SMPD1
+
+egoCM_vlow_df &lt;- as.data.frame(egoCM_vlow@result)
+
+
+egoCM_vlow_df &lt;- egoCM_vlow_df %&gt;%
+ arrange(desc(zScore))
+
+ggplot(egoCM_vlow_df[1:21, ], aes(x = reorder(Description, zScore), y = zScore)) +
+  geom_bar(stat = &quot;identity&quot;, aes(fill = zScore)) +
+  coord_flip() +
+  theme_classic() +
+  scale_fill_gradient2(low = &quot;blue&quot;, mid = &quot;white&quot;, high = &quot;red&quot;) +
+  labs(title = &quot;Cardiomyocyte Differential Expression by zScore for T cell Very Low Condition&quot;, y = &quot;z Score&quot;, x = &quot;Description&quot;)</code></pre>
+<img src="figure/Stratification%20by%20T%20cell%20condition%20and%20DE%20genes.Rmd/Cardiomyocyte%20Cluster%20T%20cell%20Very%20Low%20Condition-1.png" width="672" style="display: block; margin: auto;" />
+<div class="alert alert-warning">
+<strong>Warning!</strong> The custom <code>fig.path</code> you set was
+ignored by workflowr.
+</div>
+<pre class="r"><code>egoCM_vlow_df &lt;- egoCM_vlow_df %&gt;%
+  arrange(desc(RichFactor))
+
+ggplot(egoCM_low_df[1:21, ], aes(x = reorder(Description, RichFactor), y = RichFactor)) +
+  geom_bar(stat = &quot;identity&quot;, aes(fill = RichFactor)) +
+  coord_flip() +
+  theme_classic() +
+  scale_fill_gradient2(low = &quot;blue&quot;, mid = &quot;white&quot;, high = &quot;red&quot;) +
+  labs(title = &quot;Cardiomyocyte Differential Expression by Rich Factor for T cell Very Low Condition&quot;, y = &quot;RichFactor&quot;, x = &quot;Description&quot;)</code></pre>
+<img src="figure/Stratification%20by%20T%20cell%20condition%20and%20DE%20genes.Rmd/Cardiomyocyte%20Cluster%20T%20cell%20Very%20Low%20Condition-2.png" width="672" style="display: block; margin: auto;" />
+<div class="alert alert-warning">
+<strong>Warning!</strong> The custom <code>fig.path</code> you set was
+ignored by workflowr.
+</div>
+<pre class="r"><code>seuratTcell &lt;- subset(seuratM, clusterName %in% &quot;TC&quot;)
+table(seuratTcell$clusterName)</code></pre>
+<pre><code>
+Cardiomyocyte           Fb1           Fb2           Fb3          INT1       PeriFb1       PeriFb2 
+            0             0             0             0             0             0             0 
+         VSMC            NC          BEC1          BEC2        AdipoC          MCP1          MCP2 
+            0             0             0             0             0             0             0 
+           TC 
+         4836 </code></pre>
+<pre class="r"><code>table(seuratTcell$patient)</code></pre>
+<pre><code>
+    Healthy 01     Healthy 02     Healthy 03     Healthy 04     Healthy 05     Healthy 06 
+            73             34             42             78             22             39 
+    Healthy 07     Healthy 08          AM 01          AM 02          AM 03          AM 04 
+            15             19           2824             71             19              3 
+         AM 05          AM 06          AM 07          AM 08          AM 09          AM 10 
+            10             22              5             15             13              4 
+         AM 11          AM 12          AM 13          AM 14          AM 15          AM 16 
+             0             23            212             35            144            466 
+         AM 17          AM 18         CMP 01         CMP 02         CMP 03         CMP 04 
+            82             84              7              4             27             56 
+        CMP 05         CMP 06         CMP 07         CMP 08         CMP 09         CMP 10 
+            24              5             32             29             33             26 
+        CMP 11         CMP 12         CMP 13 Sarcoidosis 01 Sarcoidosis 02 
+            17             32             13             56            121 </code></pre>
+<pre class="r"><code>table(seuratTcell$pat_sub)</code></pre>
+<pre><code>
+    Healthy          AM         CMP Sarcoidosis 
+        322        4032         305         177 </code></pre>
+<pre class="r"><code>Idents(seuratTcell) &lt;- seuratTcell$TC
+
+DimPlot(seuratTcell, reduction = &quot;umap&quot;)</code></pre>
+<img src="figure/Stratification%20by%20T%20cell%20condition%20and%20DE%20genes.Rmd/unnamed-chunk-9-1.png" width="672" style="display: block; margin: auto;" />
+<div class="alert alert-warning">
+<strong>Warning!</strong> The custom <code>fig.path</code> you set was
+ignored by workflowr.
+</div>
+<pre class="r"><code>levels(seuratTcell)</code></pre>
+<pre><code>[1] &quot;Tcell High&quot;         &quot;Tcell Intermediate&quot; &quot;Tcell Low&quot;          &quot;Tcell Very Low&quot;    </code></pre>
+<pre class="r"><code>table(seuratTcell$TC)</code></pre>
+<pre><code>
+        Tcell High Tcell Intermediate          Tcell Low     Tcell Very Low 
+               608                468               1385               2375 </code></pre>
+<pre class="r"><code># for Tcell cluster TC High N = 608, Tcell Intermediate N = 468, Tcell Low = 1385, Tcell Very Low = 2375; N = 4836
+
+DEGenesTC &lt;- FindAllMarkers(seuratTcell, only.pos = T, logfc.threshold = 0.2) </code></pre>
+<pre><code>Calculating cluster Tcell High</code></pre>
+<pre><code>Calculating cluster Tcell Intermediate</code></pre>
+<pre><code>Calculating cluster Tcell Low</code></pre>
+<pre><code>Calculating cluster Tcell Very Low</code></pre>
+<pre class="r"><code>head(DEGenesTC)</code></pre>
+<pre><code>                                  p_val avg_log2FC pct.1 pct.2  p_val_adj    cluster
+ENSG00000226499.AL136380.1 1.845230e-06  3.1818368 0.013 0.002 0.07217434 Tcell High
+ENSG00000284981.UPK3BL2    6.776047e-06  4.2627844 0.012 0.001 0.26503831 Tcell High
+ENSG00000234073.AC011816.1 6.446370e-05  2.4675081 0.016 0.004 1.00000000 Tcell High
+ENSG00000287252.AL009179.1 1.301516e-04  1.4487371 0.025 0.008 1.00000000 Tcell High
+ENSG00000163931.TKT        1.571714e-04  0.8892463 0.079 0.044 1.00000000 Tcell High
+ENSG00000238015.AC104837.2 2.185442e-04  2.9200980 0.015 0.004 1.00000000 Tcell High
+                                                 gene
+ENSG00000226499.AL136380.1 ENSG00000226499.AL136380.1
+ENSG00000284981.UPK3BL2       ENSG00000284981.UPK3BL2
+ENSG00000234073.AC011816.1 ENSG00000234073.AC011816.1
+ENSG00000287252.AL009179.1 ENSG00000287252.AL009179.1
+ENSG00000163931.TKT               ENSG00000163931.TKT
+ENSG00000238015.AC104837.2 ENSG00000238015.AC104837.2</code></pre>
+<pre class="r"><code>DEGenesTC_adj &lt;- FindAllMarkers(seuratTcell, only.pos = T, logfc.threshold = 0.2) %&gt;% 
+  dplyr::filter(p_val_adj &lt; 0.05)</code></pre>
+<pre><code>Calculating cluster Tcell High</code></pre>
+<pre><code>Calculating cluster Tcell Intermediate</code></pre>
+<pre><code>Calculating cluster Tcell Low</code></pre>
+<pre><code>Calculating cluster Tcell Very Low</code></pre>
+<pre class="r"><code>head(DEGenesTC_adj)</code></pre>
+<pre><code>[1] p_val      avg_log2FC pct.1      pct.2      p_val_adj  cluster    gene      
+&lt;0 rows&gt; (or 0-length row.names)</code></pre>
+<pre class="r"><code>#View(DEGenesTC)
+
+#write.table (DEGenesTC, file= &quot;/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/docs/Markers/DE Genes Tcell cluster for all TCell conditions&quot;, sep=&quot;\t&quot;,quote=F,row.names=F,col.names=T)
+
+# TKT, KRBOX4, SCAMP5 (positive regulation of cytokine production), ZNF492, HOMER2(dendritic proteins), UBB (activation of the transcription factor NF-kappa-B), CXCL16 (responds to IFNy)</code></pre>
+<pre class="r"><code>##adjust table
+DEGenesTC &lt;- DEGenesTC %&gt;% 
+  mutate(Gene=gene) %&gt;%
+  mutate(gene=gsub(&quot;^.*\\.&quot;, &quot;&quot;, Gene))  %&gt;%
+  mutate(EnsID=gsub(&quot;\\..*&quot;,&quot;&quot;, Gene))
+
+##GSEA Tcell
+DEGenesTC_high &lt;- DEGenesTC %&gt;% filter(cluster == &quot;Tcell High&quot;)
+egoTC &lt;- enrichGO(gene = unique(DEGenesTC_high$EnsID),
+                          OrgDb = org.Hs.eg.db,
+                          keyType = &#39;ENSEMBL&#39;,
+                          ont = &quot;BP&quot;,
+                          pAdjustMethod = &quot;BH&quot;)
+                          #pvalueCutoff = 0.05,
+                          #qvalueCutoff = 0.05)
+
+egoTC &lt;- setReadable(egoTC, OrgDb = org.Hs.eg.db)
+
+#write.table(egoTC@result, file= &quot;/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/docs/Markers/egoTC for TC high 12.10.2024&quot;, sep=&quot;\t&quot;,quote=F,row.names=F,col.names=T)
+#View(egoTC@result)
+
+# ERBB3 signaling pathway MAPK1, TP53/MECP2
+# BCL10/TP53/RAPGEF2
+
+egoTC_df &lt;- as.data.frame(egoTC@result)
+
+
+egoTC_df &lt;- egoTC_df %&gt;%
+ arrange(desc(zScore))
+
+ggplot(egoTC_df [1:20, ], aes(x = reorder(Description, zScore), y = zScore)) +
+  geom_bar(stat = &quot;identity&quot;, aes(fill = zScore)) +
+  coord_flip() +
+  theme_classic() +
+  scale_fill_gradient2(low = &quot;blue&quot;, mid = &quot;white&quot;, high = &quot;red&quot;) +
+  labs(title = &quot;T cell Differential Expression by zScore for T cell High Condition&quot;, y = &quot;z Score&quot;, x = &quot;Description&quot;)</code></pre>
+<img src="figure/Stratification%20by%20T%20cell%20condition%20and%20DE%20genes.Rmd/T%20cell%20cluster:%20Tcell%20High%20condition-1.png" width="672" style="display: block; margin: auto;" />
+<div class="alert alert-warning">
+<strong>Warning!</strong> The custom <code>fig.path</code> you set was
+ignored by workflowr.
+</div>
+<pre class="r"><code>egoTC_df &lt;- egoTC_df %&gt;%
+  arrange(desc(RichFactor))
+
+ggplot(egoTC_df[1:21, ], aes(x = reorder(Description, RichFactor), y = RichFactor)) +
+  geom_bar(stat = &quot;identity&quot;, aes(fill = RichFactor)) +
+  coord_flip() +
+  theme_classic() +
+  scale_fill_gradient2(low = &quot;blue&quot;, mid = &quot;white&quot;, high = &quot;red&quot;) +
+  labs(title = &quot;T cell Differential Expression by Rich Factor for T cell High Condition&quot;, y = &quot;RichFactor&quot;, x = &quot;Description&quot;)</code></pre>
+<img src="figure/Stratification%20by%20T%20cell%20condition%20and%20DE%20genes.Rmd/T%20cell%20cluster:%20Tcell%20High%20condition-2.png" width="672" style="display: block; margin: auto;" />
+<div class="alert alert-warning">
+<strong>Warning!</strong> The custom <code>fig.path</code> you set was
+ignored by workflowr.
+</div>
+<pre class="r"><code>##GSEA Tcell
+DEGenesTC_int &lt;- DEGenesTC %&gt;% filter(cluster == &quot;Tcell Intermediate&quot;)
+egoTC_int &lt;- enrichGO(gene = unique(DEGenesTC_int$EnsID),
+                          OrgDb = org.Hs.eg.db,
+                          keyType = &#39;ENSEMBL&#39;,
+                          ont = &quot;BP&quot;,
+                          pAdjustMethod = &quot;BH&quot;)
+                          #pvalueCutoff = 0.05,
+                          #qvalueCutoff = 0.05)
+
+egoTC_int &lt;- setReadable(egoTC_int, OrgDb = org.Hs.eg.db)
+
+# View(egoTC_int@result)
+
+#write.table(egoTC_int@result, file= &quot;/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/docs/Markers/egoTC for TC intermediate 12.10.2024&quot;, sep=&quot;\t&quot;,quote=F,row.names=F,col.names=T)
+
+
+# lymphocyte differentiation: NRARP/HDAC9/PPP2R3C/CD3D/HMGB1/TCIRG1
+# positive regulation of ERK1 and ERK2 cascade:GPBAR1/MFHAS1/CIB1/HMGB1/ARRB1
+# MAP2/MARK1/UBA6/NCK2
+# T cell differentiation: NRARP/CD3D/HMGB1/TCIRG1
+# NRARP/PPP2R3C/LRRC17/HMGB1
+# Wnt signaling pathway: NRARP/MARK1/MKS1/TAX1BP3
+# negative regulation of Notch signaling pathway: NRARP/NIBAN2/ARRB1
+# B cell diff: HDAC9/PPP2R3C/TCIRG1
+# BBC3/NCK2/NACC2
+# BMPR2/MKS1
+# Tcell homeostasis PPP2R3C/TCIRG1
+# negative regulation NFKB RWDD3/ARRB1
+
+
+egoTC_df &lt;- as.data.frame(egoTC_int@result)
+
+
+egoTC_int_df &lt;- egoTC_df %&gt;%
+ arrange(desc(zScore))
+
+ggplot(egoTC_int_df[1:21, ], aes(x = reorder(Description, zScore), y = zScore)) +
+  geom_bar(stat = &quot;identity&quot;, aes(fill = zScore)) +
+  coord_flip() +
+  theme_classic() +
+  scale_fill_gradient2(low = &quot;blue&quot;, mid = &quot;white&quot;, high = &quot;red&quot;) +
+  labs(title = &quot;T cell Differential Expression by zScore for T cell Intermediate Condition&quot;, y = &quot;z Score&quot;, x = &quot;Description&quot;)</code></pre>
+<img src="figure/Stratification%20by%20T%20cell%20condition%20and%20DE%20genes.Rmd/T%20cell%20cluster:%20Tcell%20Intermediate%20condition-1.png" width="672" style="display: block; margin: auto;" />
+<div class="alert alert-warning">
+<strong>Warning!</strong> The custom <code>fig.path</code> you set was
+ignored by workflowr.
+</div>
+<pre class="r"><code>egoTC_int_df &lt;- egoTC_int_df %&gt;%
+  arrange(desc(RichFactor))
+
+ggplot(egoTC_int_df[1:21, ], aes(x = reorder(Description, RichFactor), y = RichFactor)) +
+  geom_bar(stat = &quot;identity&quot;, aes(fill = RichFactor)) +
+  coord_flip() +
+  theme_classic() +
+  scale_fill_gradient2(low = &quot;blue&quot;, mid = &quot;white&quot;, high = &quot;red&quot;) +
+  labs(title = &quot;T cell Differential Expression by Rich Factor for T cell Intermediate Condition&quot;, y = &quot;RichFactor&quot;, x = &quot;Description&quot;)</code></pre>
+<img src="figure/Stratification%20by%20T%20cell%20condition%20and%20DE%20genes.Rmd/T%20cell%20cluster:%20Tcell%20Intermediate%20condition-2.png" width="672" style="display: block; margin: auto;" />
+<div class="alert alert-warning">
+<strong>Warning!</strong> The custom <code>fig.path</code> you set was
+ignored by workflowr.
+</div>
+<pre class="r"><code>##GSEA Tcell
+
+DEGenesTC_low &lt;- DEGenesTC %&gt;% filter(cluster == &quot;Tcell Low&quot;)
+egoTC_low &lt;- enrichGO(gene = unique(DEGenesTC_low$EnsID),
+                          OrgDb = org.Hs.eg.db,
+                          keyType = &#39;ENSEMBL&#39;,
+                          ont = &quot;BP&quot;,
+                          pAdjustMethod = &quot;BH&quot;)
+                          #pvalueCutoff = 0.05,
+                          #qvalueCutoff = 0.05)
+
+egoTC_low &lt;- setReadable(egoTC_low, OrgDb = org.Hs.eg.db)
+
+#View(egoTC_low@result)
+
+#write.table(egoTC_low@result, file= &quot;/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/docs/Markers/egoTC for TC low 12.10.2024&quot;, sep=&quot;\t&quot;,quote=F,row.names=F,col.names=T)
+
+egoTC_df &lt;- as.data.frame(egoTC_low@result)
+
+
+egoTC_low_df &lt;- egoTC_df %&gt;%
+ arrange(desc(zScore))
+
+ggplot(egoTC_low_df[1:21, ], aes(x = reorder(Description, zScore), y = zScore)) +
+  geom_bar(stat = &quot;identity&quot;, aes(fill = zScore)) +
+  coord_flip() +
+  theme_classic() +
+  scale_fill_gradient2(low = &quot;blue&quot;, mid = &quot;white&quot;, high = &quot;red&quot;) +
+  labs(title = &quot;T cell Differential Expression by zScore for T cell Low Condition&quot;, y = &quot;z Score&quot;, x = &quot;Description&quot;)</code></pre>
+<img src="figure/Stratification%20by%20T%20cell%20condition%20and%20DE%20genes.Rmd/T%20cell%20cluster:%20Tcell%20Low%20condition-1.png" width="672" style="display: block; margin: auto;" />
+<div class="alert alert-warning">
+<strong>Warning!</strong> The custom <code>fig.path</code> you set was
+ignored by workflowr.
+</div>
+<pre class="r"><code>egoTC_low_df &lt;- egoTC_low_df %&gt;%
+  arrange(desc(RichFactor))
+
+ggplot(egoTC_low_df[1:21, ], aes(x = reorder(Description, RichFactor), y = RichFactor)) +
+  geom_bar(stat = &quot;identity&quot;, aes(fill = RichFactor)) +
+  coord_flip() +
+  theme_classic() +
+  scale_fill_gradient2(low = &quot;blue&quot;, mid = &quot;white&quot;, high = &quot;red&quot;) +
+  labs(title = &quot;T cell Differential Expression by Rich Factor for T cell Low Condition&quot;, y = &quot;RichFactor&quot;, x = &quot;Description&quot;)</code></pre>
+<img src="figure/Stratification%20by%20T%20cell%20condition%20and%20DE%20genes.Rmd/T%20cell%20cluster:%20Tcell%20Low%20condition-2.png" width="672" style="display: block; margin: auto;" />
+<div class="alert alert-warning">
+<strong>Warning!</strong> The custom <code>fig.path</code> you set was
+ignored by workflowr.
+</div>
+<pre class="r"><code>##GSEA Tcell
+
+DEGenesTC_vlow &lt;- DEGenesTC %&gt;% filter(cluster == &quot;Tcell Very Low&quot;)
+egoTC_vlow &lt;- enrichGO(gene = unique(DEGenesTC_vlow$EnsID),
+                          OrgDb = org.Hs.eg.db,
+                          keyType = &#39;ENSEMBL&#39;,
+                          ont = &quot;BP&quot;,
+                          pAdjustMethod = &quot;BH&quot;)
+                          #pvalueCutoff = 0.05,
+                          #qvalueCutoff = 0.05)
+
+egoTC_vlow &lt;- setReadable(egoTC_vlow, OrgDb = org.Hs.eg.db)
+
+#View(egoTC_vlow@result)
+
+# Tcell selection: SRF/RHOA
+# RNMT/MAT2A
+# SRF Together with MRTFA transcription coactivator, controls expression of genes regulating the cytoskeleton during development, morphogenesis and cell migration.
+# regulation of canonical NF-kappaB signal transduction: RHOA/ZMYND11/ZFAND6 (Involved in regulation of TNF-alpha induced NF-kappa-B activation and apoptosis.)
+# leukemia inhibitory factor RNMT/MAT2A
+
+#write.table(egoTC_vlow@result, file= &quot;/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/docs/Markers/egoTC for TC very low 12.10.2024&quot;, sep=&quot;\t&quot;,quote=F,row.names=F,col.names=T)
+
+egoTC_df &lt;- as.data.frame(egoTC_vlow@result)
+
+
+egoTC_vlow_df &lt;- egoTC_df %&gt;%
+ arrange(desc(zScore))
+
+ggplot(egoTC_vlow_df[1:21, ], aes(x = reorder(Description, zScore), y = zScore)) +
+  geom_bar(stat = &quot;identity&quot;, aes(fill = zScore)) +
+  coord_flip() +
+  theme_classic() +
+  scale_fill_gradient2(low = &quot;blue&quot;, mid = &quot;white&quot;, high = &quot;red&quot;) +
+  labs(title = &quot;T cell Differential Expression by zScore for T cell Very Low Condition&quot;, y = &quot;z Score&quot;, x = &quot;Description&quot;)</code></pre>
+<img src="figure/Stratification%20by%20T%20cell%20condition%20and%20DE%20genes.Rmd/T%20cell%20cluster:%20Tcell%20Very%20Low%20condition-1.png" width="672" style="display: block; margin: auto;" />
+<div class="alert alert-warning">
+<strong>Warning!</strong> The custom <code>fig.path</code> you set was
+ignored by workflowr.
+</div>
+<pre class="r"><code>egoTC_vlow_df &lt;- egoTC_vlow_df %&gt;%
+  arrange(desc(RichFactor))
+
+ggplot(egoTC_vlow_df[1:21, ], aes(x = reorder(Description, RichFactor), y = RichFactor)) +
+  geom_bar(stat = &quot;identity&quot;, aes(fill = RichFactor)) +
+  coord_flip() +
+  theme_classic() +
+  scale_fill_gradient2(low = &quot;blue&quot;, mid = &quot;white&quot;, high = &quot;red&quot;) +
+  labs(title = &quot;T cell Differential Expression by Rich Factor for T cell Very Low Condition&quot;, y = &quot;RichFactor&quot;, x = &quot;Description&quot;)</code></pre>
+<img src="figure/Stratification%20by%20T%20cell%20condition%20and%20DE%20genes.Rmd/T%20cell%20cluster:%20Tcell%20Very%20Low%20condition-2.png" width="672" style="display: block; margin: auto;" />
+<div class="alert alert-warning">
+<strong>Warning!</strong> The custom <code>fig.path</code> you set was
+ignored by workflowr.
+</div>
+<pre class="r"><code>seuratFb &lt;- subset(seuratM, clusterName %in% c(&quot;Fb1&quot;, &quot;Fb2&quot;, &quot;Fb3&quot;))
+table(seuratFb$clusterName)</code></pre>
+<pre><code>
+Cardiomyocyte           Fb1           Fb2           Fb3          INT1       PeriFb1       PeriFb2 
+            0         17699           694           380             0             0             0 
+         VSMC            NC          BEC1          BEC2        AdipoC          MCP1          MCP2 
+            0             0             0             0             0             0             0 
+           TC 
+            0 </code></pre>
+<pre class="r"><code>table(seuratFb$patient)</code></pre>
+<pre><code>
+    Healthy 01     Healthy 02     Healthy 03     Healthy 04     Healthy 05     Healthy 06 
+          1153           1128           1550           2285             97            315 
+    Healthy 07     Healthy 08          AM 01          AM 02          AM 03          AM 04 
+            68            268            394           1530            401             33 
+         AM 05          AM 06          AM 07          AM 08          AM 09          AM 10 
+           162             74            519            213            136            189 
+         AM 11          AM 12          AM 13          AM 14          AM 15          AM 16 
+            42            353            780            659           1119            248 
+         AM 17          AM 18         CMP 01         CMP 02         CMP 03         CMP 04 
+            60            115             40            103            278            317 
+        CMP 05         CMP 06         CMP 07         CMP 08         CMP 09         CMP 10 
+           118            236            317            616            848            143 
+        CMP 11         CMP 12         CMP 13 Sarcoidosis 01 Sarcoidosis 02 
+           263            153             17            792            641 </code></pre>
+<pre class="r"><code>table(seuratFb$pat_sub)</code></pre>
+<pre><code>
+    Healthy          AM         CMP Sarcoidosis 
+       6864        7027        3449        1433 </code></pre>
+<pre class="r"><code>Idents(seuratFb) &lt;- seuratFb$TC
+
+DimPlot(seuratFb, reduction = &quot;umap&quot;)</code></pre>
+<img src="figure/Stratification%20by%20T%20cell%20condition%20and%20DE%20genes.Rmd/Fb%20Clusters%20stratified%20by%20Tcell%20condition-1.png" width="672" style="display: block; margin: auto;" />
+<div class="alert alert-warning">
+<strong>Warning!</strong> The custom <code>fig.path</code> you set was
+ignored by workflowr.
+</div>
+<pre class="r"><code>levels(seuratFb)</code></pre>
+<pre><code>[1] &quot;Tcell High&quot;         &quot;Tcell Intermediate&quot; &quot;Tcell Low&quot;          &quot;Tcell Very Low&quot;    </code></pre>
+<pre class="r"><code>table(seuratFb$TC)</code></pre>
+<pre><code>
+        Tcell High Tcell Intermediate          Tcell Low     Tcell Very Low 
+              2311               1835               5461               9166 </code></pre>
+<pre class="r"><code># for Fb cluster TC High N = 2311, Tcell Intermediate N = 1835, Tcell Low = 5461, Tcell Very Low = 9166;
+
+DEGenesFb &lt;- FindAllMarkers(seuratFb, only.pos = T, logfc.threshold = 0.2) </code></pre>
+<pre><code>Calculating cluster Tcell High</code></pre>
+<pre><code>Calculating cluster Tcell Intermediate</code></pre>
+<pre><code>Calculating cluster Tcell Low</code></pre>
+<pre><code>Calculating cluster Tcell Very Low</code></pre>
+<pre class="r"><code>head(DEGenesTC)</code></pre>
+<pre><code>                                  p_val avg_log2FC pct.1 pct.2  p_val_adj    cluster    gene
+ENSG00000226499.AL136380.1 1.845230e-06  3.1818368 0.013 0.002 0.07217434 Tcell High       1
+ENSG00000284981.UPK3BL2    6.776047e-06  4.2627844 0.012 0.001 0.26503831 Tcell High UPK3BL2
+ENSG00000234073.AC011816.1 6.446370e-05  2.4675081 0.016 0.004 1.00000000 Tcell High       1
+ENSG00000287252.AL009179.1 1.301516e-04  1.4487371 0.025 0.008 1.00000000 Tcell High       1
+ENSG00000163931.TKT        1.571714e-04  0.8892463 0.079 0.044 1.00000000 Tcell High     TKT
+ENSG00000238015.AC104837.2 2.185442e-04  2.9200980 0.015 0.004 1.00000000 Tcell High       2
+                                                 Gene           EnsID
+ENSG00000226499.AL136380.1 ENSG00000226499.AL136380.1 ENSG00000226499
+ENSG00000284981.UPK3BL2       ENSG00000284981.UPK3BL2 ENSG00000284981
+ENSG00000234073.AC011816.1 ENSG00000234073.AC011816.1 ENSG00000234073
+ENSG00000287252.AL009179.1 ENSG00000287252.AL009179.1 ENSG00000287252
+ENSG00000163931.TKT               ENSG00000163931.TKT ENSG00000163931
+ENSG00000238015.AC104837.2 ENSG00000238015.AC104837.2 ENSG00000238015</code></pre>
+<pre class="r"><code>DEGenesFb_adj &lt;- FindAllMarkers(seuratFb, only.pos = T, logfc.threshold = 0.2) %&gt;% 
+  dplyr::filter(p_val_adj &lt; 0.05)</code></pre>
+<pre><code>Calculating cluster Tcell High</code></pre>
+<pre><code>Calculating cluster Tcell Intermediate</code></pre>
+<pre><code>Calculating cluster Tcell Low</code></pre>
+<pre><code>Calculating cluster Tcell Very Low</code></pre>
+<pre class="r"><code>head(DEGenesFb_adj)</code></pre>
+<pre><code>                                  p_val avg_log2FC pct.1 pct.2  p_val_adj            cluster
+ENSG00000204802.AL590399.1 3.705595e-07   1.325031 0.017 0.006 0.01449406 Tcell Intermediate
+                                                 gene
+ENSG00000204802.AL590399.1 ENSG00000204802.AL590399.1</code></pre>
+<pre class="r"><code>DEGenesFb &lt;- DEGenesFb %&gt;% 
+  mutate(Gene=gene) %&gt;%
+  mutate(gene=gsub(&quot;^.*\\.&quot;, &quot;&quot;, Gene))  %&gt;%
+  mutate(EnsID=gsub(&quot;\\..*&quot;,&quot;&quot;, Gene))
+
+##GSEA Fibroblast Group
+DEGenes_Fb_TChigh &lt;- DEGenesFb %&gt;% filter(cluster == &quot;Tcell High&quot;)
+egoFb &lt;- enrichGO(gene = unique(DEGenes_Fb_TChigh$EnsID),
+                          OrgDb = org.Hs.eg.db,
+                          keyType = &#39;ENSEMBL&#39;,
+                          ont = &quot;BP&quot;,
+                          pAdjustMethod = &quot;BH&quot;)
+                        
+
+egoFb &lt;- setReadable(egoFb, OrgDb = org.Hs.eg.db)
+
+#write.table(egoFb@result, file= &quot;/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/docs/Markers/egoFb for TC high 12.10.2024&quot;, sep=&quot;\t&quot;,quote=F,row.names=F,col.names=T)
+
+#View (egoFb@result)
+
+# negative regulation of T-helper 17 cell differentiation: RC3H2;  In resting or LPS-stimulated macrophages, controls inflammation by suppressing TNF expression. 
+# chemokine (C-C motif) ligand 5 production TRPV4
+# NRARP, PTPN6 (IFN pathway, also Integrins), PLEKHA4
+# positive regulation of steroid process: CES1/ERRFI1
+# PLEKHM2
+# regulation of defense response to virus: APOBEC3G
+# TNF pathway COMMD7
+
+egoFb_df &lt;- as.data.frame(egoFb@result)
+
+
+egoTCFb_df &lt;- egoFb_df %&gt;%
+ arrange(desc(zScore))
+
+
+ggplot(egoFb_df[1:21, ], aes(x = reorder(Description, zScore), y = zScore)) +
+  geom_bar(stat = &quot;identity&quot;, aes(fill = zScore)) +
+  coord_flip() +
+  theme_classic() +
+  scale_fill_gradient2(low = &quot;blue&quot;, mid = &quot;white&quot;, high = &quot;red&quot;) +
+  labs(title = &quot;Fibroblast Differential Expression by zScore for T cell High Condition&quot;, y = &quot;z Score&quot;, x = &quot;Description&quot;)</code></pre>
+<img src="figure/Stratification%20by%20T%20cell%20condition%20and%20DE%20genes.Rmd/Activated%20likely%20inflammatory%20Fb%20Clusters-1.png" width="672" style="display: block; margin: auto;" />
+<div class="alert alert-warning">
+<strong>Warning!</strong> The custom <code>fig.path</code> you set was
+ignored by workflowr.
+</div>
+<pre class="r"><code>egoFb_df &lt;- egoFb_df %&gt;%
+  arrange(desc(RichFactor))
+
+ggplot(egoFb_df[1:18, ], aes(x = reorder(Description, RichFactor), y = RichFactor)) +
+  geom_bar(stat = &quot;identity&quot;, aes(fill = RichFactor)) +
+  coord_flip() +
+  theme_classic() +
+  scale_fill_gradient2(low = &quot;blue&quot;, mid = &quot;white&quot;, high = &quot;red&quot;) +
+  labs(title = &quot;Fibroblast Differential Expression by Rich Factor for T cell High Condition&quot;, y = &quot;RichFactor&quot;, x = &quot;Description&quot;)</code></pre>
+<img src="figure/Stratification%20by%20T%20cell%20condition%20and%20DE%20genes.Rmd/Activated%20likely%20inflammatory%20Fb%20Clusters-2.png" width="672" style="display: block; margin: auto;" />
+<div class="alert alert-warning">
+<strong>Warning!</strong> The custom <code>fig.path</code> you set was
+ignored by workflowr.
+</div>
+<pre class="r"><code>##GSEA Fibroblast
+DEGenes_Fb_TCvlow &lt;- DEGenesFb %&gt;% filter(cluster == &quot;Tcell Very Low&quot;)
+egoFb_vlow &lt;- enrichGO(gene = unique(DEGenes_Fb_TCvlow$EnsID),
+                          OrgDb = org.Hs.eg.db,
+                          keyType = &#39;ENSEMBL&#39;,
+                          ont = &quot;BP&quot;,
+                          pAdjustMethod = &quot;BH&quot;)
+                          #pvalueCutoff = 0.05,
+                          #qvalueCutoff = 0.05)
+
+egoFb_vlow &lt;- setReadable(egoFb_vlow, OrgDb = org.Hs.eg.db)
+
+#write.table(egoFb_vlow@result, file= &quot;/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/docs/Markers/egoFb for TC very low 12.10.2024&quot;, sep=&quot;\t&quot;,quote=F,row.names=F,col.names=T)
+
+#View (egoFb_vlow@result)
+
+# negative regulation of T-helper 17 cell differentiation: RC3H2;  In resting or LPS-stimulated macrophages, controls inflammation by suppressing TNF expression. 
+# chemokine (C-C motif) ligand 5 production TRPV4
+# NRARP, PTPN6 (IFN pathway, also Integrins), PLEKHA4
+# positive regulation of steroid process: CES1/ERRFI1
+# PLEKHM2
+# regulation of defense response to virus: APOBEC3G
+# TNF pathway COMMD7
+
+egoFb_vlow_df &lt;- as.data.frame(egoFb_vlow@result)
+
+
+egoFb_vlow_df &lt;- egoFb_df %&gt;%
+ arrange(desc(zScore))
+
+
+ggplot(egoFb_vlow_df[1:21, ], aes(x = reorder(Description, zScore), y = zScore)) +
+  geom_bar(stat = &quot;identity&quot;, aes(fill = zScore)) +
+  coord_flip() +
+  theme_classic() +
+  scale_fill_gradient2(low = &quot;blue&quot;, mid = &quot;white&quot;, high = &quot;red&quot;) +
+  labs(title = &quot;Fibroblast Differential Expression by zScore for T cell Very Low Condition&quot;, y = &quot;z Score&quot;, x = &quot;Description&quot;)</code></pre>
+<img src="figure/Stratification%20by%20T%20cell%20condition%20and%20DE%20genes.Rmd/unnamed-chunk-10-1.png" width="672" style="display: block; margin: auto;" />
+<div class="alert alert-warning">
+<strong>Warning!</strong> The custom <code>fig.path</code> you set was
+ignored by workflowr.
+</div>
+<pre class="r"><code>egoFb_vlow_df &lt;- egoFb_vlow_df %&gt;%
+  arrange(desc(RichFactor))
+
+ggplot(egoTC_vlow_df[1:30, ], aes(x = reorder(Description, RichFactor), y = RichFactor)) +
+  geom_bar(stat = &quot;identity&quot;, aes(fill = RichFactor)) +
+  coord_flip() +
+  theme_classic() +
+  scale_fill_gradient2(low = &quot;blue&quot;, mid = &quot;white&quot;, high = &quot;red&quot;) +
+  labs(title = &quot;T cell Differential Expression by Rich Factor for T cell Very Low Condition&quot;, y = &quot;RichFactor&quot;, x = &quot;Description&quot;)</code></pre>
+<img src="figure/Stratification%20by%20T%20cell%20condition%20and%20DE%20genes.Rmd/unnamed-chunk-10-2.png" width="672" style="display: block; margin: auto;" />
+<div class="alert alert-warning">
+<strong>Warning!</strong> The custom <code>fig.path</code> you set was
+ignored by workflowr.
+</div>
+<pre class="r"><code>table(seuratM$clusterName)</code></pre>
+<pre><code>
+Cardiomyocyte           Fb1           Fb2           Fb3          INT1       PeriFb1       PeriFb2 
+         8222         17699           694           380           882         12754           249 
+         VSMC            NC          BEC1          BEC2        AdipoC          MCP1          MCP2 
+         2156           905         13639          2365            91          5475          3723 
+           TC 
+         4836 </code></pre>
+<pre class="r"><code>table(seuratM$patient)</code></pre>
+<pre><code>
+    Healthy 01     Healthy 02     Healthy 03     Healthy 04     Healthy 05     Healthy 06 
+          3921           3818           4908           9882           1442           1998 
+    Healthy 07     Healthy 08          AM 01          AM 02          AM 03          AM 04 
+           841           1480           6286           4323           1123            208 
+         AM 05          AM 06          AM 07          AM 08          AM 09          AM 10 
+           579            335           1217            604            513            426 
+         AM 11          AM 12          AM 13          AM 14          AM 15          AM 16 
+           236           1192           2740           1684           4439           2247 
+         AM 17          AM 18         CMP 01         CMP 02         CMP 03         CMP 04 
+           316            608            105            227            730           1428 
+        CMP 05         CMP 06         CMP 07         CMP 08         CMP 09         CMP 10 
+           620            653           1268           2280           2396            545 
+        CMP 11         CMP 12         CMP 13 Sarcoidosis 01 Sarcoidosis 02 
+           781            491            111           2363           2706 </code></pre>
+<pre class="r"><code>table(seuratM$pat_sub)</code></pre>
+<pre><code>
+    Healthy          AM         CMP Sarcoidosis 
+      28290       29076       11635        5069 </code></pre>
+<pre class="r"><code>Idents(seuratM) &lt;- seuratM$TC
+
+DimPlot(seuratM, reduction = &quot;umap&quot;)</code></pre>
+<img src="figure/Stratification%20by%20T%20cell%20condition%20and%20DE%20genes.Rmd/Tcell%20high%20vs.%20low%20accross%20all%20clusters-1.png" width="672" style="display: block; margin: auto;" />
+<div class="alert alert-warning">
+<strong>Warning!</strong> The custom <code>fig.path</code> you set was
+ignored by workflowr.
+</div>
+<pre class="r"><code>levels(seuratTcell)</code></pre>
+<pre><code>[1] &quot;Tcell High&quot;         &quot;Tcell Intermediate&quot; &quot;Tcell Low&quot;          &quot;Tcell Very Low&quot;    </code></pre>
+<pre class="r"><code>table(seuratM$TC)</code></pre>
+<pre><code>
+        Tcell High Tcell Intermediate          Tcell Low     Tcell Very Low 
+              9034               7227              21679              36130 </code></pre>
+<pre class="r"><code># Total: TC High N = 9034, Tcell Intermediate N = 7227, Tcell Low = 21679, Tcell Very Low = 36130$
+
+DEGenes_all &lt;- FindAllMarkers(seuratM, only.pos = T, logfc.threshold = 0.2) </code></pre>
+<pre><code>Calculating cluster Tcell High</code></pre>
+<pre><code>Calculating cluster Tcell Intermediate</code></pre>
+<pre><code>Calculating cluster Tcell Low</code></pre>
+<pre><code>Calculating cluster Tcell Very Low</code></pre>
+<pre class="r"><code>head(DEGenes_all)</code></pre>
+<pre><code>                                 p_val avg_log2FC pct.1 pct.2 p_val_adj    cluster
+ENSG00000185339.TCN2      4.413324e-05  0.2963544 0.030 0.023         1 Tcell High
+ENSG00000101182.PSMA7     3.388930e-04  0.2167253 0.086 0.075         1 Tcell High
+ENSG00000167965.MLST8     5.803388e-04  0.2234231 0.033 0.026         1 Tcell High
+ENSG00000213799.ZNF845    5.867041e-04  0.4079708 0.021 0.016         1 Tcell High
+ENSG00000168092.PAFAH1B2  6.329129e-04  0.2106615 0.103 0.092         1 Tcell High
+ENSG00000231185.SPRY4-AS1 7.222652e-04  0.4256313 0.017 0.013         1 Tcell High
+                                               gene
+ENSG00000185339.TCN2           ENSG00000185339.TCN2
+ENSG00000101182.PSMA7         ENSG00000101182.PSMA7
+ENSG00000167965.MLST8         ENSG00000167965.MLST8
+ENSG00000213799.ZNF845       ENSG00000213799.ZNF845
+ENSG00000168092.PAFAH1B2   ENSG00000168092.PAFAH1B2
+ENSG00000231185.SPRY4-AS1 ENSG00000231185.SPRY4-AS1</code></pre>
+<pre class="r"><code>DEGenes_adj &lt;- FindAllMarkers(seuratM, only.pos = T, logfc.threshold = 0.2) %&gt;% 
+  dplyr::filter(p_val_adj &lt; 0.05)</code></pre>
+<pre><code>Calculating cluster Tcell High</code></pre>
+<pre><code>Calculating cluster Tcell Intermediate</code></pre>
+<pre><code>Calculating cluster Tcell Low</code></pre>
+<pre><code>Calculating cluster Tcell Very Low</code></pre>
+<pre class="r"><code>#View(DEGenes_all)</code></pre>
+<pre class="r"><code>#saveRDS(seuratM, file=&quot;/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/data/01 Merged Seurat files/Myocarditis_clusters_TCmetadata_27.09.2024.rds&quot;)
+
+#write.table(dat_all, file= &quot;/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/docs/Markers_dat_all_clusters_Tcell_high_lowV2&quot;, sep = &quot;\t&quot;,quote=F,row.names=F,col.names=T)
+
+#saveRDS(seuratM, file=&quot;/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/data/01 Merged Seurat files/Myocarditis_clusters_Tc_condition_26.09.24.rds&quot;)</code></pre>
+<pre class="r"><code>date()</code></pre>
+<pre><code>[1] &quot;Sun Nov  3 19:49:20 2024&quot;</code></pre>
+<pre class="r"><code>sessionInfo()</code></pre>
+<pre><code>R version 4.4.1 (2024-06-14)
+Platform: aarch64-apple-darwin20
+Running under: macOS Sonoma 14.3
+
+Matrix products: default
+BLAS:   /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/lib/libRblas.0.dylib 
+LAPACK: /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/lib/libRlapack.dylib;  LAPACK version 3.12.0
+
+locale:
+[1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+
+time zone: Europe/Zurich
+tzcode source: internal
+
+attached base packages:
+[1] grid      stats4    stats     graphics  grDevices utils     datasets  methods   base     
+
+other attached packages:
+ [1] workflowr_1.7.1             pathview_1.44.0             wordcloud_2.6              
+ [4] textshaping_0.4.0           EnhancedVolcano_1.22.0      ggrepel_0.9.6              
+ [7] RColorBrewer_1.1-3          NCmisc_1.2.0                VennDiagram_1.7.3          
+[10] futile.logger_1.4.3         ggupset_0.4.0               gridExtra_2.3              
+[13] DOSE_3.30.5                 enrichplot_1.24.4           msigdbr_7.5.1              
+[16] org.Hs.eg.db_3.19.1         AnnotationDbi_1.66.0        clusterProfiler_4.12.6     
+[19] multtest_2.60.0             metap_1.11                  scater_1.32.1              
+[22] scuttle_1.14.0              destiny_3.18.0              circlize_0.4.16            
+[25] muscat_1.18.0               viridis_0.6.5               viridisLite_0.4.2          
+[28] lubridate_1.9.3             forcats_1.0.0               stringr_1.5.1              
+[31] purrr_1.0.2                 readr_2.1.5                 tidyr_1.3.1                
+[34] tibble_3.2.1                tidyverse_2.0.0             dplyr_1.1.4                
+[37] SingleCellExperiment_1.26.0 SummarizedExperiment_1.34.0 Biobase_2.64.0             
+[40] GenomicRanges_1.56.1        GenomeInfoDb_1.40.1         IRanges_2.38.1             
+[43] S4Vectors_0.42.1            BiocGenerics_0.50.0         MatrixGenerics_1.16.0      
+[46] matrixStats_1.4.1           pheatmap_1.0.12             ggpubr_0.6.0               
+[49] ggplot2_3.5.1               Seurat_5.1.0                SeuratObject_5.0.2         
+[52] sp_2.1-4                    runSeurat3_0.1.0            ExploreSCdataSeurat3_0.1.0 
+
+loaded via a namespace (and not attached):
+  [1] graph_1.82.0              igraph_2.0.3              ica_1.0-3                
+  [4] plotly_4.10.4             Formula_1.2-5             zlibbioc_1.50.0          
+  [7] tidyselect_1.2.1          bit_4.5.0                 doParallel_1.0.17        
+ [10] clue_0.3-65               lattice_0.22-6            rjson_0.2.23             
+ [13] blob_1.2.4                S4Arrays_1.4.1            pbkrtest_0.5.3           
+ [16] parallel_4.4.1            png_0.1-8                 plotrix_3.8-4            
+ [19] cli_3.6.3                 ggplotify_0.1.2           goftest_1.2-3            
+ [22] VIM_6.2.2                 variancePartition_1.34.0  BiocNeighbors_1.22.0     
+ [25] shadowtext_0.1.4          uwot_0.2.2                curl_5.2.3               
+ [28] tidytree_0.4.6            mime_0.12                 evaluate_1.0.1           
+ [31] leiden_0.4.3.1            ComplexHeatmap_2.20.0     stringi_1.8.4            
+ [34] backports_1.5.0           XML_3.99-0.17             lmerTest_3.1-3           
+ [37] qqconf_1.3.2              httpuv_1.6.15             magrittr_2.0.3           
+ [40] rappdirs_0.3.3            splines_4.4.1             ggraph_2.2.1             
+ [43] sctransform_0.4.1         ggbeeswarm_0.7.2          DBI_1.2.3                
+ [46] jquerylib_0.1.4           smoother_1.3              withr_3.0.1              
+ [49] git2r_0.33.0              corpcor_1.6.10            systemfonts_1.1.0        
+ [52] reformulas_0.3.0          class_7.3-22              rprojroot_2.0.4          
+ [55] lmtest_0.9-40             tidygraph_1.3.1           formatR_1.14             
+ [58] colourpicker_1.3.0        htmlwidgets_1.6.4         fs_1.6.4                 
+ [61] labeling_0.4.3            fANCOVA_0.6-1             SparseArray_1.4.8        
+ [64] DESeq2_1.44.0             ranger_0.16.0             DEoptimR_1.1-3           
+ [67] reticulate_1.39.0         hexbin_1.28.4             zoo_1.8-12               
+ [70] XVector_0.44.0            knitr_1.48                ggplot.multistats_1.0.1  
+ [73] UCSC.utils_1.0.0          RhpcBLASctl_0.23-42       timechange_0.3.0         
+ [76] foreach_1.5.2             fansi_1.0.6               patchwork_1.3.0          
+ [79] caTools_1.18.3            ggtree_3.12.0             data.table_1.16.0        
+ [82] R.oo_1.26.0               RSpectra_0.16-2           irlba_2.3.5.1            
+ [85] gridGraphics_0.5-1        fastDummies_1.7.4         lazyeval_0.2.2           
+ [88] yaml_2.3.10               survival_3.7-0            scattermore_1.2          
+ [91] crayon_1.5.3              RcppAnnoy_0.0.22          Rgraphviz_2.48.0         
+ [94] progressr_0.14.0          tweenr_2.0.3              later_1.3.2              
+ [97] ggridges_0.5.6            codetools_0.2-20          GlobalOptions_0.1.2      
+[100] aod_1.3.3                 KEGGREST_1.44.1           Rtsne_0.17               
+[103] shape_1.4.6.1             limma_3.60.6              pkgconfig_2.0.3          
+[106] KEGGgraph_1.64.0          TMB_1.9.15                spatstat.univar_3.0-1    
+[109] mathjaxr_1.6-0            getPass_0.2-4             EnvStats_3.0.0           
+[112] aplot_0.2.3               scatterplot3d_0.3-44      ape_5.8                  
+[115] spatstat.sparse_3.1-0     xtable_1.8-4              car_3.1-3                
+[118] highr_0.11                plyr_1.8.9                httr_1.4.7               
+[121] rbibutils_2.3             tools_4.4.1               globals_0.16.3           
+[124] beeswarm_0.4.0            broom_1.0.7               nlme_3.1-166             
+[127] lambda.r_1.2.4            lme4_1.1-35.5             digest_0.6.37            
+[130] numDeriv_2016.8-1.1       Matrix_1.7-0              farver_2.1.2             
+[133] tzdb_0.4.0                remaCor_0.0.18            reshape2_1.4.4           
+[136] yulab.utils_0.1.7         glue_1.8.0                cachem_1.1.0             
+[139] polyclip_1.10-7           generics_0.1.3            Biostrings_2.72.1        
+[142] mvtnorm_1.3-1             presto_1.0.0              parallelly_1.38.0        
+[145] mnormt_2.1.1              statmod_1.5.0             RcppHNSW_0.6.0           
+[148] ScaledMatrix_1.12.0       carData_3.0-5             minqa_1.2.8              
+[151] pbapply_1.7-2             httr2_1.0.5               spam_2.11-0              
+[154] gson_0.1.0                utf8_1.2.4                graphlayouts_1.2.0       
+[157] gtools_3.9.5              ggsignif_0.6.4            RcppEigen_0.3.4.0.2      
+[160] shiny_1.9.1               GenomeInfoDbData_1.2.12   glmmTMB_1.1.10           
+[163] R.utils_2.12.3            RCurl_1.98-1.16           memoise_2.0.1            
+[166] rmarkdown_2.28            scales_1.3.0              R.methodsS3_1.8.2        
+[169] future_1.34.0             RANN_2.6.2                Cairo_1.6-2              
+[172] spatstat.data_3.1-2       rstudioapi_0.16.0         whisker_0.4.1            
+[175] cluster_2.1.6             mutoss_0.1-13             spatstat.utils_3.1-0     
+[178] hms_1.1.3                 fitdistrplus_1.2-1        munsell_0.5.1            
+[181] cowplot_1.1.3             colorspace_2.1-1          rlang_1.1.4              
+[184] DelayedMatrixStats_1.26.0 sparseMatrixStats_1.16.0  xts_0.14.0               
+[187] dotCall64_1.2             shinydashboard_0.7.2      ggforce_0.4.2            
+[190] laeken_0.5.3              mgcv_1.9-1                xfun_0.48                
+[193] e1071_1.7-16              TH.data_1.1-2             iterators_1.0.14         
+[196] abind_1.4-8               GOSemSim_2.30.2           treeio_1.28.0            
+[199] ps_1.8.0                  futile.options_1.0.1      bitops_1.0-9             
+[202] Rdpack_2.6.1              promises_1.3.0            scatterpie_0.2.4         
+[205] RSQLite_2.3.7             qvalue_2.36.0             sandwich_3.1-1           
+[208] fgsea_1.30.0              DelayedArray_0.30.1       proxy_0.4-27             
+[211] GO.db_3.19.1              compiler_4.4.1            prettyunits_1.2.0        
+[214] boot_1.3-31               beachmat_2.20.0           listenv_0.9.1            
+[217] Rcpp_1.0.13               edgeR_4.2.1               BiocSingular_1.20.0      
+[220] tensor_1.5                MASS_7.3-61               progress_1.2.3           
+[223] BiocParallel_1.38.0       babelgene_22.9            spatstat.random_3.3-2    
+[226] R6_2.5.1                  fastmap_1.2.0             multcomp_1.4-26          
+[229] fastmatch_1.1-4           rstatix_0.7.2             vipor_0.4.7              
+[232] TTR_0.24.4                ROCR_1.0-11               TFisher_0.2.0            
+[235] rsvd_1.0.5                vcd_1.4-13                nnet_7.3-19              
+[238] gtable_0.3.5              KernSmooth_2.23-24        miniUI_0.1.1.1           
+[241] deldir_2.0-4              htmltools_0.5.8.1         ggthemes_5.1.0           
+[244] bit64_4.5.2               spatstat.explore_3.3-2    lifecycle_1.0.4          
+[247] blme_1.0-6                processx_3.8.4            callr_3.7.6              
+[250] nloptr_2.1.1              sass_0.4.9                vctrs_0.6.5              
+[253] robustbase_0.99-4-1       spatstat.geom_3.3-3       sn_2.1.1                 
+[256] ggfun_0.1.6               future.apply_1.11.2       bslib_0.8.0              
+[259] pillar_1.9.0              gplots_3.2.0              pcaMethods_1.96.0        
+[262] locfit_1.5-9.10           jsonlite_1.8.9            GetoptLong_1.0.5         </code></pre>
+<br>
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-sessioninfo" data-toggle="collapse" data-target="#workflowr-sessioninfo" style="display: block;">
+<span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
+Session information
+</button>
+</p>
+<div id="workflowr-sessioninfo" class="collapse">
+<pre class="r"><code>sessionInfo()</code></pre>
+<pre><code>R version 4.4.1 (2024-06-14)
+Platform: aarch64-apple-darwin20
+Running under: macOS Sonoma 14.3
+
+Matrix products: default
+BLAS:   /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/lib/libRblas.0.dylib 
+LAPACK: /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/lib/libRlapack.dylib;  LAPACK version 3.12.0
+
+locale:
+[1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+
+time zone: Europe/Zurich
+tzcode source: internal
+
+attached base packages:
+[1] grid      stats4    stats     graphics  grDevices utils     datasets  methods   base     
+
+other attached packages:
+ [1] workflowr_1.7.1             pathview_1.44.0             wordcloud_2.6              
+ [4] textshaping_0.4.0           EnhancedVolcano_1.22.0      ggrepel_0.9.6              
+ [7] RColorBrewer_1.1-3          NCmisc_1.2.0                VennDiagram_1.7.3          
+[10] futile.logger_1.4.3         ggupset_0.4.0               gridExtra_2.3              
+[13] DOSE_3.30.5                 enrichplot_1.24.4           msigdbr_7.5.1              
+[16] org.Hs.eg.db_3.19.1         AnnotationDbi_1.66.0        clusterProfiler_4.12.6     
+[19] multtest_2.60.0             metap_1.11                  scater_1.32.1              
+[22] scuttle_1.14.0              destiny_3.18.0              circlize_0.4.16            
+[25] muscat_1.18.0               viridis_0.6.5               viridisLite_0.4.2          
+[28] lubridate_1.9.3             forcats_1.0.0               stringr_1.5.1              
+[31] purrr_1.0.2                 readr_2.1.5                 tidyr_1.3.1                
+[34] tibble_3.2.1                tidyverse_2.0.0             dplyr_1.1.4                
+[37] SingleCellExperiment_1.26.0 SummarizedExperiment_1.34.0 Biobase_2.64.0             
+[40] GenomicRanges_1.56.1        GenomeInfoDb_1.40.1         IRanges_2.38.1             
+[43] S4Vectors_0.42.1            BiocGenerics_0.50.0         MatrixGenerics_1.16.0      
+[46] matrixStats_1.4.1           pheatmap_1.0.12             ggpubr_0.6.0               
+[49] ggplot2_3.5.1               Seurat_5.1.0                SeuratObject_5.0.2         
+[52] sp_2.1-4                    runSeurat3_0.1.0            ExploreSCdataSeurat3_0.1.0 
+
+loaded via a namespace (and not attached):
+  [1] graph_1.82.0              igraph_2.0.3              ica_1.0-3                
+  [4] plotly_4.10.4             Formula_1.2-5             zlibbioc_1.50.0          
+  [7] tidyselect_1.2.1          bit_4.5.0                 doParallel_1.0.17        
+ [10] clue_0.3-65               lattice_0.22-6            rjson_0.2.23             
+ [13] blob_1.2.4                S4Arrays_1.4.1            pbkrtest_0.5.3           
+ [16] parallel_4.4.1            png_0.1-8                 plotrix_3.8-4            
+ [19] cli_3.6.3                 ggplotify_0.1.2           goftest_1.2-3            
+ [22] VIM_6.2.2                 variancePartition_1.34.0  BiocNeighbors_1.22.0     
+ [25] shadowtext_0.1.4          uwot_0.2.2                curl_5.2.3               
+ [28] tidytree_0.4.6            mime_0.12                 evaluate_1.0.1           
+ [31] leiden_0.4.3.1            ComplexHeatmap_2.20.0     stringi_1.8.4            
+ [34] backports_1.5.0           XML_3.99-0.17             lmerTest_3.1-3           
+ [37] qqconf_1.3.2              httpuv_1.6.15             magrittr_2.0.3           
+ [40] rappdirs_0.3.3            splines_4.4.1             ggraph_2.2.1             
+ [43] sctransform_0.4.1         ggbeeswarm_0.7.2          DBI_1.2.3                
+ [46] jquerylib_0.1.4           smoother_1.3              withr_3.0.1              
+ [49] git2r_0.33.0              corpcor_1.6.10            systemfonts_1.1.0        
+ [52] reformulas_0.3.0          class_7.3-22              rprojroot_2.0.4          
+ [55] lmtest_0.9-40             tidygraph_1.3.1           formatR_1.14             
+ [58] colourpicker_1.3.0        htmlwidgets_1.6.4         fs_1.6.4                 
+ [61] labeling_0.4.3            fANCOVA_0.6-1             SparseArray_1.4.8        
+ [64] DESeq2_1.44.0             ranger_0.16.0             DEoptimR_1.1-3           
+ [67] reticulate_1.39.0         hexbin_1.28.4             zoo_1.8-12               
+ [70] XVector_0.44.0            knitr_1.48                ggplot.multistats_1.0.1  
+ [73] UCSC.utils_1.0.0          RhpcBLASctl_0.23-42       timechange_0.3.0         
+ [76] foreach_1.5.2             fansi_1.0.6               patchwork_1.3.0          
+ [79] caTools_1.18.3            ggtree_3.12.0             data.table_1.16.0        
+ [82] R.oo_1.26.0               RSpectra_0.16-2           irlba_2.3.5.1            
+ [85] gridGraphics_0.5-1        fastDummies_1.7.4         lazyeval_0.2.2           
+ [88] yaml_2.3.10               survival_3.7-0            scattermore_1.2          
+ [91] crayon_1.5.3              RcppAnnoy_0.0.22          Rgraphviz_2.48.0         
+ [94] progressr_0.14.0          tweenr_2.0.3              later_1.3.2              
+ [97] ggridges_0.5.6            codetools_0.2-20          GlobalOptions_0.1.2      
+[100] aod_1.3.3                 KEGGREST_1.44.1           Rtsne_0.17               
+[103] shape_1.4.6.1             limma_3.60.6              pkgconfig_2.0.3          
+[106] KEGGgraph_1.64.0          TMB_1.9.15                spatstat.univar_3.0-1    
+[109] mathjaxr_1.6-0            getPass_0.2-4             EnvStats_3.0.0           
+[112] aplot_0.2.3               scatterplot3d_0.3-44      ape_5.8                  
+[115] spatstat.sparse_3.1-0     xtable_1.8-4              car_3.1-3                
+[118] highr_0.11                plyr_1.8.9                httr_1.4.7               
+[121] rbibutils_2.3             tools_4.4.1               globals_0.16.3           
+[124] beeswarm_0.4.0            broom_1.0.7               nlme_3.1-166             
+[127] lambda.r_1.2.4            lme4_1.1-35.5             digest_0.6.37            
+[130] numDeriv_2016.8-1.1       Matrix_1.7-0              farver_2.1.2             
+[133] tzdb_0.4.0                remaCor_0.0.18            reshape2_1.4.4           
+[136] yulab.utils_0.1.7         glue_1.8.0                cachem_1.1.0             
+[139] polyclip_1.10-7           generics_0.1.3            Biostrings_2.72.1        
+[142] mvtnorm_1.3-1             presto_1.0.0              parallelly_1.38.0        
+[145] mnormt_2.1.1              statmod_1.5.0             RcppHNSW_0.6.0           
+[148] ScaledMatrix_1.12.0       carData_3.0-5             minqa_1.2.8              
+[151] pbapply_1.7-2             httr2_1.0.5               spam_2.11-0              
+[154] gson_0.1.0                utf8_1.2.4                graphlayouts_1.2.0       
+[157] gtools_3.9.5              ggsignif_0.6.4            RcppEigen_0.3.4.0.2      
+[160] shiny_1.9.1               GenomeInfoDbData_1.2.12   glmmTMB_1.1.10           
+[163] R.utils_2.12.3            RCurl_1.98-1.16           memoise_2.0.1            
+[166] rmarkdown_2.28            scales_1.3.0              R.methodsS3_1.8.2        
+[169] future_1.34.0             RANN_2.6.2                Cairo_1.6-2              
+[172] spatstat.data_3.1-2       rstudioapi_0.16.0         whisker_0.4.1            
+[175] cluster_2.1.6             mutoss_0.1-13             spatstat.utils_3.1-0     
+[178] hms_1.1.3                 fitdistrplus_1.2-1        munsell_0.5.1            
+[181] cowplot_1.1.3             colorspace_2.1-1          rlang_1.1.4              
+[184] DelayedMatrixStats_1.26.0 sparseMatrixStats_1.16.0  xts_0.14.0               
+[187] dotCall64_1.2             shinydashboard_0.7.2      ggforce_0.4.2            
+[190] laeken_0.5.3              mgcv_1.9-1                xfun_0.48                
+[193] e1071_1.7-16              TH.data_1.1-2             iterators_1.0.14         
+[196] abind_1.4-8               GOSemSim_2.30.2           treeio_1.28.0            
+[199] ps_1.8.0                  futile.options_1.0.1      bitops_1.0-9             
+[202] Rdpack_2.6.1              promises_1.3.0            scatterpie_0.2.4         
+[205] RSQLite_2.3.7             qvalue_2.36.0             sandwich_3.1-1           
+[208] fgsea_1.30.0              DelayedArray_0.30.1       proxy_0.4-27             
+[211] GO.db_3.19.1              compiler_4.4.1            prettyunits_1.2.0        
+[214] boot_1.3-31               beachmat_2.20.0           listenv_0.9.1            
+[217] Rcpp_1.0.13               edgeR_4.2.1               BiocSingular_1.20.0      
+[220] tensor_1.5                MASS_7.3-61               progress_1.2.3           
+[223] BiocParallel_1.38.0       babelgene_22.9            spatstat.random_3.3-2    
+[226] R6_2.5.1                  fastmap_1.2.0             multcomp_1.4-26          
+[229] fastmatch_1.1-4           rstatix_0.7.2             vipor_0.4.7              
+[232] TTR_0.24.4                ROCR_1.0-11               TFisher_0.2.0            
+[235] rsvd_1.0.5                vcd_1.4-13                nnet_7.3-19              
+[238] gtable_0.3.5              KernSmooth_2.23-24        miniUI_0.1.1.1           
+[241] deldir_2.0-4              htmltools_0.5.8.1         ggthemes_5.1.0           
+[244] bit64_4.5.2               spatstat.explore_3.3-2    lifecycle_1.0.4          
+[247] blme_1.0-6                processx_3.8.4            callr_3.7.6              
+[250] nloptr_2.1.1              sass_0.4.9                vctrs_0.6.5              
+[253] robustbase_0.99-4-1       spatstat.geom_3.3-3       sn_2.1.1                 
+[256] ggfun_0.1.6               future.apply_1.11.2       bslib_0.8.0              
+[259] pillar_1.9.0              gplots_3.2.0              pcaMethods_1.96.0        
+[262] locfit_1.5-9.10           jsonlite_1.8.9            GetoptLong_1.0.5         </code></pre>
+</div>
+
+
+<!-- Adjust MathJax settings so that all math formulae are shown using
+TeX fonts only; see
+https://docs.mathjax.org/en/latest/web/configuration.html. This will make
+the presentation more consistent at the cost of the webpage sometimes
+taking slightly longer to load. Note that this only works because the
+footer is added to webpages before the MathJax javascript. -->
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    "HTML-CSS": { availableFonts: ["TeX"] }
+  });
+</script>
+
+
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+
+<script>
+$(document).ready(function ()  {
+
+    // temporarily add toc-ignore selector to headers for the consistency with Pandoc
+    $('.unlisted.unnumbered').addClass('toc-ignore')
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_');
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

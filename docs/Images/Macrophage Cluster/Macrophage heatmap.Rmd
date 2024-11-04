@@ -1,0 +1,578 @@
+---
+title: "Macrophage Reembedding"
+author: "Emily Payne"
+date: "2024-09-29"
+output: html_document
+---
+
+```{r}
+options (width = 100)
+knitr::opts_chunk$set(warning = FALSE, meassage = FALSE, dev = c("png", "pdf"))
+seed <- 1234
+```
+
+
+
+
+
+
+```{r}
+library(ExploreSCdataSeurat3)
+library(runSeurat3)
+library(Seurat)
+library(ggpubr)
+library(pheatmap)
+library(SingleCellExperiment)
+library(dplyr)
+library(tidyverse)
+library(viridis)
+library(muscat)
+library(circlize)
+library(destiny)
+library(scater)
+library(metap)
+library(multtest)
+library(clusterProfiler)
+library(org.Hs.eg.db)
+library(msigdbr)
+library(enrichplot)
+library(DOSE)
+library(grid)
+library(gridExtra)
+library(ggupset)
+library(VennDiagram)
+library(NCmisc)
+library(RColorBrewer)
+```
+
+```{r}
+##load merged file 
+seuratM <- readRDS("/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/data/01 Merged Seurat files/Myocarditis_HH2_HH3_removed_V2_26.09.2024.rds")
+
+table(seuratM$dataset)
+table(seuratM$RNA_snn_res.0.25)
+table(seuratM$orig.ident)
+```
+
+
+```{r}
+colclusterName <- c("#D53E4F", "#f4a582", "#FEE08B","#feb24c","#67001f", "#01665e","#66C2A5","#c7eae5","#BEAED4", "#355C7D","#3288BD","#8c510a" ,"#fde0dd","#B45B5C","#dd1c77")
+
+                    
+names(colclusterName) <- c("Cardiomyo","Fb1","Fb2","Fb3", "INT1", "PeriFb1", "PeriFb2", "VSMC","NC", "BEC1","BEC2", "AdipoC", "MCP1","MCP2","TC")
+
+colpat_sub<- c("#dfc27d","#BE3144","#355C7D", "#779d8d")
+
+seuratM$clusterName <- factor(seuratM$clusterName, levels=c("Cardiomyo", "Fb1", "Fb2", "Fb3", "INT1","PeriFb1", "PeriFb2", "VSMC", "NC", "BEC1", "BEC2", "AdipoC", "MCP1", "MCP2", "TC"))
+
+
+Idents(seuratM) <- seuratM$clusterName
+DimPlot(seuratM, reduction = "umap", pt.size = 0.1, label = TRUE, cols = colclusterName)
+```
+
+
+```{r filter MCP1 and MCP2 clusters}
+
+seuratMCP <- subset(seuratM, clusterName %in% c("MCP1", "MCP2"))
+levels(seuratMCP)
+Idents(seuratMCP) <- seuratMCP$clusterName
+
+table(seuratMCP$orig.ident)
+DimPlot(seuratMCP, reduction = "umap", cols = colclusterName, pt.size = 0.5)
+
+
+DimPlot(seuratMCP, reduction = "umap", pt.size = 0.3, group.by = "pat_sub", cols = colpat_sub) 
+DimPlot(seuratMCP, reduction = "umap", pt.size = 0.3, group.by = "patient") 
+```
+
+
+```{r Select MCP for clustering}
+# Examine PCA results and find the top marker genes
+print(seuratMCP[["umap"]], dims = 1:20, nfeatures = 10)
+
+
+DimPlot(seuratMCP, reduction = "umap", cols = colclusterName, pt.size = 0.1)
+
+seuratMCP <- NormalizeData (object = seuratMCP)
+seuratMCP <- FindVariableFeatures(object = seuratMCP)
+seuratMCP <- ScaleData(object = seuratMCP, verbose = TRUE)
+seuratMCP <- RunPCA(object=seuratMCP, npcs = 30, verbose = FALSE)
+seuratMCP <- RunTSNE(object=seuratMCP, reduction="pca", dims = 1:20)
+seuratMCP <- RunUMAP(object=seuratMCP, reduction="pca", dims = 1:20)
+seuratMCP <- FindNeighbors(object = seuratMCP, reduction = "pca", dims= 1:20)
+
+res <- c(0.25, 0.6, 0.8, 0.4)
+for (i in 1:length(res)) {
+  seuratMCP <- FindClusters(object = seuratMCP, resolution = res[i], random.seed = 1234)
+}
+
+table(seuratMCP$orig.ident)
+table(seuratMCP$RNA_snn_res.0.25)
+
+DimPlot(seuratMCP, reduction = "umap", pt.size = 0.3, label = TRUE)
+#9198 nuclei
+
+
+```
+
+```{r}
+DimPlot(seuratMCP, reduction = "umap", pt.size = 0.3, label = TRUE)
+DimPlot(seuratMCP, reduction = "umap", pt.size = 0.3, group.by = "pat_sub", cols = colpat_sub) 
+DimPlot(seuratMCP, reduction = "umap", pt.size = 0.3, group.by = "patient") 
+
+seuratMCP$TC <- dat_all2$Tgrp
+DimPlot(seuratMCP, reduction = "umap", pt.size = 0.5, group.by = "TC", cols = colTC)
+DimPlot(seuratMCP_TC_high, reduction = "umap", pt.size = 0.1, raster=FALSE)
+
+table(seuratMCP$patient)
+table(seuratMCP$pat_sub)
+table(seuratMCP$TC)
+
+```
+
+
+```{r}
+# Extract metadata
+MCP_cluster <- seuratM@meta.data
+
+# Boxplot for gene counts (nFeature_RNA) between Fb similarity baring clusters
+ggplot(MCP_cluster, aes(x = RNA_snn_res.0.25, y = nFeature_RNA, fill = RNA_snn_res.0.25)) +
+  geom_boxplot() +
+  ggtitle("Gene Counts (nFeature_RNA) Macrophage reembedding") +
+  xlab("Cluster") +
+  ylab("nFeature_RNA (Gene Counts)") +
+  theme_classic()
+
+# Boxplot for read counts (nCount_RNA) between clusters 0, 10, 11, 12, 2, 13, and 14
+ggplot(MCP_cluster, aes(x = RNA_snn_res.0.25, y = nCount_RNA, fill = RNA_snn_res.0.25)) +
+  geom_boxplot() +
+  ggtitle("Read Counts (nCount_RNA) Macrophage reembedding") +
+  xlab("Cluster") +
+  ylab("nCount_RNA (Read Counts)") +
+  theme_classic()
+
+```
+
+```{r}
+#cell count per cluster
+Idents(seuratMCP) <- seuratMCP$RNA_snn_res.0.25
+
+cellcount_MCP <- data.frame(table(seuratMCP$RNA_snn_res.0.25))
+colnames(cellcount_MCP) <- c("clusterName", "Freq")
+hsize <- 1.5
+
+ggplot(cellcount_MCP, aes(x = clusterName, y = Freq, fill = clusterName)) +
+  geom_col(color = "white") + 
+  theme_classic() +  
+  ggtitle("Cell Number by Cluster") +
+  theme(plot.title = element_text(hjust = 0.5, size = 15)) +
+  geom_text(aes(label = Freq), vjust = -0.3, size = 3) +  
+  xlab("Cluster Names") +  
+  ylab("Frequency (Cell Count)")  
+
+#cell count per patient, greatest contribution AM 01 > 2500 nuclei and AM 17 984
+cellcount_MCP_pat <- data.frame(table(seuratMCP$patient))
+colnames(cellcount_MCP_pat) <- c("patient", "Freq")
+hsize <- 1.5
+
+ggplot(cellcount_MCP_pat, aes(x = patient, y = Freq, fill = patient)) +
+  geom_col(color = "white") +  
+  theme_classic() +  
+  ggtitle("Cell Number by Patient") +
+  theme(plot.title = element_text(hjust = 0.5, size = 15)) +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
+  geom_text(aes(label = Freq), vjust = -0.3, size = 3) +  
+  xlab("Patients") +  
+  ylab("Frequency (Cell Count)")  
+
+#cell count per condition
+cellcount_MCP_con <- data.frame(table(seuratMCP$pat_sub))
+colnames(cellcount_MCP_con) <- c("Condition", "Freq")
+hsize <- 1.5
+
+ggplot(cellcount_MCP_con, aes(x = hsize, y = Freq, fill = Condition)) +
+  #scale_fill_manual(values = colpat2) +
+  geom_col(color = "white") +
+  coord_polar(theta = "y") +
+  xlim(c(0.2, hsize + 0.5)) +
+  theme_void() +
+  ggtitle("Macrophage nucleus number per condition") +
+  theme(plot.title = element_text(hjust = 0.5, size = 15)) +
+  geom_text(aes(label = Freq), position = position_stack(vjust = 0.5))
+
+
+```
+
+
+
+```{r}
+MCP_emb <- FindAllMarkers(seuratMCP, only.pos = FALSE)%>% 
+  dplyr::filter(p_val_adj < 0.01)
+
+MCP_emb_pos <- FindAllMarkers(seuratMCP, only.pos=TRUE) %>% 
+  dplyr::filter(p_val_adj < 0.01)
+
+View(MCP_emb)
+View(MCP_emb_pos)
+
+#write.table(MCP_emb, file= "/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/docs/Markers_MCP_embedding_allpos and neg_29.09.2024", sep = "\t",quote=F,row.names=F,col.names=T)
+
+#write.table(MCP_emb_pos, file= "/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/docs/Markers_MCP_embedding_only_pos 29.09.2024", sep = "\t",quote=F,row.names=F,col.names=T)
+```
+
+
+
+```{r MCP embedding}
+# Visualize the expression of specific marker genes on UMAP
+
+get_full_gene_name <- function(gene, obj){
+  return(grep(gene,rownames(obj), value =TRUE))
+}
+get_full_gene_name("LYVE1",seuratM) 
+
+
+
+FeaturePlot(seuratMCP, features = "ENSG00000177575.CD163", pt.size = 1, cols = c("lightgrey", "#BE3144"))
+
+FeaturePlot(seuratMCP, features = "ENSG00000182578.CSF1R", pt.size = 1, cols = c("lightgrey", "#BE3144"))
+
+FeaturePlot(seuratMCP, features = "ENSG00000081237.PTPRC", pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seuratMCP, features = "ENSG00000168685.IL7R", pt.size = 1, cols = c("lightgrey", "#BE3144"))
+
+
+FeaturePlot(seuratMCP, features = get_full_gene_name("S100A9",seuratMCP) , pt.size = 1, cols = c("lightgrey", "#BE3144")) #neutrophil
+FeaturePlot(seuratMCP, features = get_full_gene_name("HLA-DMB",seuratMCP) , pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seuratMCP, features = get_full_gene_name("HLA-A",seuratMCP) , pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seuratMCP, features = get_full_gene_name("MFAP5",seuratMCP) , pt.size = 1, cols = c("lightgrey", "#BE3144"))
+
+FeaturePlot(seuratMCP, features = get_full_gene_name("FCGR3A",seuratMCP) , pt.size = 1, cols = c("lightgrey", "#BE3144"))#CD16 monocyte marker
+FeaturePlot(seuratMCP, features = get_full_gene_name("LYVE1",seuratMCP) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+# Feature Plot(seuratM, features = get_full_gene_name("LY6C", seuratM) , pt.size = 1, cols = c("lightgrey", "#BE3144"))#
+
+FeaturePlot(seuratMCP, features = get_full_gene_name("NKAP",seuratMCP) , pt.size = 1, cols = c("lightgrey", "#BE3144"))#
+FeaturePlot(seuratMCP, features = get_full_gene_name("CYBB",seuratMCP) , pt.size = 1, cols = c("lightgrey", "#BE3144"))#
+FeaturePlot(seuratMCP, features = get_full_gene_name("IL1B",seuratMCP) , pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seuratMCP, features = get_full_gene_name("CCR2",seuratMCP) , pt.size = 1, cols = c("lightgrey", "#BE3144"))#
+FeaturePlot(seuratMCP, features = get_full_gene_name("MRC1",seuratMCP) , pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seuratMCP, features = get_full_gene_name("FOLR2",seuratMCP) , pt.size = 1, cols = c("lightgrey", "#BE3144"))#
+FeaturePlot(seuratMCP, features = get_full_gene_name("TIMD4",seuratMCP) , pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seuratMCP, features = get_full_gene_name("XIST",seuratMCP) , pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seuratMCP, features = get_full_gene_name("IRF1",seuratMCP) , pt.size = 1, cols = c("lightgrey", "#BE3144"))
+
+
+FeaturePlot(seuratMCP, features = "ENSG00000149591.TAGLN", pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seuratMCP, features = "ENSG00000138755.CXCL9", pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seuratMCP, features = "ENSG00000169245.CXCL10", pt.size = 1, cols = c("lightgrey", "#BE3144"))
+
+FeaturePlot(seuratMCP, features = "ENSG00000137573.SULF1", pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seuratMCP, features = "ENSG00000125378.BMP4", pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seuratMCP, features = get_full_gene_name("GREM1",seuratMCP) , pt.size = 1, cols = c("lightgrey", "#BE3144"))#
+FeaturePlot(seuratMCP, features = get_full_gene_name("GREM2",seuratMCP) , pt.size = 1, cols = c("lightgrey", "#BE3144"))
+
+
+FeaturePlot(seuratMCP, features = get_full_gene_name("CD79A",seuratMCP) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# B cells
+FeaturePlot(seuratMCP, features = get_full_gene_name("IGHM",seuratMCP) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# B cells
+FeaturePlot(seuratMCP, features = get_full_gene_name("CD20",seuratMCP) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# B cells
+
+VlnPlot(seuratMCP, features = c("ENSG00000177575.CD163","ENSG00000182578.CSF1R", "ENSG00000138755.CXCL9", "ENSG00000138755.CXCL10"), pt.size = 0.1)
+```
+
+
+```{r MCP embedding}
+VlnPlot(seuratMCP, features = get_full_gene_name("CXCL10",seuratMCP))
+VlnPlot(seuratMCP, features = get_full_gene_name("CXCL9",seuratMCP))
+VlnPlot(seuratMCP, features = get_full_gene_name("XIST",seuratMCP))
+VlnPlot(seuratMCP, features = get_full_gene_name("LYVE1",seuratMCP))
+VlnPlot(seuratMCP, features = get_full_gene_name("MRC1",seuratMCP))
+VlnPlot(seuratMCP, features = get_full_gene_name("LYVE1",seuratMCP))
+VlnPlot(seuratMCP, features = get_full_gene_name("MRC1",seuratMCP))
+VlnPlot(seuratMCP, features = get_full_gene_name("FCGR3A",seuratMCP))
+VlnPlot(seuratMCP, features = get_full_gene_name("HLA-A",seuratMCP))
+VlnPlot(seuratMCP, features = get_full_gene_name("FOLR2",seuratMCP))
+VlnPlot(seuratMCP, features = get_full_gene_name("IRF1",seuratMCP))
+
+
+```
+```{r}
+Idents(seuratMCP) <- seuratMCP$RNA_snn_res.0.25
+DimPlot(seuratMCP, reduction = "umap", pt.size = 0.1, label = TRUE)
+
+seuratMCP$clusterName <- "clusterName"
+
+seuratMCP$clusterName[which(seuratMCP$RNA_snn_res.0.25 %in% "0" )] <- "MCP1"
+seuratMCP$clusterName[which(seuratMCP$RNA_snn_res.0.25 %in% "1" )] <- "MCP2"
+seuratMCP$clusterName[which(seuratMCP$RNA_snn_res.0.25 %in% "2" )] <- "MCP3"
+seuratMCP$clusterName[which(seuratMCP$RNA_snn_res.0.25 %in% "3" )] <- "MCP4"
+seuratMCP$clusterName[which(seuratMCP$RNA_snn_res.0.25 %in% "4" )] <- "MCP5"
+seuratMCP$clusterName[which(seuratMCP$RNA_snn_res.0.25 %in% "5" )] <- "MCP6"
+seuratMCP$clusterName[which(seuratMCP$RNA_snn_res.0.25 %in% "6" )] <- "MCP7"
+seuratMCP$clusterName[which(seuratMCP$RNA_snn_res.0.25 %in% "7" )] <- "MCP8"
+seuratMCP$clusterName[which(seuratMCP$RNA_snn_res.0.25 %in% "8" )] <- "B cells"
+seuratMCP$clusterName[which(seuratMCP$RNA_snn_res.0.25 %in% "9" )] <- "MCP10"
+seuratMCP$clusterName[which(seuratMCP$RNA_snn_res.0.25 %in% "10" )] <- "MCP11"
+seuratMCP$clusterName[which(seuratMCP$RNA_snn_res.0.25 %in% "11" )] <- "MCP12"
+
+
+DimPlot(seuratMCP, reduction = "umap", pt.size = 0.1, label = TRUE)
+
+### Order of Clusters
+Idents(seuratMCP) <- seuratM$clusterName
+#seuratM$clusterName <- factor(seuratM$clusterName, levels =c("Cardiomyocyte","Fb1","Fb2","Fb3", "PeriFb1", "PeriFb2","PeriFb3","VSMC", "INT1","NC", "MCP1","MCP2","TC", "BEC1","BEC2", "AdipoC", "Unknown"))
+
+#seuratMCP$clusterName <- factor(seuratM$clusterName, levels =c("TC", "MCP1","MCP2","Cardiomyocyte","Fb1","Fb2","Fb3", "PeriFb1", "PeriFb2","PeriFb3","VSMC", "INT1","NC", "BEC1","BEC2", "AdipoC", "Unknown"))
+
+
+table(seuratMCP$clusterName)
+```
+
+
+
+
+
+
+
+```{r }
+
+#saveRDS(seuratMCP, file="/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/data/01 Merged Seurat files/Myocarditis_MCP_embedding_29.09.2024_noclusterlabels.rds")
+
+
+```
+
+```{r  Abundance}
+
+
+Idents(seuratMCP) <- seuratMCP$RNA_snn_res.0.25
+#seuratM$clusterName <- factor(seuratM$clusterName, levels =c("Cardiomyocyte","Fb1","Fb2","Fb3", "PeriFb1", "PeriFb2","PeriFb3","VSMC", "INT1","NC", "MCP1","MCP2","TC", "BEC1","BEC2", "AdipoC", "Unknown"))
+
+#seuratMCP$clusterName <- factor(seuratMCP$clusterName, levels =c("MCP1",etc "MCP1","MCP2","Cardiomyocyte","Fb1","Fb2","Fb3", "PeriFb1", "PeriFb2","PeriFb3","VSMC", "INT1","NC", "BEC1","BEC2", "AdipoC", "Unknown"))
+
+
+table(seuratMCP$RNA_snn_res.0.25)
+
+### Order of Conditions
+Idents(seuratMCP) <- seuratMCP$pat_sub
+order1 <- c("Healthy","AM","CMP","Sarcoidosis")
+seuratMCP$pat_sub <- factor (seuratM$pat_sub, levels = c("Healthy", "AM", "CMP", "Sarcoidosis"))
+DimPlot(seuratMCP, reduction = "umap", pt.size = 0.1, group.by = "pat_sub")
+
+
+# Order of patients 
+seuratMCP$patient <- factor(seuratMCP$patient, levels = c("Healthy 01", "Healthy 02", "Healthy 03", "Healthy 04", "Healthy 05", "Healthy 06", "Healthy 07", "Healthy 08", "AM 01", "AM 02", "AM 03", "AM 04", "AM 05", "AM 06", "AM 07", "AM 08", "AM 09", "AM 10", "AM 11", "AM 12", "AM 13", "AM 14", "AM 15", "AM 16", "AM 17", "AM 18", "CMP 01", "CMP 02", "CMP 03", "CMP 04", "CMP 05", "CMP 06", "CMP 07", "CMP 08", "CMP 09", "CMP 10", "CMP 11", "CMP 12", "CMP 13", "Sarcoidosis 01","Sarcoidosis 02"))
+
+#Idents(seuratMCP) <- seuratMCP$clusterName
+#DimPlot(seuratMCP, reduction = "umap", pt.size = 0.1, label = TRUE)
+```
+
+```{r Select color scheme and change order for relative abundances } 
+
+seuratMCP$clusterName <- factor(seuratMCP$clusterName, levels =c("MCP1","MCP2","MCP3", "MCP4", "MCP5", "MCP6", "MCP7", "B cells","MCP9", "MCP10", "MCP11", "MCP12"))
+
+##set color vectors
+
+colclusterName <- c( "#dd1c77", "#67001f", "#fde0dd","#D53E4F", "#f4a582", "#FEE08B","#feb24c","#B45B5C","#8c510a", "#BEAED4", "#355C7D", "#202547")
+
+                    
+names(colclusterName) <- c("MCP1","MCP2","MCP3", "MCP4", "MCP5", "MCP6", "MCP7", "MCP8","MCP9", "MCP10", "MCP11", "MCP12")
+
+
+colpat_sub<- c("#dfc27d","#BE3144","#355C7D", "#779d8d")
+
+coldiseaseCond <- colpat_sub
+names(coldiseaseCond) <- c("Healthy", "AM", "CMP", "Sarcoidosis")
+order_coldiseaseCond <- c("Healthy", "AM", "CMP", "Sarcoidosis")
+
+head(seuratMCP@meta.data)
+
+DimPlot(seuratMCP, reduction = "umap", pt.size = 0.1, label = TRUE, cols =colclusterName)
+
+
+```
+
+
+```{r Abundance per patient}
+
+datList <- NULL
+for(con in unique(seuratMCP$patient)){
+  seuratSub <- subset(seuratMCP, patient==con)
+  print(dim(seuratSub))
+  dat_con <- as.data.frame(table(seuratSub$clusterName)) %>%
+  mutate(percent=Freq/ncol(seuratSub)) %>% mutate(patient=con)
+  datList[[con]] <- dat_con
+}
+
+
+dat_all <- do.call("rbind", datList)
+
+# Order of patient levels 
+patient_order <- c("Healthy 01", "Healthy 02", "Healthy 03", "Healthy 04", "Healthy 05", 
+                   "Healthy 06", "Healthy 07", "Healthy 08", "AM 01", "AM 02", 
+                   "AM 03", "AM 04", "AM 05", "AM 06", "AM 07", 
+                   "AM 08", "AM 09", "AM 10", "AM 11", "AM 12", "AM 13", "AM 14", 
+                   "AM 15", "AM 16", "AM 17", "AM 18", "CMP 01", "CMP 02", "CMP 03", 
+                   "CMP 04", "CMP 05", "CMP 06", "CMP 07", "CMP 08", "CMP 09", 
+                   "CMP 10", "CMP 11", "CMP 12", "CMP 13", "Sarcoidosis 01", "Sarcoidosis 02")
+
+View(dat_all)
+
+#write.table(dat_all, file= "/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/docs/Markers_dat_all_clusters_frequency_relative abundance_V2", sep = "\t",quote=F,row.names=T,col.names=T)
+
+
+# Convert the patient column to a factor with the desired order
+dat_all$patient <- factor(dat_all$patient, levels = patient_order)
+
+## plot abundance
+ggbarplot(dat_all, x= "patient", y= "percent", fill = "Var1", legend = "right", legend.titel = "cluster", ylab = "frequency", palette = colclusterName )  + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+```
+
+
+
+```{r  Plot abundance according to each condition}
+
+
+
+
+## diseaseCond (pat_sub)
+datList <- NULL
+for(con in unique(seuratMCP$pat_sub)){
+  seuratSub <- subset(seuratMCP, pat_sub==con)
+  print(dim(seuratSub))
+  dat_con <- as.data.frame(table(seuratSub$clusterName)) %>%
+  mutate(percent=Freq/ncol(seuratSub)) %>% mutate(diseaseCond=con)
+  datList[[con]] <- dat_con
+  
+}
+
+dat_all <- do.call("rbind", datList)
+
+# Plot abundacne according to disease condition (=pat_sub)
+
+ggbarplot(dat_all, x = "diseaseCond", y = "percent", fill = "Var1", palette = colclusterName, legend = "right", legend.titel = "cluster", xlab = "condition", ylab = "frequency") +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  scale_x_discrete(limits = order_coldiseaseCond)
+
+colnames(dat_all)
+
+
+```
+
+```{r}
+Idents(seuratMCP) <- seuratMCP$clusterName
+levels(seuratMCP)
+
+DEGenesMCP <- FindAllMarkers(seuratMCP, only.pos=T, logfc.threshold = 0.2) %>% 
+  dplyr::filter(p_val_adj < 0.01)
+
+##adjust table
+DEGenesMCP <- DEGenesMCP %>% 
+  mutate(Gene=gene) %>%
+  mutate(gene=gsub("^.*\\.", "", Gene))  %>%
+  mutate(EnsID=gsub("\\..*","", Gene))
+
+DEGenesMCP_all <- DEGenesMCP 
+enrichMCP_all <- enrichGO(gene = unique(DEGenesMCP_all$EnsID),
+                          OrgDb = org.Hs.eg.db,
+                          keyType = 'ENSEMBL',
+                          ont = "BP",
+                          pAdjustMethod = "BH",
+                          pvalueCutoff = 0.05,
+                          qvalueCutoff = 0.05)
+enrichMCP_all <- setReadable(enrichMCP_all, OrgDb = org.Hs.eg.db)
+dotplot(enrichMCP_all, showCategory=10, title = "Macrophage DE", font.size = 10)
+```
+```{r}
+genes <- data.frame(gene=rownames(seuratMCP)) %>% 
+  mutate(geneID=gsub("^.*\\.", "", gene))
+
+selGenesMP <- data.frame(geneID=rev(c("CD163", "F13A1", "LYVE1","FOLR2", "MRC1", "SIGLEC1","F13A1","DAB2","LILRB5", "MAF", "SCN9A", "STAB1","MAF", "SLC40A1", "CSF1R","MERTK","GAS6", "COLEC12","CCR2", "IL1B", "TIMD4", "MRC2", "XIST", "SCO2", "HLA-A", "HLA-DQB1", "IRF1", "CXCL9", "CXCL10", "GBP5", "STAT1","ITGAL", "SAMD9L", "MEG3", "COL6A1", "ABCA8", "EGFL7", "VWF", "PDGFRB", "CARMN", "ITGA7", "RGS5", "CD79B","IGHM", "NET1", "SLAMF7", "CD3E", "IL7R", "TRA"))) %>% left_join(., genes, by="geneID") %>% distinct(geneID, .keep_all = TRUE)  # Ensure unique geneID values
+
+
+DotPlot(seuratMCP, features = selGenesMP, group.by= "clusterName") + RotatedAxis() + scale_color_viridis(option="T") + coord_flip()
+
+
+
+
+```
+
+
+```{r}
+##
+DEGenesMCP1 <- DEGenesMCP %>% filter(cluster == "MCP1")
+enrichMCP1 <- enrichGO(gene = unique(DEGenesMCP1$EnsID),
+                          OrgDb = org.Hs.eg.db,
+                          keyType = 'ENSEMBL',
+                          ont = "BP",
+                          pAdjustMethod = "BH",
+                          pvalueCutoff = 0.05,
+                          qvalueCutoff = 0.05)
+enrichMCP1 <- setReadable(enrichMCP1, OrgDb = org.Hs.eg.db)
+dotplot(enrichMCP1, showCategory=10, title = "Macrophage type 1", font.size = 10)
+
+DEGenesMCP2 <- DEGenesMCP %>% filter(cluster == "MCP2")
+enrichMCP2 <- enrichGO(gene = unique(DEGenesMCP2$EnsID),
+                          OrgDb = org.Hs.eg.db,
+                          keyType = 'ENSEMBL',
+                          ont = "BP",
+                          pAdjustMethod = "BH",
+                          pvalueCutoff = 0.05,
+                          qvalueCutoff = 0.05)
+enrichMCP2 <- setReadable(enrichMCP2, OrgDb = org.Hs.eg.db)
+dotplot(enrichMCP2, showCategory=10, title = "Macrophage type 2", font.size = 10)
+
+DEGenesMCP3 <- DEGenesMCP %>% filter(cluster == "MCP3")
+enrichMCP3 <- enrichGO(gene = unique(DEGenesMCP3$EnsID),
+                          OrgDb = org.Hs.eg.db,
+                          keyType = 'ENSEMBL',
+                          ont = "BP",
+                          pAdjustMethod = "BH",
+                          pvalueCutoff = 0.05,
+                          qvalueCutoff = 0.05)
+enrichMCP3 <- setReadable(enrichMCP3, OrgDb = org.Hs.eg.db)
+dotplot(enrichMCP3, showCategory=10, title = "Macrophage type 3", font.size = 10)
+
+DEGenesMCP4 <- DEGenesMCP %>% filter(cluster == "MCP4")
+enrichMCP4 <- enrichGO(gene = unique(DEGenesMCP4$EnsID),
+                          OrgDb = org.Hs.eg.db,
+                          keyType = 'ENSEMBL',
+                          ont = "BP",
+                          pAdjustMethod = "BH",
+                          pvalueCutoff = 0.05,
+                          qvalueCutoff = 0.05)
+enrichMCP4 <- setReadable(enrichMCP4, OrgDb = org.Hs.eg.db)
+dotplot(enrichMCP4, showCategory=10, title = "Macrophage type 4", font.size = 10)
+
+DEGenesMCP5 <- DEGenesMCP %>% filter(cluster == "MCP5")
+enrichMCP5 <- enrichGO(gene = unique(DEGenesMCP5$EnsID),
+                          OrgDb = org.Hs.eg.db,
+                          keyType = 'ENSEMBL',
+                          ont = "BP",
+                          pAdjustMethod = "BH",
+                          pvalueCutoff = 0.05,
+                          qvalueCutoff = 0.05)
+enrichMCP5 <- setReadable(enrichMCP5, OrgDb = org.Hs.eg.db)
+dotplot(enrichMCP5, showCategory=10, title = "Macrophage type 5", font.size = 10)
+
+DEGenesMCP6 <- DEGenesMCP %>% filter(cluster == "MCP6")
+enrichMCP6 <- enrichGO(gene = unique(DEGenesMCP6$EnsID),
+                          OrgDb = org.Hs.eg.db,
+                          keyType = 'ENSEMBL',
+                          ont = "BP",
+                          pAdjustMethod = "BH",
+                          pvalueCutoff = 0.05,
+                          qvalueCutoff = 0.05)
+enrichMCP6 <- setReadable(enrichMCP6, OrgDb = org.Hs.eg.db)
+dotplot(enrichMCP6, showCategory=10, title = "Macrophage type 6", font.size = 10)
+
+DEGenesMCP10 <- DEGenesMCP %>% filter(cluster == "MCP10")
+enrichMCP10 <- enrichGO(gene = unique(DEGenesMCP10$EnsID),
+                          OrgDb = org.Hs.eg.db,
+                          keyType = 'ENSEMBL',
+                          ont = "BP",
+                          pAdjustMethod = "BH",
+                          pvalueCutoff = 0.05,
+                          qvalueCutoff = 0.05)
+enrichMCP10 <- setReadable(enrichMCP10, OrgDb = org.Hs.eg.db)
+dotplot(enrichMCP6, showCategory=10, title = "Macrophage type 10", font.size = 10)
+
+```
+

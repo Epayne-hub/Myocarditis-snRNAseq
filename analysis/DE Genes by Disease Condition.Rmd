@@ -1,0 +1,484 @@
+---
+title: "DE Genes by Disease Condition"
+author: "Emily Payne"
+date: "2024-10-20"
+output: html_document
+---
+
+```{r setup, include = FALSE}
+options (width = 100)
+knitr::opts_chunk$set(warning = FALSE, meassage = FALSE, dev = c("png", "pdf"))
+seed <- 1234
+```
+
+```{r}
+library(ExploreSCdataSeurat3)
+library(runSeurat3)
+library(Seurat)
+library(ggpubr)
+library(pheatmap)
+library(SingleCellExperiment)
+library(dplyr)
+library(tidyverse)
+library(viridis)
+library(muscat)
+library(circlize)
+library(destiny)
+library(scater)
+library(metap)
+library(multtest)
+library(clusterProfiler)
+library(org.Hs.eg.db)
+library(msigdbr)
+library(enrichplot)
+library(DOSE)
+library(grid)
+library(gridExtra)
+library(ggupset)
+library(VennDiagram)
+library(NCmisc)
+library(RColorBrewer)
+library(EnhancedVolcano)
+
+library(textshaping)
+library(wordcloud)
+library(pathview)
+
+```
+
+
+```{r}
+##load merged file 
+seuratM <- readRDS("/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/data/01 Merged Seurat files/Myocarditis_RDS_04.10.2024.rds")
+
+table(seuratM$dataset)
+table(seuratM$RNA_snn_res.0.25)
+table(seuratM$orig.ident)
+```
+
+
+```{r Plot umap}
+Idents(seuratM) <- seuratM$RNA_snn_res.0.25
+DimPlot(seuratM, reduction = "umap", pt.size = 0.1, label = TRUE)
+
+unique(seuratM$clusterName)
+```
+
+
+
+```{r}
+#### Rename clusters
+
+seuratM$clusterName <- "clusterName"
+Idents(seuratM) <- seuratM$clusterName
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "0" )] <- "Fb1"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "1" )] <- "BEC1"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "2" )] <- "PeriFb1"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "3" )] <- "Cardiomyocyte"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "4" )] <- "MCP1"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "5" )] <- "TC"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "6" )] <- "MCP2"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "7" )] <- "BEC2"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "8" )] <- "VSMC"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "9" )] <- "NC"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "10" )] <- "INT1"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "11" )] <- "Fb2"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "12" )] <- "Fb3"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "13" )] <- "PeriFb2"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "14" )] <- "AdipoC"
+
+
+colclusterName <- c("#D53E4F", "#f4a582", "#FEE08B","#feb24c","#67001f", "#01665e","#66C2A5","#c7eae5","#BEAED4", "#355C7D","#3288BD","#8c510a" ,"#fde0dd","#B45B5C","#dd1c77")
+
+                    
+names(colclusterName) <- c("Cardiomyocyte","Fb1","Fb2","Fb3", "INT1", "PeriFb1", "PeriFb2", "VSMC","NC", "BEC1","BEC2", "AdipoC", "MCP1","MCP2","TC")
+
+colpat_sub<- c("#dfc27d","#BE3144","#355C7D", "#779d8d")
+
+seuratM$clusterName <- factor(seuratM$clusterName, levels=c("Cardiomyocyte", "Fb1", "Fb2", "Fb3", "INT1","PeriFb1", "PeriFb2", "VSMC", "NC", "BEC1", "BEC2", "AdipoC", "MCP1", "MCP2", "TC"))
+
+
+Idents(seuratM) <- seuratM$clusterName
+DimPlot(seuratM, reduction = "umap", pt.size = 0.1, label = TRUE, cols = colclusterName)
+```
+
+
+```{r}
+
+Idents(seuratM) <-seuratM$pat_sub
+
+colpat_sub<- c("#779d8d","#BE3144","#355C7D","#dfc27d")
+names(colpat_sub) <- c("Healthy", "AM", "CMP", "Sarcoidosis")
+
+DimPlot(seuratM, reduction = "umap", cols = colpat_sub)
+
+table(seuratM$pat_sub)
+table(seuratM$patient)
+
+
+```
+
+```{r}
+# DE Genes for conditions: AM, CMP, Sarcoidosis, Healthy
+
+DEGenesCond <- FindAllMarkers (seuratM, only.pos = TRUE, logfc.threshold = 0.2) %>%
+                                      dplyr::filter(p_val_adj < 0.05)
+
+
+#write.table(DEGenesCond, file= "/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/docs/Markers/DEGenes_condition pos. and neg. AM, Healthy, CMP, Sarcoidosis", sep="\t",quote=F,row.names=F,col.names=T)
+
+
+##adjust table
+DEGenesCond_adj <- DEGenesCond %>% 
+  mutate(Gene=gene) %>%
+  mutate(gene=gsub("^.*\\.", "", Gene))  %>%
+  mutate(EnsID=gsub("\\..*","", Gene))
+
+##GSEA for AM (acute Myocarditis) condition
+DEGenesAM <- DEGenesCond_adj %>% filter(cluster == "AM")
+#head(DEGenesAM)
+
+egoAM <- enrichGO(gene = unique(DEGenesAM$EnsID),
+                          OrgDb = org.Hs.eg.db,
+                          keyType = 'ENSEMBL',
+                          ont = "BP",
+                          pAdjustMethod = "BH",
+                          pvalueCutoff = 0.05,
+                          qvalueCutoff = 0.05)
+egoAM <- setReadable(egoAM, OrgDb = org.Hs.eg.db)
+dotplot(egoAM, showCategory=20, title = "Acute Myocarditis", font.size = 10)
+barplot(egoAM, 
+        drop = TRUE, 
+        showCategory = 20, 
+        title = "Acute Myocarditis",
+        font.size = 10)
+
+#View(DEGenesAM)
+#View(egoAM@result)
+#write.table(egoAM, file= "/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/docs/Markers/ego AM 20.10.2024", sep="\t",quote=F,row.names=F,col.names=T)
+
+# PTPRC/B2M/ATM/IRF1/HLA-DRA/NCKAP1L/DOCK10/IKZF1/CD2/DOCK2/IL7R/JAK3/ITGA4/PTK2B/BCL11B/IKZF3/RUNX3/PTPN22/ITK/CD74/FGL2/LAG3/LCK/SPN/ZAP70/IL2RG/IRF8/SLAMF8/ZBTB16/IL4I1/LILRB4/CD3G/KLRC1/CD3E/RHOH/LILRB2/INPP5D/CAMK4/HLA-DRB1/PTPN6/TNFSF13B/BTK/CYLD/JAK1/PIK3CD/PTPRJ/EZH2/CD8A/CD3D/THEMIS/ACTB/TCIRG1/SLAMF1/IL12RB1/CD4/CD1D/PREX1/SASH3/ZNF683/SPI1/TBX21/LY9/FANCA/SOS1/ADAM8/ZFP36L2/STAT4/DOCK11/SLAMF6/KMT2A/CARD11/PTPN2/VAV1/ASCL2/IL15/HLA-DOA/MS4A1/TESPA1/TGFB1/FCER1G/BTN2A2/LGALS9/NOTCH2/CCR2/TOP2B/SOCS1/STAT6/MR1/CTLA4/TMEM131L/GATA3/SYK/NFAM1/NFKBID/EP300/CD27/EOMES/BLNK/SEMA4A/BCL2/SMARCA2/TOX/NFATC3/BATF/CD86/LFNG/IL6R/PBRM1/MALT1/LEF1/CD83/TNFRSF9/PRKDC/DCLRE1C/IL18R1/STAT5B/FANCD2/AP3B1/SMARCC1/SP3/RUNX2/PRDM1/ZBTB1/RASGRP1/CCR7/CDK6/PPP3CB/IRF4/IL18/ZBTB7A/PTGER4/RC3H2/LIG4/ARID1A/AP3D1/RIPK3/PLCG2/PPP2R3C/PLCL2/RORA/SOS2/KLF6/DROSHA/BAX/HDAC4/ZC3H12A/RC3H1/DUSP10/RSAD2/RUNX1/STK11/CBFB/YY1/NDFIP1/IL15RA/NCAPH2/TNFSF8/SMARCD2/RHOA/CD28/LIPA/PHF10/ZBTB7B/RORC/TP53/RIPK2/METTL3/TPD52/CMTM7/VSIR/PIK3R6/MSH2/PRELID1/PCID2/RNF41/FZD5/HHEX/GPR89B/SART1/BAK1/GPR183/MDK/KAT5/MEN1/PDP2/GPR89B/SRF/XBP1/MFNG/PNP/PATZ1/TCF7/HDAC9/NLRP3/CD79B/MIR17HG/DNAJB9/ZFPM1/ARMC5
+
+
+```
+
+```{r}
+
+## DEGenes for CMP (Cardiomyopathy) condition
+DEGenesCMP <- DEGenesCond_adj %>% filter(cluster == "CMP")
+head(DEGenesCMP)
+
+egoCMP <- enrichGO(gene = unique(DEGenesCMP$EnsID),
+                          OrgDb = org.Hs.eg.db,
+                          keyType = 'ENSEMBL',
+                          ont = "BP",
+                          pAdjustMethod = "BH",
+                          pvalueCutoff = 0.05,
+                          qvalueCutoff = 0.05)
+egoCMP <- setReadable(egoCMP, OrgDb = org.Hs.eg.db)
+dotplot(egoCMP, showCategory=20, title = "Chronic Cardiomyopathy", font.size = 10)
+barplot(egoCMP, 
+        drop = TRUE, 
+        showCategory = 7, 
+        title = "Chronic Cardiomyopathy",
+        font.size = 10)
+
+#View(DEGenesCMP)
+#View(egoCMP@result)
+#write.table(egoCMP, file= "/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/docs/Markers/ego CMP 20.10.2024", sep="\t",quote=F,row.names=F,col.names=T)
+
+# top DE genes: PTPRC/STAT3/JUNB/NCKAP1L/CD74/PBX1/IL7R/CD2/HLA-DRA/RUNX1/DOCK2/JAK3/SOX4/B2M/DOCK10/LILRB2/IRF1/ITGA4/RUNX3/PTK2B/IRF8/HLA-DRB1/ZBTB16/LILRB4/BCL11B/LAG3/IKZF1/SOCS3/MAFB/SLAMF8/FOSL2/SMAD7/SOX13/PTPN22/IL4I1/PTPN2/BTK/FGL2/BCL3/HMGB1/SOCS1/KLRC1/NRARP/PTPRJ/RBPJ/LCK/ITK/IKZF3/SYK/ITM2A/IL2RA/GAS6/KAT2A/JAG2/VAV1/TYRO3/RELB/IL2RG/DLL4/HLA-DOA/CD1D/PREX1/CR1/BMP4/CD4/PTPN6/BCL6/SPI1/INPP5D/RHOH/PIK3CD/TNFSF13B/IL18/TSC1/BLNK/TMEM98/CAMK4/CD8A/KLF6/AP3B1/ZEB1/ZMIZ1/FOXP1/SLAMF1/FCER1G/STAT4/LEPR/EGR3/TOP2B/CD3E/BRD7/NDFIP1/ZAP70/EZH2/KIT/LMBR1L/LGALS9/BTN2A2/IRF2BP2/STK11/IL12RB1/CD3G/HDAC5/NFKBID/EGR1/SOS2/ERBB2/TNFSF8/THEMIS/FANCA/SASH3/NLRP3/CD86/VCAM1/CD3D/CD28/IL15/CARD11/SMARCD3/GLI2/LY9/ZC3H12A/DCAF1/ZFPM1/PRDM1/SLAMF6/SPN/TBX21/MR1/ADAM8/BMI1/ATG5/LFNG/NFAM1/SEMA4A/FZD7/CTSL/DLL1/IL4R/PHF10/MMP14/CYLD/FANCD2/ID2/SMARCD2/NHEJ1/EP300/FCGR2B/LRRC8A/ST3GAL1
+
+
+```
+
+
+```{r}
+
+## DEGenes for Sarcoidosis condition
+DEGenesSarco <- DEGenesCond_adj %>% filter(cluster == "Sarcoidosis")
+head(DEGenesSarco)
+
+egoSarco <- enrichGO(gene = unique(DEGenesSarco$EnsID),
+                          OrgDb = org.Hs.eg.db,
+                          keyType = 'ENSEMBL',
+                          ont = "BP",
+                          pAdjustMethod = "BH",
+                          pvalueCutoff = 0.05,
+                          qvalueCutoff = 0.05)
+egoSarco <- setReadable(egoSarco, OrgDb = org.Hs.eg.db)
+dotplot(egoSarco, showCategory=20, title = "Cardiac Sarcoidosis", font.size = 10)
+barplot(egoSarco, 
+        drop = TRUE, 
+        showCategory = 7, 
+        title = "Cardiac Sarcoidosis",
+        font.size = 10)
+
+#View(DEGenesSarco)
+#View(egoSarco@result)
+#write.table(egoSarco, file= "/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/docs/Markers/ego Sarcoidosis 20.10.2024", sep="\t",quote=F,row.names=F,col.names=T)
+
+
+# ETS1, TNFRSF12A.2,  CD34/THBS1/PDGFB/JAG1/MICALL2/VWF/ANXA2/PTPRA/ITGA1/CCN1/CCN2/KDR/ADAM15/FN1/CDH13/TNXB/LIMS2/COL8A1/ADAMTS9/ITGA3/FLNA/ITGA6/BCAM/LAMA5/SERPINE1/DAPK3/PEAK1/TEK/DOCK1/PTK2/ITGB1/FUT1/ACTG1/SMAD6/RIN2/P4HB/RHOA/PPM1F/NOTCH1/ACTN4/MAP4K4/PXN/CTNNB1/ACTN1/PKP2/SIGLEC1/CTTN/NRP1/FERMT2/S100A10/PIK3R1/TRIOBP/ARHGEF7/EFNA1/ITGB3/CDC42/HAS2/ITGA5/MYADM/ILK/TBCD/TAOK2/SPRY4/ACVRL1/CRK/PKD1/ANGPT2/CALR/ITGB1BP1/RAC1/ITGA10/SNED1/FER/PARVG/JAM3/PARVA/ROCK2/LIMCH1/FZD4/SORBS3/ITGA11/CD63/CORO1C/ITGAX/THY1/ITGAL/C1QBP/ITGB5/COL1A1/CDK6/HSD17B12/LYVE1/ITGB4/CX3CL1/MELTF/CORO2B/ITGB2/NID1/EMILIN1/POSTN/VIT/CDH11/THSD1/BCR/CCDC80/CORO1A/PTK2B/CSF1/GFUS/TRIP6/RRAS/BCL6/GCNT2/AJUBA/RSU1/PRKCE/VWC2/GBP1/EPHA3/FMN1/PLAU/JAK2/ACTN2/ITGA8/NDNF/TESK1/ITGAM/ITGA9/EDIL3/ABI3BP/COL17A1/EPHB3/ITGA7/PPFIA2/PTPRJ/EGFLAM/ITGA4/DAG1/PARVB
+
+# Receptor for TNFSF12/TWEAK. Weak inducer of apoptosis in some cell types. Promotes angiogenesis and the proliferation of endothelial cells. May modulate cellular adhesion to matrix proteins
+
+
+
+
+```
+
+
+
+```{r}
+
+## DEGenes for Healthy condition
+
+DEGenesHealthy <- DEGenesCond_adj %>% filter(cluster == "Healthy")
+head(DEGenesHealthy)
+
+egoHealthy <- enrichGO(gene = unique(DEGenesHealthy$EnsID),
+                          OrgDb = org.Hs.eg.db,
+                          keyType = 'ENSEMBL',
+                          ont = "BP",
+                          pAdjustMethod = "BH",
+                          pvalueCutoff = 0.05,
+                          qvalueCutoff = 0.05)
+egoHealthy <- setReadable(egoHealthy, OrgDb = org.Hs.eg.db)
+dotplot(egoHealthy, showCategory=20, title = "Healthy", font.size = 10)
+barplot(egoHealthy, 
+        drop = TRUE, 
+        showCategory = 7, 
+        title = "Healthy",
+        font.size = 10)
+
+#View(DEGenesHealthy)
+#View(egoHealthy@result)
+#write.table(egoHealthy, file= "/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/docs/Markers/ego Healthy 20.10.2024", sep="\t",quote=F,row.names=F,col.names=T)
+
+
+
+
+```
+
+
+
+
+```{r}
+
+## Volcano Plotes with DE Genes for all conditions: 
+# DE Genes: Pos. and negative markers (only.pos = FALSE)
+DEGenesCond <- FindAllMarkers (seuratM, only.pos = FALSE, logfc.threshold = 0.2) %>%
+                                      dplyr::filter(p_val_adj < 0.05)
+
+
+##adjust table
+DEGenesCond_adj <- DEGenesCond %>% 
+  mutate(Gene=gene) %>%
+  mutate(gene=gsub("^.*\\.", "", Gene))  %>%
+  mutate(EnsID=gsub("\\..*","", Gene))
+
+##GSEA for AM 
+DEGenesAM <- DEGenesCond_adj %>% filter(cluster == "AM")
+head(DEGenesAM)
+
+# pos. and neg. DE genes for AM
+res_AM <- as.data.frame(DEGenesAM)
+
+EnhancedVolcano(res_AM, 
+                x = 'avg_log2FC',
+                y = 'p_val_adj',
+                lab = res_AM$gene,
+                # xlim =c(-6, 6), 
+                title = 'DE Genes Acute Myocarditis Condition',
+                xlab = bquote(~Log[2]~ 'fold change'),
+                pCutoff = 10e-1,
+                FCcutoff = 1.5,
+    cutoffLineType = 'twodash',
+    cutoffLineWidth = 0.8,
+    pointSize = 2.0,
+    labSize = 4.0,
+    # shape = c(1,4, 23,25),
+    colAlpha = 1,
+    legendLabels=c('Not sig.','Log (base 2) FC','p-value',
+      'p-value & Log (base 2) FC'),
+    legendPosition = 'right',
+    legendLabSize = 12,
+    legendIconSize = 5.0,
+    # drawConnectors = TRUE,
+    # widthConnectors = 0.75,
+    # ridlines.major = FALSE,
+    gridlines.minor = FALSE)
+
+
+top_genes_AM <- DEGenesAM %>% 
+  filter(p_val_adj < 0.05, abs(avg_log2FC) > 1) %>% 
+  arrange(p_val_adj) %>% 
+  slice_head(n = 30) %>% 
+  pull(gene)
+
+
+
+```
+
+
+
+```{r}
+# DE genes for CMP
+DEGenesCMP <- DEGenesCond_adj %>% filter(cluster == "CMP")
+head(DEGenesCMP)
+
+res_CMP <- as.data.frame(DEGenesCMP)
+
+EnhancedVolcano(res_CMP, 
+                x = 'avg_log2FC',
+                y = 'p_val_adj',
+                lab = res_CMP$gene,
+                # xlim =c(-6, 6), 
+                title = 'DE Genes in Cardiomyopathy Condition',
+                xlab = bquote(~Log[2]~ 'fold change'),
+                pCutoff = 10e-1,
+                FCcutoff = 1.5,
+    cutoffLineType = 'twodash',
+    cutoffLineWidth = 0.8,
+    pointSize = 2.0,
+    labSize = 4.0,
+    # shape = c(1,4, 23,25),
+    colAlpha = 1,
+    legendLabels=c('Not sig.','Log (base 2) FC','p-value',
+      'p-value & Log (base 2) FC'),
+    legendPosition = 'right',
+    legendLabSize = 12,
+    legendIconSize = 5.0,
+    # drawConnectors = TRUE,
+    # widthConnectors = 0.75,
+    # ridlines.major = FALSE,
+    gridlines.minor = FALSE)
+
+top_genes_CMP <- DEGenesCMP %>% 
+  filter(p_val_adj < 0.05, abs(avg_log2FC) > 1) %>% 
+  arrange(p_val_adj) %>% 
+  slice_head(n = 30) %>% 
+  pull(gene)
+
+
+```
+
+```{r}
+
+
+```
+
+```{r}
+# DE genes for Sarcoidosis
+DEGenesSarco <- DEGenesCond_adj %>% filter(cluster == "Sarcoidosis")
+head(DEGenesHealthy)
+
+res_Sarco <- as.data.frame(DEGenesSarco)
+
+EnhancedVolcano(res_Sarco, 
+                x = 'avg_log2FC',
+                y = 'p_val_adj',
+                lab = res_Sarco$gene,
+                # xlim =c(-6, 6), 
+                title = 'DE Genes in Sarcoidosis Condition',
+                xlab = bquote(~Log[2]~ 'fold change'),
+                pCutoff = 10e-1,
+                FCcutoff = 1.5,
+    cutoffLineType = 'twodash',
+    cutoffLineWidth = 0.8,
+    pointSize = 2.0,
+    labSize = 4.0,
+    # shape = c(1,4, 23,25),
+    colAlpha = 1,
+    legendLabels=c('Not sig.','Log (base 2) FC','p-value',
+      'p-value & Log (base 2) FC'),
+    legendPosition = 'right',
+    legendLabSize = 12,
+    legendIconSize = 5.0,
+    # drawConnectors = TRUE,
+    # widthConnectors = 0.75,
+    # ridlines.major = FALSE,
+    gridlines.minor = FALSE)
+
+top_genes_Sarco <- DEGenesSarco %>% 
+  filter(p_val_adj < 0.05, abs(avg_log2FC) > 1) %>% 
+  arrange(p_val_adj) %>% 
+  slice_head(n = 30) %>% 
+  pull(gene)
+```
+
+
+
+
+```{r}
+
+# DE Genes Healthy condition
+
+DEGenesHealthy <- DEGenesCond_adj %>% filter(cluster == "Healthy")
+head(DEGenesHealthy)
+
+egoHealthy <- enrichGO(gene = unique(DEGenesHealthy$EnsID),
+                          OrgDb = org.Hs.eg.db,
+                          keyType = 'ENSEMBL',
+                          ont = "BP",
+                          pAdjustMethod = "BH",
+                          pvalueCutoff = 0.05,
+                          qvalueCutoff = 0.05)
+egoHealthy <- setReadable(egoHealthy, OrgDb = org.Hs.eg.db)
+
+# DE genes for Healthy condition
+res_Healthy <- as.data.frame(DEGenesHealthy)
+
+EnhancedVolcano(res_Healthy, 
+                x = 'avg_log2FC',
+                y = 'p_val_adj',
+                lab = res_Healthy$gene,
+                # xlim =c(-6, 6), 
+                title = 'DE Genes Healthy Controls',
+                xlab = bquote(~Log[2]~ 'fold change'),
+                pCutoff = 10e-1,
+                FCcutoff = 1.5,
+    cutoffLineType = 'twodash',
+    cutoffLineWidth = 0.8,
+    pointSize = 2.0,
+    labSize = 4.0,
+    # shape = c(1,4, 23,25),
+    colAlpha = 1,
+    legendLabels=c('Not sig.','Log (base 2) FC','p-value',
+      'p-value & Log (base 2) FC'),
+    legendPosition = 'right',
+    legendLabSize = 12,
+    legendIconSize = 5.0,
+    # drawConnectors = TRUE,
+    # widthConnectors = 0.75,
+    # ridlines.major = FALSE,
+    gridlines.minor = FALSE)
+
+top_genes_Healthy <- DEGenesHealthy %>% 
+  filter(p_val_adj < 0.05, abs(avg_log2FC) > 1) %>% 
+  arrange(p_val_adj) %>% 
+  slice_head(n = 30) %>% 
+  pull(gene)
+```
+
+
+
+
+
+
+
+
+```{r}
+
+date()
+sessionInfo()
+```
+
+
+```
+
+
+
+
+
