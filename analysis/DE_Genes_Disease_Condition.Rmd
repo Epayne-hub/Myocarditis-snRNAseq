@@ -137,7 +137,7 @@ table(seuratM$patient)
 # Find DE Markers for conditions: AM, CMP, Sarcoidosis, Healthy
 
 DEGenesCond <- FindAllMarkers (seuratM, only.pos = TRUE, logfc.threshold = 0.2) %>%
-                                      dplyr::filter(p_val_adj < 0.05)
+                                      dplyr::filter(p_val_adj < 0.01)
 
 
 #write.table(DEGenesCond, file= "/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/docs/Markers/DEGenes_condition pos. and neg. AM, Healthy, CMP, Sarcoidosis", sep="\t",quote=F,row.names=F,col.names=T)
@@ -302,7 +302,7 @@ barplot(egoHealthy,
 
 ## Volcano Plots with DE Genes for all conditions: find positive and negative markers (only.pos = FALSE)
 DEGenesCondall <- FindAllMarkers (seuratM, only.pos = FALSE, logfc.threshold = 0.2) %>%
-                                      dplyr::filter(p_val_adj < 0.05)
+                                      dplyr::filter(p_val_adj < 0.01)
 
 ##adjust table
 DEGenesCondall_adj <- DEGenesCondall %>% 
