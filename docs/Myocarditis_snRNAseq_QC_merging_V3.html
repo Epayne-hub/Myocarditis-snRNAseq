@@ -1,0 +1,2535 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+<meta name="author" content="Emily Payne" />
+
+<meta name="date" content="2024-09-09" />
+
+<title>Myocarditis snRNAseq QC, Merging and Marker Genes</title>
+
+<script src="site_libs/header-attrs-2.28/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/jqueryui-1.13.2/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+
+<link rel="icon" href="https://github.com/workflowr/workflowr-assets/raw/main/img/reproducible.png">
+<!-- Add a small amount of space between sections. -->
+<style type="text/css">
+div.section {
+  padding-top: 12px;
+}
+</style>
+
+
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark the anchor link active (and if it's in a dropdown, also mark that active)
+  var dropdown = menuAnchor.closest('li.dropdown');
+  if (window.bootstrap) { // Bootstrap 4+
+    menuAnchor.addClass('active');
+    dropdown.find('> .dropdown-toggle').addClass('active');
+  } else { // Bootstrap 3
+    menuAnchor.parent().addClass('active');
+    dropdown.addClass('active');
+  }
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "\e259";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "\e258";
+  font-family: 'Glyphicons Halflings';
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+
+
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+@media print {
+.toc-content {
+  /* see https://github.com/w3c/csswg-drafts/issues/4434 */
+  float: right;
+}
+}
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">Myocarditis snRNAseq</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">Home</a>
+</li>
+<li>
+  <a href="about.html">About</a>
+</li>
+<li>
+  <a href="license.html">License</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+
+
+<h1 class="title toc-ignore">Myocarditis snRNAseq QC, Merging and Marker
+Genes</h1>
+<h4 class="author">Emily Payne</h4>
+<h4 class="date">2024-09-09</h4>
+
+</div>
+
+
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-report" data-toggle="collapse" data-target="#workflowr-report">
+<span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+workflowr <span class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span>
+</button>
+</p>
+<div id="workflowr-report" class="collapse">
+<ul class="nav nav-tabs">
+<li class="active">
+<a data-toggle="tab" href="#summary">Summary</a>
+</li>
+<li>
+<a data-toggle="tab" href="#checks"> Checks <span
+class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span> </a>
+</li>
+<li>
+<a data-toggle="tab" href="#versions">Past versions</a>
+</li>
+</ul>
+<div class="tab-content">
+<div id="summary" class="tab-pane fade in active">
+<p>
+<strong>Last updated:</strong> 2024-11-13
+</p>
+<p>
+<strong>Checks:</strong> <span
+class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> 5
+<span class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span> 2
+</p>
+<p>
+<strong>Knit directory:</strong> <code>Myocarditis
+snRNAseq/analysis/</code> <span
+class="glyphicon glyphicon-question-sign" aria-hidden="true"
+title="This is the local directory in which the code in this file was executed.">
+</span>
+</p>
+<p>
+This reproducible <a href="https://rmarkdown.rstudio.com">R Markdown</a>
+analysis was created with <a
+  href="https://github.com/workflowr/workflowr">workflowr</a> (version
+1.7.1). The <em>Checks</em> tab describes the reproducibility checks
+that were applied when the results were created. The <em>Past
+versions</em> tab lists the development history.
+</p>
+<hr>
+</div>
+<div id="checks" class="tab-pane fade">
+<div id="workflowr-checks" class="panel-group">
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRMarkdownfilestronguncommittedchanges">
+<span class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span> <strong>R Markdown file:</strong> uncommitted
+changes </a>
+</p>
+</div>
+<div id="strongRMarkdownfilestronguncommittedchanges"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>The R Markdown is untracked by Git. To know which version of the R
+Markdown file created these results, you’ll want to first commit it to
+the Git repo. If you’re still working on the analysis, you can ignore
+this warning. When you’re finished, you can run
+<code>wflow_publish</code> to commit the R Markdown file and build the
+HTML.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongEnvironmentstrongempty">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Environment:</strong> empty </a>
+</p>
+</div>
+<div id="strongEnvironmentstrongempty" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! The global environment was empty. Objects defined in the
+global environment can affect the analysis in your R Markdown file in
+unknown ways. For reproduciblity it’s best to always run the code in an
+empty environment.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSeedstrongcodesetseed12345code">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Seed:</strong>
+<code>set.seed(12345)</code> </a>
+</p>
+</div>
+<div id="strongSeedstrongcodesetseed12345code"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>The command <code>set.seed(12345)</code> was run prior to running the
+code in the R Markdown file. Setting a seed ensures that any results
+that rely on randomness, e.g. subsampling or permutations, are
+reproducible.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSessioninformationstrongrecorded">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Session information:</strong>
+recorded </a>
+</p>
+</div>
+<div id="strongSessioninformationstrongrecorded"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! Recording the operating system, R version, and package
+versions is critical for reproducibility.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongCachestrongnone">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Cache:</strong> none </a>
+</p>
+</div>
+<div id="strongCachestrongnone" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Nice! There were no cached chunks for this analysis, so you can be
+confident that you successfully produced the results during this
+run.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongFilepathsstrongabsolute">
+<span class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span> <strong>File paths:</strong> absolute </a>
+</p>
+</div>
+<div id="strongFilepathsstrongabsolute" class="panel-collapse collapse">
+<div class="panel-body">
+<p>
+Using absolute paths to the files within your workflowr project makes it
+difficult for you and others to run your code on a different machine.
+Change the absolute path(s) below to the suggested relative path(s) to
+make your code more reproducible.
+</p>
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th style="text-align:left;">
+absolute
+</th>
+<th style="text-align:left;">
+relative
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/data/AM
+</td>
+<td style="text-align:left;">
+../data/AM
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/data/Berlin
+</td>
+<td style="text-align:left;">
+../data/Berlin
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/data/CM
+</td>
+<td style="text-align:left;">
+../data/CM
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/data/Healthy
+</td>
+<td style="text-align:left;">
+../data/Healthy
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/data/Sarcoidosis
+</td>
+<td style="text-align:left;">
+../data/Sarcoidosis
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/data/01 Merged Seurat
+files/Myocarditis_allfiltered_19.09.24.rds
+</td>
+<td style="text-align:left;">
+../data/01 Merged Seurat files/Myocarditis_allfiltered_19.09.24.rds
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+/Users/immbio/Desktop/Emily/Myocarditis
+snRNAseq/docs/Markers_all_filtered_25_09_24
+</td>
+<td style="text-align:left;">
+../docs/Markers_all_filtered_25_09_24
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/data/01 Merged Seurat
+files/Myocarditis_HH2_HH3_removed_V2_26.09.2024.rds
+</td>
+<td style="text-align:left;">
+../data/01 Merged Seurat
+files/Myocarditis_HH2_HH3_removed_V2_26.09.2024.rds
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomEpaynehubMyocarditissnRNAseqtreed254b0c164669a09465401a608ae7e7021a28867targetblankd254b0ca">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Repository version:</strong>
+<a href="https://github.com/Epayne-hub/Myocarditis-snRNAseq/tree/d254b0c164669a09465401a608ae7e7021a28867" target="_blank">d254b0c</a>
+</a>
+</p>
+</div>
+<div
+id="strongRepositoryversionstrongahrefhttpsgithubcomEpaynehubMyocarditissnRNAseqtreed254b0c164669a09465401a608ae7e7021a28867targetblankd254b0ca"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>
+Great! You are using Git for version control. Tracking code development
+and connecting the code version to the results is critical for
+reproducibility.
+</p>
+<p>
+The results in this page were generated with repository version
+<a href="https://github.com/Epayne-hub/Myocarditis-snRNAseq/tree/d254b0c164669a09465401a608ae7e7021a28867" target="_blank">d254b0c</a>.
+See the <em>Past versions</em> tab to see a history of the changes made
+to the R Markdown and HTML files.
+</p>
+<p>
+Note that you need to be careful to ensure that all relevant files for
+the analysis have been committed to Git prior to generating the results
+(you can use <code>wflow_publish</code> or
+<code>wflow_git_commit</code>). workflowr only checks the R Markdown
+file, but you know if there are other scripts or data files that it
+depends on. Below is the status of the Git repository when the results
+were generated:
+</p>
+<pre><code>
+Ignored files:
+    Ignored:    .DS_Store
+    Ignored:    .Rhistory
+    Ignored:    .Rproj.user/
+    Ignored:    analysis/.DS_Store
+    Ignored:    analysis/.Rhistory
+    Ignored:    data/01 Merged Seurat files/
+    Ignored:    data/AM/
+    Ignored:    data/Berlin/
+    Ignored:    data/CM/
+    Ignored:    data/Healthy/
+    Ignored:    data/Sarcoidosis/
+
+Untracked files:
+    Untracked:  analysis/DE genes by patientV3.Rmd
+    Untracked:  analysis/Fibroblast subset V2 reclustering.Rmd
+    Untracked:  analysis/Immune_cells.Rmd
+    Untracked:  analysis/Myocarditis_snRNAseq_QC_merging_V3.Rmd
+    Untracked:  analysis/Relative-AbundancesV2.Rmd
+    Untracked:  analysis/Relative_AbundancesV2.Rmd
+    Untracked:  analysis/SingleCellBrowserSeurat3_plotly.R
+    Untracked:  analysis/Stratification_sex.Rmd
+
+Unstaged changes:
+    Modified:   analysis/DE Genes by Disease Condition.Rmd
+    Deleted:    analysis/Myocarditis snRNAseq QC and merging_V2.Rmd
+    Deleted:    analysis/Myocarditis snRNAseq.Rmd
+    Deleted:    analysis/Relative AbundancesV2.Rmd
+    Modified:   analysis/Stratification AM by sex.Rmd
+    Modified:   analysis/Stratification by T cell condition and DE genes.Rmd
+    Deleted:    analysis/license.Rmd
+    Deleted:    data/README.md
+
+</code></pre>
+<p>
+Note that any generated files, e.g. HTML, png, CSS, etc., are not
+included in this status report because it is ok for generated content to
+have uncommitted changes.
+</p>
+</div>
+</div>
+</div>
+</div>
+<hr>
+</div>
+<div id="versions" class="tab-pane fade">
+<p>
+There are no past versions. Publish this analysis with
+<code>wflow_publish()</code> to start tracking its development.
+</p>
+<hr>
+</div>
+</div>
+</div>
+<pre><code>
+
+
+
+``` r
+library(ExploreSCdataSeurat3)
+library(runSeurat3)
+library(Seurat)
+library(ggpubr)
+library(pheatmap)
+library(SingleCellExperiment)
+library(dplyr)
+library(tidyverse)
+library(viridis)
+library(muscat)
+library(circlize)
+library(destiny)
+library(scater)
+library(metap)
+library(multtest)
+library(clusterProfiler)
+library(org.Hs.eg.db)
+library(msigdbr)
+library(enrichplot)
+library(DOSE)
+library(grid)
+library(gridExtra)
+library(ggupset)
+library(VennDiagram)
+library(NCmisc)</code></pre>
+<pre class="r"><code>### load files AM and merge
+basedir &lt;- &quot;/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/data/AM&quot;
+fileNamList &lt;- list.files(path = basedir)
+
+
+for(i in 1:length(fileNamList)){
+  seuratS &lt;- readRDS(paste0(basedir,&quot;/&quot;, fileNamList[i]))
+  if(exists(&quot;seuratM&quot;)){
+    seuratM &lt;- merge(x = seuratM, y = seuratS)
+  }else{
+    seuratM &lt;- seuratS
+  }
+}
+
+##
+#
+remove(seuratS)
+table(seuratM$dataset)</code></pre>
+<pre><code>
+     312581_05-5_20230308_Hu_nucseq_SG36_EMB_GEM      312581_06-6_20230308_Hu_nucseq_SG37_EMB_GEM 
+                                            4323                                             1123 
+     312581_07-7_20230308_Hu_nucseq_SG38_EMB_GEM     347741_6-6_20240326_Hu_nucseq_Immpath_AM39_0 
+                                            1203                                              350 
+348751_1-6_20240326_Hu_nucseq_Immpath_AM39_0_rep    353921_28-28_20240529_Hu_nucseq_Immpath_EMB18 
+                                             316                                              208 
+   353921_31-31_20240529_Hu_nucseq_Immpath_EMB27    353921_32-32_20240529_Hu_nucseq_Immpath_EMB29 
+                                             579                                              335 
+   353921_34-34_20240529_Hu_nucseq_Immpath_EMB35    353921_35-35_20240529_Hu_nucseq_Immpath_EMB37 
+                                            1217                                              604 
+    359861_16-8_20240730_Hu_nucseq_Immpath_EMB47     359861_17-9_20240730_Hu_nucseq_Immpath_EMB48 
+                                             513                                              426 
+     o27533_1_11-11_20220203_Hu_nucseq_EMB30_GEM      o27533_1_12-12_20220203_Hu_nucseq_EMB31_GEM 
+                                            1242                                              236 
+       o27936_1_7-7_20220309_Hu_nucseq_EMB32_GEM  o28576_1_01-1_20220525_Hu_nucseq_Graz_1_EMB_GEM 
+                                            1192                                             2740 
+ o28576_1_02-2_20220525_Hu_nucseq_Graz_2_EMB_GEM     o292731_3-3_20220818_Hu_nucseq_SG_33_EMB_GEM 
+                                            1684                                             6286 
+ o294781_06-6_20220912_Hu_nucseq_Graz_15_EMB_GEM 
+                                            4439 </code></pre>
+<pre class="r"><code>table(seuratM$orig.ident)</code></pre>
+<pre><code>
+      
+29016 </code></pre>
+<pre class="r"><code>### load files Berlin and merge
+basedir &lt;- &quot;/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/data/Berlin&quot;
+fileNamList &lt;- list.files(path = basedir)
+
+for(i in 1:length(fileNamList)){
+  seuratS &lt;- readRDS(paste0(basedir, &quot;/&quot;, fileNamList[i]))
+  if(exists(&quot;seuratM&quot;)){
+    seuratM &lt;- merge(x = seuratM, y = seuratS)
+  }else{
+    seuratM &lt;- seuratS
+  }
+}
+
+##
+#
+remove(seuratS)
+table(seuratM$dataset)</code></pre>
+<pre><code>
+     312581_05-5_20230308_Hu_nucseq_SG36_EMB_GEM      312581_06-6_20230308_Hu_nucseq_SG37_EMB_GEM 
+                                            4323                                             1123 
+     312581_07-7_20230308_Hu_nucseq_SG38_EMB_GEM     347741_6-6_20240326_Hu_nucseq_Immpath_AM39_0 
+                                            1203                                              350 
+348751_1-6_20240326_Hu_nucseq_Immpath_AM39_0_rep    353921_28-28_20240529_Hu_nucseq_Immpath_EMB18 
+                                             316                                              208 
+   353921_31-31_20240529_Hu_nucseq_Immpath_EMB27    353921_32-32_20240529_Hu_nucseq_Immpath_EMB29 
+                                             579                                              335 
+   353921_34-34_20240529_Hu_nucseq_Immpath_EMB35    353921_35-35_20240529_Hu_nucseq_Immpath_EMB37 
+                                            1217                                              604 
+359861_09-11_20240723_Hu_nucseq_Ber_Pat5_EM979_1 359861_10-13_20240723_Hu_nucseq_Ber_Pat5_EM979_2 
+                                             771                                             1476 
+ 359861_11-1_20240730_Hu_nucseq_Ber_Pat1_EMB1537  359861_12-2_20240730_Hu_nucseq_Ber_Pat2_EMB1041 
+                                             316                                              608 
+ 359861_13-5_20240730_Hu_nucseq_Ber_Pat6_EMB1235  359861_14-6_20240730_Hu_nucseq_Ber_Pat7_EMB1383 
+                                             646                                              520 
+  359861_15-7_20240730_Hu_nucseq_Ber_Pat8_EMB694     359861_16-8_20240730_Hu_nucseq_Immpath_EMB47 
+                                             741                                              513 
+    359861_17-9_20240730_Hu_nucseq_Immpath_EMB48      o27533_1_11-11_20220203_Hu_nucseq_EMB30_GEM 
+                                             426                                             1242 
+     o27533_1_12-12_20220203_Hu_nucseq_EMB31_GEM        o27936_1_7-7_20220309_Hu_nucseq_EMB32_GEM 
+                                             236                                             1192 
+ o28576_1_01-1_20220525_Hu_nucseq_Graz_1_EMB_GEM  o28576_1_02-2_20220525_Hu_nucseq_Graz_2_EMB_GEM 
+                                            2740                                             1684 
+    o292731_3-3_20220818_Hu_nucseq_SG_33_EMB_GEM  o294781_06-6_20220912_Hu_nucseq_Graz_15_EMB_GEM 
+                                            6286                                             4439 </code></pre>
+<pre class="r"><code>table(seuratM$orig.ident)</code></pre>
+<pre><code>
+      
+34094 </code></pre>
+<pre class="r"><code>### load files CM and merge
+basedir &lt;- &quot;/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/data/CM&quot;
+fileNamList &lt;- list.files(path = basedir)
+
+for(i in 1:length(fileNamList)){
+ seuratS &lt;- readRDS(paste0(basedir, &quot;/&quot;, fileNamList[i]))
+  if(exists(&quot;seuratM&quot;)){
+    seuratM &lt;- merge(x = seuratM, y = seuratS)
+  }else{
+    seuratM &lt;- seuratS
+  }
+}
+
+##
+#
+remove(seuratS)
+table(seuratM$dataset)</code></pre>
+<pre><code>
+     312581_05-5_20230308_Hu_nucseq_SG36_EMB_GEM      312581_06-6_20230308_Hu_nucseq_SG37_EMB_GEM 
+                                            4323                                             1123 
+     312581_07-7_20230308_Hu_nucseq_SG38_EMB_GEM     347741_6-6_20240326_Hu_nucseq_Immpath_AM39_0 
+                                            1203                                              350 
+348751_1-6_20240326_Hu_nucseq_Immpath_AM39_0_rep    353921_28-28_20240529_Hu_nucseq_Immpath_EMB18 
+                                             316                                              208 
+   353921_29-29_20240529_Hu_nucseq_Immpath_EMB24    353921_30-30_20240529_Hu_nucseq_Immpath_EMB25 
+                                             105                                              227 
+   353921_31-31_20240529_Hu_nucseq_Immpath_EMB27    353921_32-32_20240529_Hu_nucseq_Immpath_EMB29 
+                                             579                                              335 
+   353921_33-33_20240529_Hu_nucseq_Immpath_EMB30    353921_34-34_20240529_Hu_nucseq_Immpath_EMB35 
+                                             730                                             1217 
+   353921_35-35_20240529_Hu_nucseq_Immpath_EMB37 359861_09-11_20240723_Hu_nucseq_Ber_Pat5_EM979_1 
+                                             604                                              771 
+359861_10-13_20240723_Hu_nucseq_Ber_Pat5_EM979_2  359861_11-1_20240730_Hu_nucseq_Ber_Pat1_EMB1537 
+                                            1476                                              316 
+ 359861_12-2_20240730_Hu_nucseq_Ber_Pat2_EMB1041  359861_13-5_20240730_Hu_nucseq_Ber_Pat6_EMB1235 
+                                             608                                              646 
+ 359861_14-6_20240730_Hu_nucseq_Ber_Pat7_EMB1383   359861_15-7_20240730_Hu_nucseq_Ber_Pat8_EMB694 
+                                             520                                              741 
+    359861_16-8_20240730_Hu_nucseq_Immpath_EMB47     359861_17-9_20240730_Hu_nucseq_Immpath_EMB48 
+                                             513                                              426 
+     o27533_1_11-11_20220203_Hu_nucseq_EMB30_GEM      o27533_1_12-12_20220203_Hu_nucseq_EMB31_GEM 
+                                            1242                                              236 
+       o27936_1_7-7_20220309_Hu_nucseq_EMB32_GEM  o28576_1_01-1_20220525_Hu_nucseq_Graz_1_EMB_GEM 
+                                            1192                                             2740 
+ o28576_1_02-2_20220525_Hu_nucseq_Graz_2_EMB_GEM  o28576_1_03-3_20220525_Hu_nucseq_Graz_3_EMB_GEM 
+                                            1684                                             2396 
+ o28576_1_04-4_20220525_Hu_nucseq_Graz_4_EMB_GEM  o28576_1_05-5_20220525_Hu_nucseq_Graz_5_EMB_GEM 
+                                             545                                              781 
+ o28576_1_06-6_20220525_Hu_nucseq_Graz_6_EMB_GEM  o28576_1_07-7_20220525_Hu_nucseq_Graz_7_EMB_GEM 
+                                             491                                              653 
+     o28576_1_13-13_20220525_Hu_nucseq_EMB32_GEM     o292731_3-3_20220818_Hu_nucseq_SG_33_EMB_GEM 
+                                            1428                                             6286 
+    o292731_4-4_20220818_Hu_nucseq_SG_34_EMB_GEM  o294781_05-5_20220912_Hu_nucseq_Graz_14_EMB_GEM 
+                                             620                                             1268 
+ o294781_06-6_20220912_Hu_nucseq_Graz_15_EMB_GEM  o294781_09-9_20220912_Hu_nucseq_Graz_18_EMB_GEM 
+                                            4439                                             2280 
+o294781_10-10_20220912_Hu_nucseq_Graz_19_EMB_GEM 
+                                             111 </code></pre>
+<pre class="r"><code>table(seuratM$orig.ident)</code></pre>
+<pre><code>
+      
+45729 </code></pre>
+<pre class="r"><code>### load files from healthy donors and merge
+
+basedir &lt;- &quot;/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/data/Healthy&quot;
+fileNamList &lt;- list.files(path = basedir)
+
+for(i in 1:length(fileNamList)){
+  seuratS &lt;- readRDS(paste0(basedir, &quot;/&quot;, fileNamList[i]))
+  if(exists(&quot;seuratM&quot;)){
+    seuratM &lt;- merge(x = seuratM, y = seuratS)
+  }else{
+    seuratM &lt;- seuratS
+  }
+}
+
+##
+#
+remove(seuratS)
+table(seuratM$dataset)</code></pre>
+<pre><code>
+     312581_05-5_20230308_Hu_nucseq_SG36_EMB_GEM      312581_06-6_20230308_Hu_nucseq_SG37_EMB_GEM 
+                                            4323                                             1123 
+     312581_07-7_20230308_Hu_nucseq_SG38_EMB_GEM     347741_6-6_20240326_Hu_nucseq_Immpath_AM39_0 
+                                            1203                                              350 
+348751_1-6_20240326_Hu_nucseq_Immpath_AM39_0_rep    353921_28-28_20240529_Hu_nucseq_Immpath_EMB18 
+                                             316                                              208 
+   353921_29-29_20240529_Hu_nucseq_Immpath_EMB24    353921_30-30_20240529_Hu_nucseq_Immpath_EMB25 
+                                             105                                              227 
+   353921_31-31_20240529_Hu_nucseq_Immpath_EMB27    353921_32-32_20240529_Hu_nucseq_Immpath_EMB29 
+                                             579                                              335 
+   353921_33-33_20240529_Hu_nucseq_Immpath_EMB30    353921_34-34_20240529_Hu_nucseq_Immpath_EMB35 
+                                             730                                             1217 
+   353921_35-35_20240529_Hu_nucseq_Immpath_EMB37 359861_09-11_20240723_Hu_nucseq_Ber_Pat5_EM979_1 
+                                             604                                              771 
+359861_10-13_20240723_Hu_nucseq_Ber_Pat5_EM979_2  359861_11-1_20240730_Hu_nucseq_Ber_Pat1_EMB1537 
+                                            1476                                              316 
+ 359861_12-2_20240730_Hu_nucseq_Ber_Pat2_EMB1041  359861_13-5_20240730_Hu_nucseq_Ber_Pat6_EMB1235 
+                                             608                                              646 
+ 359861_14-6_20240730_Hu_nucseq_Ber_Pat7_EMB1383   359861_15-7_20240730_Hu_nucseq_Ber_Pat8_EMB694 
+                                             520                                              741 
+    359861_16-8_20240730_Hu_nucseq_Immpath_EMB47     359861_17-9_20240730_Hu_nucseq_Immpath_EMB48 
+                                             513                                              426 
+     o27533_1_11-11_20220203_Hu_nucseq_EMB30_GEM      o27533_1_12-12_20220203_Hu_nucseq_EMB31_GEM 
+                                            1242                                              236 
+       o27936_1_7-7_20220309_Hu_nucseq_EMB32_GEM  o28576_1_01-1_20220525_Hu_nucseq_Graz_1_EMB_GEM 
+                                            1192                                             2740 
+ o28576_1_02-2_20220525_Hu_nucseq_Graz_2_EMB_GEM  o28576_1_03-3_20220525_Hu_nucseq_Graz_3_EMB_GEM 
+                                            1684                                             2396 
+ o28576_1_04-4_20220525_Hu_nucseq_Graz_4_EMB_GEM  o28576_1_05-5_20220525_Hu_nucseq_Graz_5_EMB_GEM 
+                                             545                                              781 
+ o28576_1_06-6_20220525_Hu_nucseq_Graz_6_EMB_GEM  o28576_1_07-7_20220525_Hu_nucseq_Graz_7_EMB_GEM 
+                                             491                                              653 
+  o28576_1_08-8_20220525_Hu_nucseq_Graz_8_HH_GEM   o28576_1_09-9_20220525_Hu_nucseq_Graz_9_HH_GEM 
+                                            3921                                             3707 
+o28576_1_10-10_20220525_Hu_nucseq_Graz_10_HH_GEM o28576_1_11-11_20220525_Hu_nucseq_Graz_11_HH_GEM 
+                                            3731                                             3991 
+o28576_1_12-12_20220525_Hu_nucseq_Graz_12_HH_GEM      o28576_1_13-13_20220525_Hu_nucseq_EMB32_GEM 
+                                            3818                                             1428 
+    o292731_1-1_20220818_Hu_nucseq_Graz_9_HH_GEM    o292731_2-2_20220818_Hu_nucseq_Graz_13_HH_GEM 
+                                            4908                                             9882 
+    o292731_3-3_20220818_Hu_nucseq_SG_33_EMB_GEM     o292731_4-4_20220818_Hu_nucseq_SG_34_EMB_GEM 
+                                            6286                                              620 
+  o294781_01-1_20220912_Hu_nucseq_Graz_21_HH_GEM   o294781_02-2_20220912_Hu_nucseq_Graz_22_HH_GEM 
+                                            1442                                             1998 
+  o294781_03-3_20220912_Hu_nucseq_Graz_23_HH_GEM   o294781_04-4_20220912_Hu_nucseq_Graz_24_HH_GEM 
+                                             841                                             1480 
+ o294781_05-5_20220912_Hu_nucseq_Graz_14_EMB_GEM  o294781_06-6_20220912_Hu_nucseq_Graz_15_EMB_GEM 
+                                            1268                                             4439 
+ o294781_09-9_20220912_Hu_nucseq_Graz_18_EMB_GEM o294781_10-10_20220912_Hu_nucseq_Graz_19_EMB_GEM 
+                                            2280                                              111 </code></pre>
+<pre class="r"><code>table(seuratM$orig.ident)</code></pre>
+<pre><code>
+      
+85448 </code></pre>
+<pre class="r"><code>## load files from Sarcoidosis patients and merge
+basedir &lt;- &quot;/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/data/Sarcoidosis&quot;
+fileNamList &lt;- list.files(path = basedir)
+
+for(i in 1:length(fileNamList)){
+  seuratS &lt;- readRDS(paste0(basedir, &quot;/&quot;, fileNamList[i]))
+  if(exists(&quot;seuratM&quot;)){
+    seuratM &lt;- merge(x = seuratM, y = seuratS)
+  }else{
+    seuratM &lt;- seuratS
+  }
+}
+
+## total cell count 90517
+##
+#
+remove(seuratS)
+table(seuratM$dataset)</code></pre>
+<pre><code>
+     312581_05-5_20230308_Hu_nucseq_SG36_EMB_GEM      312581_06-6_20230308_Hu_nucseq_SG37_EMB_GEM 
+                                            4323                                             1123 
+     312581_07-7_20230308_Hu_nucseq_SG38_EMB_GEM     347741_6-6_20240326_Hu_nucseq_Immpath_AM39_0 
+                                            1203                                              350 
+348751_1-6_20240326_Hu_nucseq_Immpath_AM39_0_rep    353921_28-28_20240529_Hu_nucseq_Immpath_EMB18 
+                                             316                                              208 
+   353921_29-29_20240529_Hu_nucseq_Immpath_EMB24    353921_30-30_20240529_Hu_nucseq_Immpath_EMB25 
+                                             105                                              227 
+   353921_31-31_20240529_Hu_nucseq_Immpath_EMB27    353921_32-32_20240529_Hu_nucseq_Immpath_EMB29 
+                                             579                                              335 
+   353921_33-33_20240529_Hu_nucseq_Immpath_EMB30    353921_34-34_20240529_Hu_nucseq_Immpath_EMB35 
+                                             730                                             1217 
+   353921_35-35_20240529_Hu_nucseq_Immpath_EMB37 359861_09-11_20240723_Hu_nucseq_Ber_Pat5_EM979_1 
+                                             604                                              771 
+359861_10-13_20240723_Hu_nucseq_Ber_Pat5_EM979_2  359861_11-1_20240730_Hu_nucseq_Ber_Pat1_EMB1537 
+                                            1476                                              316 
+ 359861_12-2_20240730_Hu_nucseq_Ber_Pat2_EMB1041  359861_13-5_20240730_Hu_nucseq_Ber_Pat6_EMB1235 
+                                             608                                              646 
+ 359861_14-6_20240730_Hu_nucseq_Ber_Pat7_EMB1383   359861_15-7_20240730_Hu_nucseq_Ber_Pat8_EMB694 
+                                             520                                              741 
+    359861_16-8_20240730_Hu_nucseq_Immpath_EMB47     359861_17-9_20240730_Hu_nucseq_Immpath_EMB48 
+                                             513                                              426 
+     o27533_1_11-11_20220203_Hu_nucseq_EMB30_GEM      o27533_1_12-12_20220203_Hu_nucseq_EMB31_GEM 
+                                            1242                                              236 
+       o27936_1_7-7_20220309_Hu_nucseq_EMB32_GEM  o28576_1_01-1_20220525_Hu_nucseq_Graz_1_EMB_GEM 
+                                            1192                                             2740 
+ o28576_1_02-2_20220525_Hu_nucseq_Graz_2_EMB_GEM  o28576_1_03-3_20220525_Hu_nucseq_Graz_3_EMB_GEM 
+                                            1684                                             2396 
+ o28576_1_04-4_20220525_Hu_nucseq_Graz_4_EMB_GEM  o28576_1_05-5_20220525_Hu_nucseq_Graz_5_EMB_GEM 
+                                             545                                              781 
+ o28576_1_06-6_20220525_Hu_nucseq_Graz_6_EMB_GEM  o28576_1_07-7_20220525_Hu_nucseq_Graz_7_EMB_GEM 
+                                             491                                              653 
+  o28576_1_08-8_20220525_Hu_nucseq_Graz_8_HH_GEM   o28576_1_09-9_20220525_Hu_nucseq_Graz_9_HH_GEM 
+                                            3921                                             3707 
+o28576_1_10-10_20220525_Hu_nucseq_Graz_10_HH_GEM o28576_1_11-11_20220525_Hu_nucseq_Graz_11_HH_GEM 
+                                            3731                                             3991 
+o28576_1_12-12_20220525_Hu_nucseq_Graz_12_HH_GEM      o28576_1_13-13_20220525_Hu_nucseq_EMB32_GEM 
+                                            3818                                             1428 
+    o292731_1-1_20220818_Hu_nucseq_Graz_9_HH_GEM    o292731_2-2_20220818_Hu_nucseq_Graz_13_HH_GEM 
+                                            4908                                             9882 
+    o292731_3-3_20220818_Hu_nucseq_SG_33_EMB_GEM     o292731_4-4_20220818_Hu_nucseq_SG_34_EMB_GEM 
+                                            6286                                              620 
+    o292731_5-5_20220818_Hu_nucseq_SG_35_EMB_GEM   o294781_01-1_20220912_Hu_nucseq_Graz_21_HH_GEM 
+                                            2363                                             1442 
+  o294781_02-2_20220912_Hu_nucseq_Graz_22_HH_GEM   o294781_03-3_20220912_Hu_nucseq_Graz_23_HH_GEM 
+                                            1998                                              841 
+  o294781_04-4_20220912_Hu_nucseq_Graz_24_HH_GEM  o294781_05-5_20220912_Hu_nucseq_Graz_14_EMB_GEM 
+                                            1480                                             1268 
+ o294781_06-6_20220912_Hu_nucseq_Graz_15_EMB_GEM  o294781_09-9_20220912_Hu_nucseq_Graz_18_EMB_GEM 
+                                            4439                                             2280 
+o294781_10-10_20220912_Hu_nucseq_Graz_19_EMB_GEM o294781_11-11_20220912_Hu_nucseq_Graz_20_EMB_GEM 
+                                             111                                             2706 </code></pre>
+<pre class="r"><code>table(seuratM$orig.ident)</code></pre>
+<pre><code>
+      
+90517 </code></pre>
+<pre class="r"><code>#### Load all seurat files. Name patient_ID and allocate to condition
+
+
+### Healthy heart
+HH_1 &lt;- c(&quot;o28576_1_08-8_20220525_Hu_nucseq_Graz_8_HH_GEM&quot;)
+HH_2 &lt;- c(&quot;o28576_1_10-10_20220525_Hu_nucseq_Graz_10_HH_GEM&quot;)
+HH_3 &lt;- c(&quot;o28576_1_11-11_20220525_Hu_nucseq_Graz_11_HH_GEM&quot;)
+HH_4 &lt;- c(&quot;o28576_1_12-12_20220525_Hu_nucseq_Graz_12_HH_GEM&quot;)
+HH_5 &lt;- c(&quot;o292731_1-1_20220818_Hu_nucseq_Graz_9_HH_GEM&quot;)
+HH_6 &lt;- c(&quot;o292731_2-2_20220818_Hu_nucseq_Graz_13_HH_GEM&quot;)
+HH_7 &lt;- c(&quot;o294781_01-1_20220912_Hu_nucseq_Graz_21_HH_GEM&quot;)
+HH_8 &lt;- c(&quot;o294781_02-2_20220912_Hu_nucseq_Graz_22_HH_GEM&quot;)
+HH_9 &lt;- c(&quot;o294781_03-3_20220912_Hu_nucseq_Graz_23_HH_GEM&quot;)
+HH_10 &lt;- c(&quot;o294781_04-4_20220912_Hu_nucseq_Graz_24_HH_GEM&quot;)
+HH_11 &lt;- c(&quot;o28576_1_09-9_20220525_Hu_nucseq_Graz_9_HH_GEM&quot;)
+
+## AM # 39 bad quality remove later
+Immpath_2 &lt;- c(&quot;o292731_3-3_20220818_Hu_nucseq_SG_33_EMB_GEM&quot;)
+Immpath_10 &lt;- c(&quot;312581_05-5_20230308_Hu_nucseq_SG36_EMB_GEM&quot;)
+Immpath_12 &lt;- c(&quot;312581_06-6_20230308_Hu_nucseq_SG37_EMB_GEM&quot;)
+Immpath_14 &lt;- c(&quot;312581_07-7_20230308_Hu_nucseq_SG38_EMB_GEM&quot;)
+Immpath_18 &lt;- c(&quot;353921_28-28_20240529_Hu_nucseq_Immpath_EMB18&quot;)
+Immpath_27 &lt;- c(&quot;353921_31-31_20240529_Hu_nucseq_Immpath_EMB27&quot;)
+Immpath_29 &lt;- c(&quot;353921_32-32_20240529_Hu_nucseq_Immpath_EMB29&quot;)
+Immpath_35 &lt;- c(&quot;353921_34-34_20240529_Hu_nucseq_Immpath_EMB35&quot;)
+Immpath_37 &lt;- c(&quot;353921_35-35_20240529_Hu_nucseq_Immpath_EMB37&quot;)
+Immpath_47 &lt;- c(&quot;359861_16-8_20240730_Hu_nucseq_Immpath_EMB47&quot;)
+Immpath_48 &lt;- c(&quot;359861_17-9_20240730_Hu_nucseq_Immpath_EMB48&quot;)
+Immpath_39 &lt;- c(&quot;347741_6-6_20240326_Hu_nucseq_Immpath_AM39_0&quot;, &quot;348751_1-6_20240326_Hu_nucseq_Immpath_AM39_0_rep&quot;)
+
+pat_NCRGraz1 &lt;- c(&quot;o28576_1_01-1_20220525_Hu_nucseq_Graz_1_EMB_GEM&quot;)
+pat_NCRGraz2 &lt;- c(&quot;o28576_1_02-2_20220525_Hu_nucseq_Graz_2_EMB_GEM&quot;)
+pat_NCRGraz15 &lt;- c(&quot;o294781_06-6_20220912_Hu_nucseq_Graz_15_EMB_GEM&quot;)
+pat_NCR29 &lt;- c(&quot;o27533_1_11-11_20220203_Hu_nucseq_EMB30_GEM&quot;)
+pat_NCR30 &lt;- c(&quot;o27533_1_12-12_20220203_Hu_nucseq_EMB31_GEM&quot;)
+pat_NCR31 &lt;- c(&quot;o27936_1_7-7_20220309_Hu_nucseq_EMB32_GEM&quot;)
+
+pat_BLn979 &lt;- c(&quot;359861_09-11_20240723_Hu_nucseq_Ber_Pat5_EM979_1&quot;,&quot;359861_10-13_20240723_Hu_nucseq_Ber_Pat5_EM979_2&quot;)
+pat_BLn1537 &lt;- c(&quot;359861_11-1_20240730_Hu_nucseq_Ber_Pat1_EMB1537&quot;)
+pat_BLn1041 &lt;- c(&quot;359861_12-2_20240730_Hu_nucseq_Ber_Pat2_EMB1041&quot;)
+pat_BLn1235 &lt;- c(&quot;359861_13-5_20240730_Hu_nucseq_Ber_Pat6_EMB1235&quot;)
+pat_BLn1383&lt;- c(&quot;359861_14-6_20240730_Hu_nucseq_Ber_Pat7_EMB1383&quot;)
+pat_BLn694 &lt;- c(&quot;359861_15-7_20240730_Hu_nucseq_Ber_Pat8_EMB694&quot;)
+
+## CMP 
+Immpath_24 &lt;- c(&quot;353921_29-29_20240529_Hu_nucseq_Immpath_EMB24&quot;)
+Immpath_25 &lt;- c(&quot;353921_30-30_20240529_Hu_nucseq_Immpath_EMB25&quot;)
+Immpath_30 &lt;- c(&quot;353921_33-33_20240529_Hu_nucseq_Immpath_EMB30&quot;)
+pat_NCR32 &lt;- c (&quot;o28576_1_13-13_20220525_Hu_nucseq_EMB32_GEM&quot;)
+pat_NCR34 &lt;- c(&quot;o292731_4-4_20220818_Hu_nucseq_SG_34_EMB_GEM&quot;)
+CM_Graz7 &lt;- c(&quot;o28576_1_07-7_20220525_Hu_nucseq_Graz_7_EMB_GEM&quot;)
+CM_Graz14 &lt;- c(&quot;o294781_05-5_20220912_Hu_nucseq_Graz_14_EMB_GEM&quot;)
+CM_Graz18 &lt;- c(&quot;o294781_09-9_20220912_Hu_nucseq_Graz_18_EMB_GEM&quot;)
+CM_Graz3 &lt;- c(&quot;o28576_1_03-3_20220525_Hu_nucseq_Graz_3_EMB_GEM&quot;)
+CM_Graz4 &lt;- c(&quot;o28576_1_04-4_20220525_Hu_nucseq_Graz_4_EMB_GEM&quot;)
+CM_Graz5 &lt;- c(&quot;o28576_1_05-5_20220525_Hu_nucseq_Graz_5_EMB_GEM&quot;)
+CM_Graz6 &lt;- c(&quot;o28576_1_06-6_20220525_Hu_nucseq_Graz_6_EMB_GEM&quot;)
+CM_Graz19 &lt;- c(&quot;o294781_10-10_20220912_Hu_nucseq_Graz_19_EMB_GEM&quot;)
+
+##Sarcoidosis
+Sarco_SG35 &lt;- c(&quot;o292731_5-5_20220818_Hu_nucseq_SG_35_EMB_GEM&quot;)
+Sarco_Graz20 &lt;- c(&quot;o294781_11-11_20220912_Hu_nucseq_Graz_20_EMB_GEM&quot;)
+
+### changes compared to before: 
+# NCR32 = Immpath-CM-01 and NCR 34 = Immpath-CM-02
+# NCR30 = HeartRNAseq30 (SG 30)
+# NCR31 = HeartRNAseq31 (SG 31)
+# Immpath-02 = SG 36, Immpath-10 = SG37
+##labels of pat_NCR are one next higher up
+# pat_NCR29 &lt;- c(&quot;o27533_1_11-11_20220203_Hu_nucseq_EMB30_GEM&quot;)
+# pat_NCR30 &lt;- c(&quot;o27533_1_12-12_20220203_Hu_nucseq_EMB31_GEM&quot;)
+# pat_NCR31 &lt;- c(&quot;o27936_1_7-7_20220309_Hu_nucseq_EMB32_GEM&quot;)
+# Immpath_30 &lt;- c(&quot;353921_33-33_20240529_Hu_nucseq_Immpath_EMB30&quot;) different seurat
+
+
+## Name samples
+seuratM$patient &lt;- &quot;pat_nr&quot;
+
+##Healthy
+seuratM$patient[which(seuratM$dataset %in% HH_1)] &lt;- &quot;Healthy 01&quot;
+seuratM$patient[which(seuratM$dataset %in% HH_4)] &lt;- &quot;Healthy 02&quot;
+seuratM$patient[which(seuratM$dataset %in% HH_5)] &lt;- &quot;Healthy 03&quot;
+seuratM$patient[which(seuratM$dataset %in% HH_6)] &lt;- &quot;Healthy 04&quot;
+seuratM$patient[which(seuratM$dataset %in% HH_7)] &lt;- &quot;Healthy 05&quot;
+seuratM$patient[which(seuratM$dataset %in% HH_8)] &lt;- &quot;Healthy 06&quot;
+seuratM$patient[which(seuratM$dataset %in% HH_9)] &lt;- &quot;Healthy 07&quot;
+seuratM$patient[which(seuratM$dataset %in% HH_10)] &lt;-&quot;Healthy 08&quot;
+seuratM$patient[which(seuratM$dataset %in% HH_11)] &lt;-&quot;Healthy 09&quot;
+seuratM$patient[which(seuratM$dataset %in% HH_2)] &lt;- &quot;Healthy 10&quot;
+seuratM$patient[which(seuratM$dataset %in% HH_3)] &lt;- &quot;Healthy 11&quot;
+
+seuratM$patient[which(seuratM$dataset %in% Immpath_2)] &lt;- &quot;AM 01&quot;
+seuratM$patient[which(seuratM$dataset %in% Immpath_10)] &lt;- &quot;AM 02&quot;
+seuratM$patient[which(seuratM$dataset %in% Immpath_12)] &lt;- &quot;AM 03&quot;
+seuratM$patient[which(seuratM$dataset %in% Immpath_18)] &lt;- &quot;AM 04&quot;
+seuratM$patient[which(seuratM$dataset %in% Immpath_27)] &lt;- &quot;AM 05&quot;
+seuratM$patient[which(seuratM$dataset %in% Immpath_29)] &lt;- &quot;AM 06&quot;
+seuratM$patient[which(seuratM$dataset %in% Immpath_35)] &lt;- &quot;AM 07&quot;
+seuratM$patient[which(seuratM$dataset %in% Immpath_37)] &lt;- &quot;AM 08&quot;
+seuratM$patient[which(seuratM$dataset %in% Immpath_47)] &lt;- &quot;AM 09&quot;
+seuratM$patient[which(seuratM$dataset %in% Immpath_48)] &lt;- &quot;AM 10&quot;
+
+seuratM$patient[which(seuratM$dataset %in% pat_NCR30)] &lt;- &quot;AM 11&quot;
+seuratM$patient[which(seuratM$dataset %in% pat_NCR31)] &lt;- &quot;AM 12&quot;
+seuratM$patient[which(seuratM$dataset %in% pat_NCRGraz1)] &lt;- &quot;AM 13&quot;
+seuratM$patient[which(seuratM$dataset %in% pat_NCRGraz2)] &lt;- &quot;AM 14&quot;
+seuratM$patient[which(seuratM$dataset %in% pat_NCRGraz15)] &lt;- &quot;AM 15&quot;
+
+seuratM$patient[which(seuratM$dataset %in% pat_BLn979)] &lt;- &quot;AM 16&quot;
+seuratM$patient[which(seuratM$dataset %in% pat_BLn1537)] &lt;- &quot;AM 17&quot;
+seuratM$patient[which(seuratM$dataset %in% pat_BLn1041)] &lt;- &quot;AM 18&quot;
+seuratM$patient[which(seuratM$dataset %in% pat_BLn1235)] &lt;- &quot;AM 19&quot;
+seuratM$patient[which(seuratM$dataset %in% pat_BLn1383)] &lt;- &quot;AM 20&quot;
+seuratM$patient[which(seuratM$dataset %in% pat_BLn694)] &lt;- &quot;AM 21&quot;
+seuratM$patient[which(seuratM$dataset %in% Immpath_39)] &lt;- &quot;AM 22&quot;
+seuratM$patient[which(seuratM$dataset %in% Immpath_14)] &lt;- &quot;AM 23&quot;
+seuratM$patient[which(seuratM$dataset %in% pat_NCR29)] &lt;- &quot;AM 24&quot;
+
+
+seuratM$patient[which(seuratM$dataset %in% Immpath_24)] &lt;- &quot;CMP 01&quot;
+seuratM$patient[which(seuratM$dataset %in% Immpath_25)] &lt;- &quot;CMP 02&quot;
+seuratM$patient[which(seuratM$dataset %in% Immpath_30)] &lt;- &quot;CMP 03&quot;
+seuratM$patient[which(seuratM$dataset %in% pat_NCR32)] &lt;- &quot;CMP 04&quot;
+seuratM$patient[which(seuratM$dataset %in% pat_NCR34)] &lt;- &quot;CMP 05&quot;
+seuratM$patient[which(seuratM$dataset %in% CM_Graz7)] &lt;- &quot;CMP 06&quot;
+seuratM$patient[which(seuratM$dataset %in% CM_Graz14)] &lt;- &quot;CMP 07&quot;
+seuratM$patient[which(seuratM$dataset %in% CM_Graz18)] &lt;- &quot;CMP 08&quot;
+seuratM$patient[which(seuratM$dataset %in% CM_Graz3)] &lt;- &quot;CMP 09&quot;
+seuratM$patient[which(seuratM$dataset %in% CM_Graz4)] &lt;- &quot;CMP 10&quot;
+seuratM$patient[which(seuratM$dataset %in% CM_Graz5)] &lt;- &quot;CMP 11&quot;
+seuratM$patient[which(seuratM$dataset %in% CM_Graz6)] &lt;- &quot;CMP 12&quot;
+seuratM$patient[which(seuratM$dataset %in% CM_Graz19)] &lt;- &quot;CMP 13&quot;
+
+
+seuratM$patient[which(seuratM$dataset %in% Sarco_SG35)] &lt;- &quot;Sarcoidosis 01&quot;
+seuratM$patient[which(seuratM$dataset %in% Sarco_Graz20)] &lt;- &quot;Sarcoidosis 02&quot;
+
+
+table(seuratM$patient)</code></pre>
+<pre><code>
+         AM 01          AM 02          AM 03          AM 04          AM 05          AM 06 
+          6286           4323           1123            208            579            335 
+         AM 07          AM 08          AM 09          AM 10          AM 11          AM 12 
+          1217            604            513            426            236           1192 
+         AM 13          AM 14          AM 15          AM 16          AM 17          AM 18 
+          2740           1684           4439           2247            316            608 
+         AM 19          AM 20          AM 21          AM 22          AM 23          AM 24 
+           646            520            741            666           1203           1242 
+        CMP 01         CMP 02         CMP 03         CMP 04         CMP 05         CMP 06 
+           105            227            730           1428            620            653 
+        CMP 07         CMP 08         CMP 09         CMP 10         CMP 11         CMP 12 
+          1268           2280           2396            545            781            491 
+        CMP 13     Healthy 01     Healthy 02     Healthy 03     Healthy 04     Healthy 05 
+           111           3921           3818           4908           9882           1442 
+    Healthy 06     Healthy 07     Healthy 08     Healthy 09     Healthy 10     Healthy 11 
+          1998            841           1480           3707           3731           3991 
+Sarcoidosis 01 Sarcoidosis 02 
+          2363           2706 </code></pre>
+<pre class="r"><code>table(seuratM$orig.ident)</code></pre>
+<pre><code>
+      
+90517 </code></pre>
+<pre class="r"><code>## Allocate to condition
+Healthy &lt;- c(&quot;o28576_1_08-8_20220525_Hu_nucseq_Graz_8_HH_GEM&quot;,
+             &quot;o28576_1_09-9_20220525_Hu_nucseq_Graz_9_HH_GEM&quot;,
+             &quot;o28576_1_10-10_20220525_Hu_nucseq_Graz_10_HH_GEM&quot;,
+             &quot;o28576_1_11-11_20220525_Hu_nucseq_Graz_11_HH_GEM&quot;,
+             &quot;o28576_1_12-12_20220525_Hu_nucseq_Graz_12_HH_GEM&quot;,
+             &quot;o292731_1-1_20220818_Hu_nucseq_Graz_9_HH_GEM&quot;,
+             &quot;o292731_2-2_20220818_Hu_nucseq_Graz_13_HH_GEM&quot;,
+             &quot;o294781_01-1_20220912_Hu_nucseq_Graz_21_HH_GEM&quot;,
+             &quot;o294781_02-2_20220912_Hu_nucseq_Graz_22_HH_GEM&quot;,
+             &quot;o294781_03-3_20220912_Hu_nucseq_Graz_23_HH_GEM&quot;,
+             &quot;o294781_04-4_20220912_Hu_nucseq_Graz_24_HH_GEM&quot;)
+
+AM &lt;- c(&quot;o292731_3-3_20220818_Hu_nucseq_SG_33_EMB_GEM&quot;,
+        &quot;312581_05-5_20230308_Hu_nucseq_SG36_EMB_GEM&quot;,
+        &quot;312581_06-6_20230308_Hu_nucseq_SG37_EMB_GEM&quot;,
+        &quot;353921_28-28_20240529_Hu_nucseq_Immpath_EMB18&quot;,
+        &quot;353921_31-31_20240529_Hu_nucseq_Immpath_EMB27&quot;,
+        &quot;353921_32-32_20240529_Hu_nucseq_Immpath_EMB29&quot;,
+        &quot;353921_34-34_20240529_Hu_nucseq_Immpath_EMB35&quot;,
+        &quot;353921_35-35_20240529_Hu_nucseq_Immpath_EMB37&quot;,
+        &quot;359861_16-8_20240730_Hu_nucseq_Immpath_EMB47&quot;,
+        &quot;359861_17-9_20240730_Hu_nucseq_Immpath_EMB48&quot;,
+        &quot;o28576_1_01-1_20220525_Hu_nucseq_Graz_1_EMB_GEM&quot;,
+        &quot;o28576_1_02-2_20220525_Hu_nucseq_Graz_2_EMB_GEM&quot;,
+        &quot;o294781_06-6_20220912_Hu_nucseq_Graz_15_EMB_GEM&quot;,
+        &quot;o27533_1_12-12_20220203_Hu_nucseq_EMB31_GEM&quot;,
+        &quot;o27936_1_7-7_20220309_Hu_nucseq_EMB32_GEM&quot;,
+        &quot;359861_09-11_20240723_Hu_nucseq_Ber_Pat5_EM979_1&quot;,&quot;359861_10-13_20240723_Hu_nucseq_Ber_Pat5_EM979_2&quot;,
+        &quot;359861_11-1_20240730_Hu_nucseq_Ber_Pat1_EMB1537&quot;,
+        &quot;359861_12-2_20240730_Hu_nucseq_Ber_Pat2_EMB1041&quot;)
+
+CMP &lt;- c(&quot;353921_29-29_20240529_Hu_nucseq_Immpath_EMB24&quot;,
+         &quot;353921_30-30_20240529_Hu_nucseq_Immpath_EMB25&quot;,
+         &quot;353921_33-33_20240529_Hu_nucseq_Immpath_EMB30&quot;,
+         &quot;o28576_1_13-13_20220525_Hu_nucseq_EMB32_GEM&quot;,
+         &quot;o292731_4-4_20220818_Hu_nucseq_SG_34_EMB_GEM&quot;,
+         &quot;o28576_1_07-7_20220525_Hu_nucseq_Graz_7_EMB_GEM&quot;,
+         &quot;o294781_05-5_20220912_Hu_nucseq_Graz_14_EMB_GEM&quot;,
+         &quot;o294781_09-9_20220912_Hu_nucseq_Graz_18_EMB_GEM&quot;,
+         &quot;o28576_1_03-3_20220525_Hu_nucseq_Graz_3_EMB_GEM&quot;,
+         &quot;o28576_1_04-4_20220525_Hu_nucseq_Graz_4_EMB_GEM&quot;,
+         &quot;o28576_1_05-5_20220525_Hu_nucseq_Graz_5_EMB_GEM&quot;,
+         &quot;o28576_1_06-6_20220525_Hu_nucseq_Graz_6_EMB_GEM&quot;,
+         &quot;o294781_10-10_20220912_Hu_nucseq_Graz_19_EMB_GEM&quot;)
+
+Sarcoidosis &lt;- c(&quot;o292731_5-5_20220818_Hu_nucseq_SG_35_EMB_GEM&quot;,
+                 &quot;o294781_11-11_20220912_Hu_nucseq_Graz_20_EMB_GEM&quot;)
+
+## Subgroup MCeos, Immpath_39 (bad Quality); Immpath_47, Berlin 1041
+## Subgroup Giant cell: Immpath_29, 1537_BLn&quot;
+
+
+seuratM$pat_sub &lt;- &quot;pat_sub&quot;
+seuratM$pat_sub[which(seuratM$dataset %in% Healthy)] &lt;- &quot;Healthy&quot;
+seuratM$pat_sub[which(seuratM$dataset %in% AM)] &lt;- &quot;AM&quot;
+seuratM$pat_sub[which(seuratM$dataset %in% CMP)] &lt;- &quot;CMP&quot;
+seuratM$pat_sub[which(seuratM$dataset %in% Sarcoidosis)] &lt;- &quot;Sarcoidosis&quot;
+
+diseaseCond &lt;- c(&quot;Healthy&quot;, &quot;AM&quot;, &quot;CMP&quot;, &quot;Sarcoidosis&quot;)
+
+table(seuratM$pat_sub)</code></pre>
+<pre><code>
+         AM         CMP     Healthy     pat_sub Sarcoidosis 
+      29076       11635       39719        5018        5069 </code></pre>
+<p>`</p>
+<pre class="r"><code>##total is the sum of all counts while, detected means the number of different genes found
+
+library(ggrepel)
+library(dplyr)
+library(geomtextpath)
+
+meta.data &lt;- seuratM@meta.data
+
+# Density plot for &#39;total&#39; counts, compare means and median
+ptotalpat &lt;- ggplot(data = meta.data, aes(x = total, color = patient, fill = patient)) +
+  geom_density(alpha = 0.2) +
+  theme_classic() +
+  scale_x_log10() +
+  ylab(&quot;Density&quot;) +
+  geom_vline(xintercept = 100) +  # vertical line at intercept
+  geom_text_repel(
+    data = meta.data %&gt;% group_by(patient) %&gt;%
+      summarise(total_median = median(total)) %&gt;%
+      filter(total_median &lt; 300),  # label patients below the intercept
+    aes(x = total_median, y = 0, label = patient),  # labels on the x-axis near the intercept
+    size = 3, nudge_y = 2, segment.color = NA, hjust = &quot;right&quot;  
+  ) +
+  labs(title = &quot;Density Plot of Total Counts by Patient&quot;)
+
+# Density plot for &#39;detected&#39; counts
+pdetectedpat &lt;- ggplot(data = meta.data, aes(x = detected, color = patient, fill = patient)) +
+  geom_density(alpha = 0.2) +
+  theme_classic() +
+  scale_x_log10() +
+  ylab(&quot;Density&quot;) +
+  geom_vline(xintercept = 100) +  
+  geom_text_repel(
+    data = meta.data %&gt;% group_by(patient) %&gt;%
+      summarise(detected_median = median(detected)) %&gt;%
+      filter(detected_median &lt; 300),  
+    aes(x = detected_median, y = 0, label = patient),  
+    size = 3, nudge_y = 2,segment.color = NA, hjust = &quot;middle&quot;, color = &quot;black&quot;  
+  ) +
+  labs(title = &quot;Density Plot of Detected Counts by Patient&quot;)
+
+# Return plots as a list
+list(ptotalpat, pdetectedpat)</code></pre>
+<pre><code>[[1]]</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/Perform%20QC-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[2]]</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/Perform%20QC-2.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>### remove 8 Samples from 7 patients due to batch effects and poor quality
+## remove &quot;HH_11&quot; &lt;- c(&quot;o28576_1_09-9_20220525_Hu_nucseq_Graz_9_HH_GEM&quot;)
+## remove Immpath_AM_39 (= &quot;AM 24&quot;, &quot;347741_6-6_20240326_Hu_nucseq_Immpath_AM39_0&quot;, &quot;348751_1-6_20240326_Hu_nucseq_Immpath_AM39_0_rep&quot;)
+## remove Immpath_14 = &quot;312581_07-7_20230308_Hu_nucseq_SG38_EMB_GEM&quot; = SG38
+## remove &quot;pat_NCR29&quot;, &quot;o27533_1_11-11_20220203_Hu_nucseq_EMB30_GEM&quot;
+## remove &quot;BLn_AM1235&quot;; &quot;359861_13-5_20240730_Hu_nucseq_Ber_Pat6_EMB1235&quot;
+## remove &quot;BLn_AM1383&quot;, &quot;359861_14-6_20240730_Hu_nucseq_Ber_Pat7_EMB1383&quot;
+## remove &quot;BLn_AM694&quot;,&quot;359861_15-7_20240730_Hu_nucseq_Ber_Pat8_EMB694&quot;
+## remove Graz 10 and 11, formally labelled as HH2 and HH3, now relabbeld as HH09 and HH10 
+## (&quot;o28576_1_10-10_20220525_Hu_nucseq_Graz_10_HH_GEM&quot;), (&quot;o28576_1_11-11_20220525_Hu_nucseq_Graz_11_HH_GEM&quot;)
+
+
+seuratM_filt &lt;- subset(seuratM, dataset %in% c(&quot;o28576_1_09-9_20220525_Hu_nucseq_Graz_9_HH_GEM&quot;,
+                                          &quot;347741_6-6_20240326_Hu_nucseq_Immpath_AM39_0&quot;,
+                                          &quot;348751_1-6_20240326_Hu_nucseq_Immpath_AM39_0_rep&quot;,
+                                          &quot;312581_07-7_20230308_Hu_nucseq_SG38_EMB_GEM&quot;, 
+                                          &quot;o27533_1_11-11_20220203_Hu_nucseq_EMB30_GEM&quot;,
+                                          &quot;359861_13-5_20240730_Hu_nucseq_Ber_Pat6_EMB1235&quot;,
+                                          &quot;359861_14-6_20240730_Hu_nucseq_Ber_Pat7_EMB1383&quot;,
+                                          &quot;359861_15-7_20240730_Hu_nucseq_Ber_Pat8_EMB694&quot;,
+                                          &quot;o28576_1_10-10_20220525_Hu_nucseq_Graz_10_HH_GEM&quot;,
+                                          &quot;o28576_1_11-11_20220525_Hu_nucseq_Graz_11_HH_GEM&quot;), invert = TRUE)
+
+
+seuratM &lt;- seuratM_filt
+remove(seuratM_filt)
+table(seuratM$orig.ident)</code></pre>
+<pre><code>
+      
+74070 </code></pre>
+<pre class="r"><code>unique(seuratM$dataset)</code></pre>
+<pre><code> [1] &quot;312581_05-5_20230308_Hu_nucseq_SG36_EMB_GEM&quot;     
+ [2] &quot;312581_06-6_20230308_Hu_nucseq_SG37_EMB_GEM&quot;     
+ [3] &quot;353921_28-28_20240529_Hu_nucseq_Immpath_EMB18&quot;   
+ [4] &quot;353921_31-31_20240529_Hu_nucseq_Immpath_EMB27&quot;   
+ [5] &quot;353921_32-32_20240529_Hu_nucseq_Immpath_EMB29&quot;   
+ [6] &quot;353921_34-34_20240529_Hu_nucseq_Immpath_EMB35&quot;   
+ [7] &quot;353921_35-35_20240529_Hu_nucseq_Immpath_EMB37&quot;   
+ [8] &quot;359861_16-8_20240730_Hu_nucseq_Immpath_EMB47&quot;    
+ [9] &quot;359861_17-9_20240730_Hu_nucseq_Immpath_EMB48&quot;    
+[10] &quot;o27533_1_12-12_20220203_Hu_nucseq_EMB31_GEM&quot;     
+[11] &quot;o27936_1_7-7_20220309_Hu_nucseq_EMB32_GEM&quot;       
+[12] &quot;o28576_1_01-1_20220525_Hu_nucseq_Graz_1_EMB_GEM&quot; 
+[13] &quot;o28576_1_02-2_20220525_Hu_nucseq_Graz_2_EMB_GEM&quot; 
+[14] &quot;o292731_3-3_20220818_Hu_nucseq_SG_33_EMB_GEM&quot;    
+[15] &quot;o294781_06-6_20220912_Hu_nucseq_Graz_15_EMB_GEM&quot; 
+[16] &quot;359861_09-11_20240723_Hu_nucseq_Ber_Pat5_EM979_1&quot;
+[17] &quot;359861_10-13_20240723_Hu_nucseq_Ber_Pat5_EM979_2&quot;
+[18] &quot;359861_11-1_20240730_Hu_nucseq_Ber_Pat1_EMB1537&quot; 
+[19] &quot;359861_12-2_20240730_Hu_nucseq_Ber_Pat2_EMB1041&quot; 
+[20] &quot;353921_29-29_20240529_Hu_nucseq_Immpath_EMB24&quot;   
+[21] &quot;353921_30-30_20240529_Hu_nucseq_Immpath_EMB25&quot;   
+[22] &quot;353921_33-33_20240529_Hu_nucseq_Immpath_EMB30&quot;   
+[23] &quot;o28576_1_03-3_20220525_Hu_nucseq_Graz_3_EMB_GEM&quot; 
+[24] &quot;o28576_1_04-4_20220525_Hu_nucseq_Graz_4_EMB_GEM&quot; 
+[25] &quot;o28576_1_05-5_20220525_Hu_nucseq_Graz_5_EMB_GEM&quot; 
+[26] &quot;o28576_1_06-6_20220525_Hu_nucseq_Graz_6_EMB_GEM&quot; 
+[27] &quot;o28576_1_07-7_20220525_Hu_nucseq_Graz_7_EMB_GEM&quot; 
+[28] &quot;o28576_1_13-13_20220525_Hu_nucseq_EMB32_GEM&quot;     
+[29] &quot;o292731_4-4_20220818_Hu_nucseq_SG_34_EMB_GEM&quot;    
+[30] &quot;o294781_05-5_20220912_Hu_nucseq_Graz_14_EMB_GEM&quot; 
+[31] &quot;o294781_09-9_20220912_Hu_nucseq_Graz_18_EMB_GEM&quot; 
+[32] &quot;o294781_10-10_20220912_Hu_nucseq_Graz_19_EMB_GEM&quot;
+[33] &quot;o28576_1_08-8_20220525_Hu_nucseq_Graz_8_HH_GEM&quot;  
+[34] &quot;o28576_1_12-12_20220525_Hu_nucseq_Graz_12_HH_GEM&quot;
+[35] &quot;o292731_1-1_20220818_Hu_nucseq_Graz_9_HH_GEM&quot;    
+[36] &quot;o292731_2-2_20220818_Hu_nucseq_Graz_13_HH_GEM&quot;   
+[37] &quot;o294781_01-1_20220912_Hu_nucseq_Graz_21_HH_GEM&quot;  
+[38] &quot;o294781_02-2_20220912_Hu_nucseq_Graz_22_HH_GEM&quot;  
+[39] &quot;o294781_03-3_20220912_Hu_nucseq_Graz_23_HH_GEM&quot;  
+[40] &quot;o294781_04-4_20220912_Hu_nucseq_Graz_24_HH_GEM&quot;  
+[41] &quot;o292731_5-5_20220818_Hu_nucseq_SG_35_EMB_GEM&quot;    
+[42] &quot;o294781_11-11_20220912_Hu_nucseq_Graz_20_EMB_GEM&quot;</code></pre>
+<pre class="r"><code>table(seuratM$dataset)</code></pre>
+<pre><code>
+     312581_05-5_20230308_Hu_nucseq_SG36_EMB_GEM      312581_06-6_20230308_Hu_nucseq_SG37_EMB_GEM 
+                                            4323                                             1123 
+   353921_28-28_20240529_Hu_nucseq_Immpath_EMB18    353921_29-29_20240529_Hu_nucseq_Immpath_EMB24 
+                                             208                                              105 
+   353921_30-30_20240529_Hu_nucseq_Immpath_EMB25    353921_31-31_20240529_Hu_nucseq_Immpath_EMB27 
+                                             227                                              579 
+   353921_32-32_20240529_Hu_nucseq_Immpath_EMB29    353921_33-33_20240529_Hu_nucseq_Immpath_EMB30 
+                                             335                                              730 
+   353921_34-34_20240529_Hu_nucseq_Immpath_EMB35    353921_35-35_20240529_Hu_nucseq_Immpath_EMB37 
+                                            1217                                              604 
+359861_09-11_20240723_Hu_nucseq_Ber_Pat5_EM979_1 359861_10-13_20240723_Hu_nucseq_Ber_Pat5_EM979_2 
+                                             771                                             1476 
+ 359861_11-1_20240730_Hu_nucseq_Ber_Pat1_EMB1537  359861_12-2_20240730_Hu_nucseq_Ber_Pat2_EMB1041 
+                                             316                                              608 
+    359861_16-8_20240730_Hu_nucseq_Immpath_EMB47     359861_17-9_20240730_Hu_nucseq_Immpath_EMB48 
+                                             513                                              426 
+     o27533_1_12-12_20220203_Hu_nucseq_EMB31_GEM        o27936_1_7-7_20220309_Hu_nucseq_EMB32_GEM 
+                                             236                                             1192 
+ o28576_1_01-1_20220525_Hu_nucseq_Graz_1_EMB_GEM  o28576_1_02-2_20220525_Hu_nucseq_Graz_2_EMB_GEM 
+                                            2740                                             1684 
+ o28576_1_03-3_20220525_Hu_nucseq_Graz_3_EMB_GEM  o28576_1_04-4_20220525_Hu_nucseq_Graz_4_EMB_GEM 
+                                            2396                                              545 
+ o28576_1_05-5_20220525_Hu_nucseq_Graz_5_EMB_GEM  o28576_1_06-6_20220525_Hu_nucseq_Graz_6_EMB_GEM 
+                                             781                                              491 
+ o28576_1_07-7_20220525_Hu_nucseq_Graz_7_EMB_GEM   o28576_1_08-8_20220525_Hu_nucseq_Graz_8_HH_GEM 
+                                             653                                             3921 
+o28576_1_12-12_20220525_Hu_nucseq_Graz_12_HH_GEM      o28576_1_13-13_20220525_Hu_nucseq_EMB32_GEM 
+                                            3818                                             1428 
+    o292731_1-1_20220818_Hu_nucseq_Graz_9_HH_GEM    o292731_2-2_20220818_Hu_nucseq_Graz_13_HH_GEM 
+                                            4908                                             9882 
+    o292731_3-3_20220818_Hu_nucseq_SG_33_EMB_GEM     o292731_4-4_20220818_Hu_nucseq_SG_34_EMB_GEM 
+                                            6286                                              620 
+    o292731_5-5_20220818_Hu_nucseq_SG_35_EMB_GEM   o294781_01-1_20220912_Hu_nucseq_Graz_21_HH_GEM 
+                                            2363                                             1442 
+  o294781_02-2_20220912_Hu_nucseq_Graz_22_HH_GEM   o294781_03-3_20220912_Hu_nucseq_Graz_23_HH_GEM 
+                                            1998                                              841 
+  o294781_04-4_20220912_Hu_nucseq_Graz_24_HH_GEM  o294781_05-5_20220912_Hu_nucseq_Graz_14_EMB_GEM 
+                                            1480                                             1268 
+ o294781_06-6_20220912_Hu_nucseq_Graz_15_EMB_GEM  o294781_09-9_20220912_Hu_nucseq_Graz_18_EMB_GEM 
+                                            4439                                             2280 
+o294781_10-10_20220912_Hu_nucseq_Graz_19_EMB_GEM o294781_11-11_20220912_Hu_nucseq_Graz_20_EMB_GEM 
+                                             111                                             2706 </code></pre>
+<pre class="r"><code>table(seuratM$orig.ident)</code></pre>
+<pre><code>
+      
+74070 </code></pre>
+<pre class="r"><code>## new total cell count = 74070</code></pre>
+<pre class="r"><code>cell_count &lt;- data.frame(table(seuratM$pat_sub))
+colnames(cell_count) &lt;- c(&quot;Condition&quot;, &quot;Freq&quot;)
+hsize &lt;- 1.5
+
+ggplot(cell_count, aes(x = hsize, y = Freq, fill = Condition)) +
+  #scale_fill_manual(values = colpat2) +
+  geom_col(color = &quot;white&quot;) +
+  coord_polar(theta = &quot;y&quot;) +
+  xlim(c(0.2, hsize + 0.5)) +
+  theme_void() +
+  ggtitle(&quot;cell number&quot;) +
+  theme(plot.title = element_text(hjust = 0.5, size = 15)) +
+  geom_text(aes(label = Freq), position = position_stack(vjust = 0.5))</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-4-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># AM 29076, CMP 11635, Healthy 28290, Sarcoidosis 5069 </code></pre>
+<pre class="r"><code>cell_count &lt;- data.frame(table(seuratM$patient))
+colnames(cell_count) &lt;- c(&quot;Patient&quot;, &quot;Freq&quot;)
+hsize &lt;- 1.5
+
+ggplot(cell_count, aes(x = hsize, y = Freq, fill = Patient)) +
+  #scale_fill_manual(values = colpat2) +
+  geom_col(color = &quot;white&quot;) +
+  coord_polar(theta = &quot;y&quot;) +
+  xlim(c(0.2, hsize + 0.5)) +
+  theme_void() +
+  ggtitle(&quot;cell number&quot;) +
+  theme(plot.title = element_text(hjust = 0.5, size = 15)) +
+  geom_text(aes(label = Freq), position = position_stack(vjust = 0.5), size = 3, angle = 30)</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-5-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>table(seuratM$patient)</code></pre>
+<pre><code>
+         AM 01          AM 02          AM 03          AM 04          AM 05          AM 06 
+          6286           4323           1123            208            579            335 
+         AM 07          AM 08          AM 09          AM 10          AM 11          AM 12 
+          1217            604            513            426            236           1192 
+         AM 13          AM 14          AM 15          AM 16          AM 17          AM 18 
+          2740           1684           4439           2247            316            608 
+        CMP 01         CMP 02         CMP 03         CMP 04         CMP 05         CMP 06 
+           105            227            730           1428            620            653 
+        CMP 07         CMP 08         CMP 09         CMP 10         CMP 11         CMP 12 
+          1268           2280           2396            545            781            491 
+        CMP 13     Healthy 01     Healthy 02     Healthy 03     Healthy 04     Healthy 05 
+           111           3921           3818           4908           9882           1442 
+    Healthy 06     Healthy 07     Healthy 08 Sarcoidosis 01 Sarcoidosis 02 
+          1998            841           1480           2363           2706 </code></pre>
+<pre class="r"><code>#Healthy 01     Healthy 02     Healthy 03     Healthy 04     Healthy 05     Healthy 06     Healthy 07     Healthy 08 
+#         3921           3818           4908           9882           1442           1998            841           1480 
+
+#       AM 01          AM 02          AM 03          AM 04          AM 05          AM 06          AM 07          AM 08 
+#          6286           4323           1123            208            579            335           1217            604 
+
+#       AM 09          AM 10          AM 11          AM 12          AM 13          AM 14          AM 15          AM 16 
+#          513            426            236           1192           2740           1684           4439           2247 
+
+#         AM 17          AM 18         CMP 01         CMP 02         CMP 03         CMP 04         CMP 05         CMP 06 
+#           316            608            105            227            730           1428            620            653 
+#        CMP 07         CMP 08         CMP 09         CMP 10         CMP 11         CMP 12         CMP 13          
+#          1268           2280           2396            545            781            491            111          
+
+# Sarcoidosis 01 (N = 2363),Sarcoidosis 02 (N = 2706) </code></pre>
+<pre class="r"><code>## QC after samples were removed; total is the sum of all counts while, detected means the number of different genes found
+
+meta.data &lt;- seuratM@meta.data
+
+# Density plot for &#39;total&#39; counts, compare means and median
+ptotalpat &lt;- ggplot(data = meta.data, aes(x = total, color = patient, fill = patient)) +
+  geom_density(alpha = 0.2) +
+  theme_classic() +
+  scale_x_log10() +
+  ylab(&quot;Density&quot;) +
+  geom_vline(xintercept = 100) +  # (+ vertical line intercept)
+  geom_text_repel(
+    data = meta.data %&gt;% group_by(patient) %&gt;%
+      summarise(total_median = median(total)) %&gt;%
+      filter(total_median &lt; 300),  
+    aes(x = total_median, y = 0, label = patient),  
+    size = 3, nudge_y = 2, segment.color = NA, hjust = &quot;right&quot;   
+  ) +
+  labs(title = &quot;Density Plot of Total Counts by Patient&quot;)
+
+# Density plot for &#39;detected&#39; counts
+pdetectedpat &lt;- ggplot(data = meta.data, aes(x = detected, color = patient, fill = patient)) +
+  geom_density(alpha = 0.2) +
+  theme_classic() +
+  scale_x_log10() +
+  ylab(&quot;Density&quot;) +
+  geom_vline(xintercept = 100) +  
+  geom_text_repel(
+    data = meta.data %&gt;% group_by(patient) %&gt;%
+      summarise(detected_median = median(detected)) %&gt;%
+      filter(detected_median &lt; 300), 
+    aes(x = detected_median, y = 0, label = patient),  
+    size = 3, nudge_y = 2,segment.color = NA, hjust = &quot;middle&quot;, color = &quot;black&quot;  
+  ) +
+  labs(title = &quot;Density Plot of Detected Counts by Patient&quot;)
+
+# Return the plots as a list
+list(ptotalpat, pdetectedpat)</code></pre>
+<pre><code>[[1]]</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-6-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre><code>
+[[2]]</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-6-2.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>## Allocate to sex
+
+# in brackets insufficient quality, therefore not included
+# female: AM01, AM04, AM06, AM07, AM09, AM10, AM14, AM16, AM18 (AM19, AM22, AM24)
+# female: CMP02, CMP04, CMP13 
+# male: AM02, AM03, AM05, AM08, AM11, AM12, AM13, AM15, AM17, (AM20, AM21, AM23)
+# male CMP: CMP01, CMP03, CMP05,CMP06,CMP07,CMP08,CMP09,CMP10, CMP11, CMP12, Sarcoidosis 01, Sarcoidosis 02 
+
+female &lt;- c(&quot;o292731_3-3_20220818_Hu_nucseq_SG_33_EMB_GEM&quot;, #AM
+            &quot;353921_28-28_20240529_Hu_nucseq_Immpath_EMB18&quot;,
+            &quot;353921_32-32_20240529_Hu_nucseq_Immpath_EMB29&quot;,
+            &quot;353921_34-34_20240529_Hu_nucseq_Immpath_EMB35&quot;,
+            &quot;359861_16-8_20240730_Hu_nucseq_Immpath_EMB47&quot;,
+            &quot;359861_17-9_20240730_Hu_nucseq_Immpath_EMB48&quot;,
+            &quot;o28576_1_02-2_20220525_Hu_nucseq_Graz_2_EMB_GEM&quot;,
+            &quot;359861_09-11_20240723_Hu_nucseq_Ber_Pat5_EM979_1&quot;,&quot;359861_10-13_20240723_Hu_nucseq_Ber_Pat5_EM979_2&quot;,
+            &quot;359861_12-2_20240730_Hu_nucseq_Ber_Pat2_EMB1041&quot;, 
+            &quot;353921_30-30_20240529_Hu_nucseq_Immpath_EMB25&quot;, #CMP
+            &quot;o28576_1_13-13_20220525_Hu_nucseq_EMB32_GEM&quot;,
+            &quot;o294781_10-10_20220912_Hu_nucseq_Graz_19_EMB_GEM&quot;)
+
+male &lt;- c(&quot;312581_05-5_20230308_Hu_nucseq_SG36_EMB_GEM&quot;, #AM
+          &quot;312581_06-6_20230308_Hu_nucseq_SG37_EMB_GEM&quot;,
+          &quot;353921_31-31_20240529_Hu_nucseq_Immpath_EMB27&quot;,
+          &quot;353921_35-35_20240529_Hu_nucseq_Immpath_EMB37&quot;,
+          &quot;o27533_1_12-12_20220203_Hu_nucseq_EMB31_GEM&quot;,
+          &quot;o27936_1_7-7_20220309_Hu_nucseq_EMB32_GEM&quot;,
+          &quot;o28576_1_01-1_20220525_Hu_nucseq_Graz_1_EMB_GEM&quot;,
+          &quot;o294781_06-6_20220912_Hu_nucseq_Graz_15_EMB_GEM&quot;,
+          &quot;359861_11-1_20240730_Hu_nucseq_Ber_Pat1_EMB1537&quot;,
+          &quot;353921_29-29_20240529_Hu_nucseq_Immpath_EMB24&quot;, #CMP
+          &quot;353921_33-33_20240529_Hu_nucseq_Immpath_EMB30&quot;,
+          &quot;o292731_4-4_20220818_Hu_nucseq_SG_34_EMB_GEM&quot;,
+          &quot;o28576_1_07-7_20220525_Hu_nucseq_Graz_7_EMB_GEM&quot;,
+          &quot;o294781_05-5_20220912_Hu_nucseq_Graz_14_EMB_GEM&quot;,
+          &quot;o294781_09-9_20220912_Hu_nucseq_Graz_18_EMB_GEM&quot;,
+          &quot;o28576_1_03-3_20220525_Hu_nucseq_Graz_3_EMB_GEM&quot;,
+          &quot;o28576_1_04-4_20220525_Hu_nucseq_Graz_4_EMB_GEM&quot;,
+          &quot;o28576_1_05-5_20220525_Hu_nucseq_Graz_5_EMB_GEM&quot;,
+         &quot;o28576_1_06-6_20220525_Hu_nucseq_Graz_6_EMB_GEM&quot;,
+         &quot;o292731_5-5_20220818_Hu_nucseq_SG_35_EMB_GEM&quot;, # Sarcoidosis
+         &quot;o294781_11-11_20220912_Hu_nucseq_Graz_20_EMB_GEM&quot;)
+
+# All Healthies unknown sex
+unknown &lt;- c(&quot;o28576_1_08-8_20220525_Hu_nucseq_Graz_8_HH_GEM&quot;, 
+             &quot;o28576_1_12-12_20220525_Hu_nucseq_Graz_12_HH_GEM&quot;,
+             &quot;o292731_1-1_20220818_Hu_nucseq_Graz_9_HH_GEM&quot;,
+             &quot;o292731_2-2_20220818_Hu_nucseq_Graz_13_HH_GEM&quot;,
+             &quot;o294781_01-1_20220912_Hu_nucseq_Graz_21_HH_GEM&quot;,
+             &quot;o294781_02-2_20220912_Hu_nucseq_Graz_22_HH_GEM&quot;,
+             &quot;o294781_03-3_20220912_Hu_nucseq_Graz_23_HH_GEM&quot;,
+             &quot;o294781_04-4_20220912_Hu_nucseq_Graz_24_HH_GEM&quot;)
+
+seuratM$sex &lt;- &quot;sex&quot;
+seuratM$sex[which(seuratM$dataset %in% female)] &lt;- &quot;female&quot;
+seuratM$sex[which(seuratM$dataset %in% male)] &lt;- &quot;male&quot;
+seuratM$sex[which(seuratM$dataset %in% unknown)] &lt;- &quot;unknown&quot;</code></pre>
+<pre class="r"><code># Allocate Ventricle
+RV &lt;- c(&quot;o292731_3-3_20220818_Hu_nucseq_SG_33_EMB_GEM&quot;, 
+        &quot;353921_28-28_20240529_Hu_nucseq_Immpath_EMB18&quot;,
+        &quot;353921_32-32_20240529_Hu_nucseq_Immpath_EMB29&quot;,
+        &quot;353921_34-34_20240529_Hu_nucseq_Immpath_EMB35&quot;,
+        &quot;359861_16-8_20240730_Hu_nucseq_Immpath_EMB47&quot;,
+        &quot;359861_17-9_20240730_Hu_nucseq_Immpath_EMB48&quot;,
+        &quot;o28576_1_02-2_20220525_Hu_nucseq_Graz_2_EMB_GEM&quot;,
+        &quot;353921_30-30_20240529_Hu_nucseq_Immpath_EMB25&quot;, 
+        &quot;o28576_1_13-13_20220525_Hu_nucseq_EMB32_GEM&quot;,
+        &quot;o294781_10-10_20220912_Hu_nucseq_Graz_19_EMB_GEM&quot;,
+        &quot;312581_05-5_20230308_Hu_nucseq_SG36_EMB_GEM&quot;,
+        &quot;312581_06-6_20230308_Hu_nucseq_SG37_EMB_GEM&quot;,
+        &quot;353921_31-31_20240529_Hu_nucseq_Immpath_EMB27&quot;,
+        &quot;353921_35-35_20240529_Hu_nucseq_Immpath_EMB37&quot;,
+        &quot;o27533_1_12-12_20220203_Hu_nucseq_EMB31_GEM&quot;,
+        &quot;o27936_1_7-7_20220309_Hu_nucseq_EMB32_GEM&quot;,
+        &quot;o28576_1_01-1_20220525_Hu_nucseq_Graz_1_EMB_GEM&quot;,
+        &quot;359861_11-1_20240730_Hu_nucseq_Ber_Pat1_EMB1537&quot;,
+        &quot;353921_29-29_20240529_Hu_nucseq_Immpath_EMB24&quot;, 
+        &quot;353921_33-33_20240529_Hu_nucseq_Immpath_EMB30&quot;,
+        &quot;o292731_4-4_20220818_Hu_nucseq_SG_34_EMB_GEM&quot;,
+        &quot;o28576_1_07-7_20220525_Hu_nucseq_Graz_7_EMB_GEM&quot;,
+        &quot;o294781_05-5_20220912_Hu_nucseq_Graz_14_EMB_GEM&quot;, 
+        &quot;o294781_09-9_20220912_Hu_nucseq_Graz_18_EMB_GEM&quot;,
+        &quot;o28576_1_03-3_20220525_Hu_nucseq_Graz_3_EMB_GEM&quot;,
+        &quot;o28576_1_04-4_20220525_Hu_nucseq_Graz_4_EMB_GEM&quot;,
+        &quot;o28576_1_05-5_20220525_Hu_nucseq_Graz_5_EMB_GEM&quot;,
+        &quot;o292731_5-5_20220818_Hu_nucseq_SG_35_EMB_GEM&quot;,
+        &quot;o28576_1_08-8_20220525_Hu_nucseq_Graz_8_HH_GEM&quot;, 
+        &quot;o28576_1_12-12_20220525_Hu_nucseq_Graz_12_HH_GEM&quot;,
+        &quot;o292731_1-1_20220818_Hu_nucseq_Graz_9_HH_GEM&quot;,
+        &quot;o292731_2-2_20220818_Hu_nucseq_Graz_13_HH_GEM&quot;,
+        &quot;o294781_01-1_20220912_Hu_nucseq_Graz_21_HH_GEM&quot;,
+        &quot;o294781_02-2_20220912_Hu_nucseq_Graz_22_HH_GEM&quot;,
+        &quot;o294781_03-3_20220912_Hu_nucseq_Graz_23_HH_GEM&quot;,
+        &quot;o294781_04-4_20220912_Hu_nucseq_Graz_24_HH_GEM&quot;)
+  
+LV &lt;- c(&quot;359861_09-11_20240723_Hu_nucseq_Ber_Pat5_EM979_1&quot;, &quot;359861_10-13_20240723_Hu_nucseq_Ber_Pat5_EM979_2&quot;,
+      &quot;359861_12-2_20240730_Hu_nucseq_Ber_Pat2_EMB1041&quot;,
+      &quot;359861_11-1_20240730_Hu_nucseq_Ber_Pat1_EMB1537&quot;,
+      &quot;o28576_1_06-6_20220525_Hu_nucseq_Graz_6_EMB_GEM&quot;,
+      &quot;o294781_06-6_20220912_Hu_nucseq_Graz_15_EMB_GEM&quot;,
+      &quot;o294781_11-11_20220912_Hu_nucseq_Graz_20_EMB_GEM&quot;)
+
+
+seuratM$ventricle &lt;- &quot;ventricle&quot;
+seuratM$ventricle[which(seuratM$dataset %in% RV)] &lt;- &quot;RV&quot;
+seuratM$ventricle[which(seuratM$dataset %in% LV)] &lt;- &quot;LV&quot;
+table(seuratM$ventricle)</code></pre>
+<pre><code>
+   LV    RV 
+10807 63263 </code></pre>
+<pre class="r"><code>#Run seurat
+seuratM &lt;- NormalizeData (object = seuratM)
+seuratM &lt;- FindVariableFeatures(object = seuratM)
+seuratM &lt;- ScaleData(object = seuratM, verbose = TRUE)
+seuratM &lt;- RunPCA(object=seuratM, npcs = 30, verbose = FALSE)
+seuratM &lt;- RunTSNE(object=seuratM, reduction=&quot;pca&quot;, dims = 1:20)
+seuratM &lt;- RunUMAP(object=seuratM, reduction=&quot;pca&quot;, dims = 1:20)
+seuratM &lt;- FindNeighbors(object = seuratM, reduction = &quot;pca&quot;, dims= 1:20)
+
+ElbowPlot (seuratM)</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-7-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># ranks principle components (PC) based on the percentage of variance explained by each one. In this example the elbow is around 15. This suggests that # the majority of true signal is captured in the first 15 PCA
+
+res &lt;- c(0.25, 0.6, 0.8, 0.4)
+for (i in 1:length(res)) {
+  seuratM &lt;- FindClusters(object = seuratM, resolution = res[i], random.seed = 1234)
+}</code></pre>
+<pre><code>Modularity Optimizer version 1.3.0 by Ludo Waltman and Nees Jan van Eck
+
+Number of nodes: 74070
+Number of edges: 2416639
+
+Running Louvain algorithm...
+Maximum modularity in 10 random starts: 0.9603
+Number of communities: 15
+Elapsed time: 17 seconds
+Modularity Optimizer version 1.3.0 by Ludo Waltman and Nees Jan van Eck
+
+Number of nodes: 74070
+Number of edges: 2416639
+
+Running Louvain algorithm...
+Maximum modularity in 10 random starts: 0.9246
+Number of communities: 24
+Elapsed time: 18 seconds
+Modularity Optimizer version 1.3.0 by Ludo Waltman and Nees Jan van Eck
+
+Number of nodes: 74070
+Number of edges: 2416639
+
+Running Louvain algorithm...
+Maximum modularity in 10 random starts: 0.9101
+Number of communities: 26
+Elapsed time: 15 seconds
+Modularity Optimizer version 1.3.0 by Ludo Waltman and Nees Jan van Eck
+
+Number of nodes: 74070
+Number of edges: 2416639
+
+Running Louvain algorithm...
+Maximum modularity in 10 random starts: 0.9428
+Number of communities: 20
+Elapsed time: 16 seconds</code></pre>
+<pre class="r"><code>### save seurat object
+#saveRDS(seuratM, file=&quot;/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/data/01 Merged Seurat files/Myocarditis_allfiltered_19.09.24.rds&quot;)
+
+Idents(seuratM) &lt;- seuratM$RNA_snn_res.0.25
+DimPlot(seuratM, reduction = &quot;umap&quot;, pt.size = 0.1, label = TRUE)</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-7-2.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>DimPlot(seuratM, reduction = &quot;pca&quot;, pt.size = 0.1, label = TRUE)</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-7-3.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>DimPlot(seuratM, reduction = &quot;tsne&quot;, pt.size = 0.1, label = TRUE)</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-7-4.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>seuratM[[&quot;percent.mt&quot;]] &lt;- PercentageFeatureSet(seuratM, pattern = &quot;^MT-&quot;)
+VlnPlot(seuratM, features = c(&quot;nFeature_RNA&quot;, &quot;nCount_RNA&quot;, &quot;percent.mt&quot;))</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-7-5.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>res &lt;- c(0.25, 0.6, 0.8, 0.4)
+for (i in 1:length(res)) {
+  seuratM &lt;- FindClusters(object = seuratM, resolution = res[i], random.seed = 1234)
+}</code></pre>
+<pre><code>Modularity Optimizer version 1.3.0 by Ludo Waltman and Nees Jan van Eck
+
+Number of nodes: 74070
+Number of edges: 2416639
+
+Running Louvain algorithm...
+Maximum modularity in 10 random starts: 0.9603
+Number of communities: 15
+Elapsed time: 17 seconds
+Modularity Optimizer version 1.3.0 by Ludo Waltman and Nees Jan van Eck
+
+Number of nodes: 74070
+Number of edges: 2416639
+
+Running Louvain algorithm...
+Maximum modularity in 10 random starts: 0.9246
+Number of communities: 24
+Elapsed time: 18 seconds
+Modularity Optimizer version 1.3.0 by Ludo Waltman and Nees Jan van Eck
+
+Number of nodes: 74070
+Number of edges: 2416639
+
+Running Louvain algorithm...
+Maximum modularity in 10 random starts: 0.9101
+Number of communities: 26
+Elapsed time: 15 seconds
+Modularity Optimizer version 1.3.0 by Ludo Waltman and Nees Jan van Eck
+
+Number of nodes: 74070
+Number of edges: 2416639
+
+Running Louvain algorithm...
+Maximum modularity in 10 random starts: 0.9428
+Number of communities: 20
+Elapsed time: 16 seconds</code></pre>
+<pre class="r"><code>##
+
+#saveRDS(seuratM, file=&quot;/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/data/01 Merged Seurat files/Myocarditis_allfiltered_19.09.24.rds&quot;)</code></pre>
+<pre class="r"><code>Idents(seuratM) &lt;- seuratM$pat_sub
+order1 &lt;- c(&quot;Healthy&quot;,&quot;AM&quot;,&quot;CMP&quot;,&quot;Sarcoidosis&quot;)
+seuratM$pat_sub &lt;- factor (seuratM$pat_sub, levels = c(&quot;Healthy&quot;, &quot;AM&quot;, &quot;CMP&quot;, &quot;Sarcoidosis&quot;))
+DimPlot(seuratM, reduction = &quot;umap&quot;, pt.size = 0.1, group.by = &quot;pat_sub&quot;)</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-8-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># Order of patient levels numerically
+seuratM$patient &lt;- factor(seuratM$patient, levels = c(&quot;Healthy 01&quot;, &quot;Healthy 02&quot;, &quot;Healthy 03&quot;, &quot;Healthy 04&quot;, &quot;Healthy 05&quot;, &quot;Healthy 06&quot;, &quot;Healthy 07&quot;, &quot;Healthy 08&quot;, &quot;AM 01&quot;, &quot;AM 02&quot;, &quot;AM 03&quot;, &quot;AM 04&quot;, &quot;AM 05&quot;, &quot;AM 06&quot;, &quot;AM 07&quot;, &quot;AM 08&quot;, &quot;AM 09&quot;, &quot;AM 10&quot;, &quot;AM 11&quot;, &quot;AM 12&quot;, &quot;AM 13&quot;, &quot;AM 14&quot;, &quot;AM 15&quot;, &quot;AM 16&quot;, &quot;AM 17&quot;, &quot;AM 18&quot;, &quot;CMP 01&quot;, &quot;CMP 02&quot;, &quot;CMP 03&quot;, &quot;CMP 04&quot;, &quot;CMP 05&quot;, &quot;CMP 06&quot;, &quot;CMP 07&quot;, &quot;CMP 08&quot;, &quot;CMP 09&quot;, &quot;CMP 10&quot;, &quot;CMP 11&quot;, &quot;CMP 12&quot;, &quot;CMP 13&quot;, &quot;Sarcoidosis 01&quot;,&quot;Sarcoidosis 02&quot;))
+
+Idents(seuratM) &lt;- seuratM$patient
+DimPlot(seuratM, reduction = &quot;umap&quot;, pt.size = 0.1, raster = FALSE)</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-8-2.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>###combined slots, plot umap for each condition
+seuratM$patient_pat_sub &lt;- paste0(seuratM$patient, &#39;_&#39;, seuratM$pat_sub)
+table(seuratM$patient_pat_sub)</code></pre>
+<pre><code>
+                  AM 01_AM                   AM 02_AM                   AM 03_AM 
+                      6286                       4323                       1123 
+                  AM 04_AM                   AM 05_AM                   AM 06_AM 
+                       208                        579                        335 
+                  AM 07_AM                   AM 08_AM                   AM 09_AM 
+                      1217                        604                        513 
+                  AM 10_AM                   AM 11_AM                   AM 12_AM 
+                       426                        236                       1192 
+                  AM 13_AM                   AM 14_AM                   AM 15_AM 
+                      2740                       1684                       4439 
+                  AM 16_AM                   AM 17_AM                   AM 18_AM 
+                      2247                        316                        608 
+                CMP 01_CMP                 CMP 02_CMP                 CMP 03_CMP 
+                       105                        227                        730 
+                CMP 04_CMP                 CMP 05_CMP                 CMP 06_CMP 
+                      1428                        620                        653 
+                CMP 07_CMP                 CMP 08_CMP                 CMP 09_CMP 
+                      1268                       2280                       2396 
+                CMP 10_CMP                 CMP 11_CMP                 CMP 12_CMP 
+                       545                        781                        491 
+                CMP 13_CMP         Healthy 01_Healthy         Healthy 02_Healthy 
+                       111                       3921                       3818 
+        Healthy 03_Healthy         Healthy 04_Healthy         Healthy 05_Healthy 
+                      4908                       9882                       1442 
+        Healthy 06_Healthy         Healthy 07_Healthy         Healthy 08_Healthy 
+                      1998                        841                       1480 
+Sarcoidosis 01_Sarcoidosis Sarcoidosis 02_Sarcoidosis 
+                      2363                       2706 </code></pre>
+<pre class="r"><code>colpat_sub&lt;- c(&quot;#dfc27d&quot;,&quot;#BE3144&quot;,&quot;#355C7D&quot;, &quot;#779d8d&quot;)
+names(colpat_sub) &lt;- c(&quot;Healthy&quot;, &quot;AM&quot;, &quot;CMP&quot;, &quot;Sarcoidosis&quot;)
+
+Idents(seuratM) &lt;- seuratM$pat_sub
+DimPlot(seuratM, reduction = &quot;umap&quot;, pt.size = 0.1, cols = colpat_sub, order = order1, raster=FALSE)</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-9-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>seuratHealthy &lt;- subset(seuratM, pat_sub == &quot;Healthy&quot;)
+DimPlot(seuratHealthy, reduction = &quot;umap&quot;, pt.size = 0.1, cols = colpat_sub, raster=FALSE)</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-9-2.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>seuratAM &lt;- subset(seuratM, pat_sub == &quot;AM&quot;)
+DimPlot(seuratAM, reduction = &quot;umap&quot;, pt.size = 0.1, cols = colpat_sub, raster= FALSE)</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-9-3.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>seuratCMP &lt;- subset(seuratM, pat_sub == &quot;CMP&quot;)
+DimPlot(seuratCMP, reduction = &quot;umap&quot;, pt.size = 0.1, cols = colpat_sub, raster =FALSE)</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-9-4.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>seuratSarcoidosis &lt;- subset(seuratM, pat_sub == &quot;Sarcoidosis&quot;)
+DimPlot(seuratSarcoidosis, reduction = &quot;umap&quot;, pt.size = 0.1, cols = colpat_sub, raster = FALSE)</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-9-5.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>Idents(seuratM) &lt;- seuratM$RNA_snn_res.0.25
+DimPlot(seuratM, reduction = &quot;umap&quot;, pt.size = 0.1, label = TRUE)</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-10-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># Examine PCA results and find the top marker genes
+print(seuratM[[&quot;umap&quot;]], dims = 1:20, nfeatures = 10)
+
+##cluster marker
+markers &lt;- FindAllMarkers(seuratM, only.pos=T) %&gt;% 
+  dplyr::filter(p_val_adj &lt; 0.01)
+
+# View the top markers per cluster
+#head(markers)
+
+#save table
+#write.table(markers,file= &quot;/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/docs/Markers_all_filtered_25_09_24&quot;, sep=&quot;\t&quot;,quote=F,row.names=F,col.names=T)</code></pre>
+<pre class="r"><code>## Find marker genes for each cluster
+
+get_full_gene_name &lt;- function(gene, obj){
+  return(grep(gene,rownames(obj), value =TRUE))
+}
+get_full_gene_name(&quot;CD3E&quot;,seuratM) </code></pre>
+<pre><code>[1] &quot;ENSG00000198851.CD3E&quot;</code></pre>
+<pre class="r"><code># Visualize the expression of specific marker genes on UMAP
+FeaturePlot(seuratM, features = &quot;ENSG00000164692.COL1A2&quot;, pt.size = 1, cols = c(&quot;lightgrey&quot;, &quot;#BE3144&quot;)) # Fibroblast</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-11-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>FeaturePlot(seuratM, features = &quot;ENSG00000142173.COL6A2&quot;, pt.size = 1, cols = c(&quot;lightgrey&quot;, &quot;#BE3144&quot;)) # Fibroblast</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-11-2.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>FeaturePlot(seuratM, features = &quot;ENSG00000113721.PDGFRB&quot;, pt.size = 1, cols = c(&quot;lightgrey&quot;, &quot;#BE3144&quot;)) # Fibroblast</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-11-3.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>FeaturePlot(seuratM, features = &quot;ENSG00000135424.ITGA7&quot;, pt.size = 1, cols = c(&quot;lightgrey&quot;, &quot;#BE3144&quot;)) # </code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-11-4.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>FeaturePlot(seuratM, features = &quot;ENSG00000143248.RGS5&quot;, pt.size = 1, cols = c(&quot;lightgrey&quot;, &quot;#BE3144&quot;)) # Perivasc Fibroblast</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-11-5.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>FeaturePlot(seuratM, features = &quot;ENSG00000110799.VWF&quot;, pt.size = 1, cols = c(&quot;lightgrey&quot;, &quot;#BE3144&quot;)) # ECs</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-11-6.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>FeaturePlot(seuratM, features = &quot;ENSG00000179776.CDH5&quot;, pt.size = 1, cols = c(&quot;lightgrey&quot;, &quot;#BE3144&quot;))</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-11-7.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>FeaturePlot(seuratM, features = &quot;ENSG00000174059.CD34&quot;, pt.size = 1, cols = c(&quot;lightgrey&quot;, &quot;#BE3144&quot;)) # endothelial cells</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-11-8.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>FeaturePlot(seuratM, features = &quot;ENSG00000118194.TNNT2&quot;, pt.size = 1, cols = c(&quot;lightgrey&quot;, &quot;#BE3144&quot;)) # cardiomyocyte</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-11-9.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>FeaturePlot(seuratM, features = get_full_gene_name(&quot;MYH6&quot;,seuratM) , pt.size = 1, cols = c(&quot;lightgrey&quot;, &quot;#BE3144&quot;))#CM</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-11-10.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>FeaturePlot(seuratM, features = &quot;ENSG00000078814.MYH7B&quot;, pt.size = 1, cols = c(&quot;lightgrey&quot;, &quot;#BE3144&quot;)) # cardiomyocyte</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-11-11.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>FeaturePlot(seuratM, features = &quot;ENSG00000163110.PDLIM5&quot;, pt.size = 1, cols = c(&quot;lightgrey&quot;, &quot;#BE3144&quot;))</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-11-12.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>FeaturePlot(seuratM, features = &quot;ENSG00000177575.CD163&quot;, pt.size = 1, cols = c(&quot;lightgrey&quot;, &quot;#BE3144&quot;))</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-11-13.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>FeaturePlot(seuratM, features = &quot;ENSG00000182578.CSF1R&quot;, pt.size = 1, cols = c(&quot;lightgrey&quot;, &quot;#BE3144&quot;))</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-11-14.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>FeaturePlot(seuratM, features = get_full_gene_name(&quot;LYVE1&quot;,seuratM) , pt.size = 1, cols = c(&quot;lightgrey&quot;, &quot;#BE3144&quot;))# </code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-11-15.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>FeaturePlot(seuratM, features = &quot;ENSG00000081237.PTPRC&quot;, pt.size = 1, cols = c(&quot;lightgrey&quot;, &quot;#BE3144&quot;))</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-11-16.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>FeaturePlot(seuratM, features = &quot;ENSG00000168685.IL7R&quot;, pt.size = 1, cols = c(&quot;lightgrey&quot;, &quot;#BE3144&quot;))</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-11-17.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>FeaturePlot(seuratM, features = get_full_gene_name(&quot;CD3E&quot;,seuratM) , pt.size = 1, cols = c(&quot;lightgrey&quot;, &quot;#BE3144&quot;))</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-11-18.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>FeaturePlot(seuratM, features = get_full_gene_name(&quot;CD3D&quot;,seuratM) , pt.size = 1, cols = c(&quot;lightgrey&quot;, &quot;#BE3144&quot;))</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-11-19.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>FeaturePlot(seuratM, features = get_full_gene_name(&quot;CD3G&quot;,seuratM) , pt.size = 1, cols = c(&quot;lightgrey&quot;, &quot;#BE3144&quot;))</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-11-20.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>FeaturePlot(seuratM, features = get_full_gene_name(&quot;CD79B&quot;,seuratM) , pt.size = 1, cols = c(&quot;lightgrey&quot;, &quot;#BE3144&quot;))</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-11-21.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>FeaturePlot(seuratM, features = get_full_gene_name(&quot;JCHAIN&quot;,seuratM) , pt.size = 1, cols = c(&quot;lightgrey&quot;, &quot;#BE3144&quot;))</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-11-22.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>FeaturePlot(seuratM, features = get_full_gene_name(&quot;S100A9&quot;,seuratM) , pt.size = 1, cols = c(&quot;lightgrey&quot;, &quot;#BE3144&quot;)) #neutrophil</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-11-23.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>FeaturePlot(seuratM, features = get_full_gene_name(&quot;HLA-DMB&quot;,seuratM) , pt.size = 1, cols = c(&quot;lightgrey&quot;, &quot;#BE3144&quot;)) #MHC expressing macrophages</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-11-24.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>FeaturePlot(seuratM, features = get_full_gene_name(&quot;ACACB&quot;,seuratM) , pt.size = 1, cols = c(&quot;lightgrey&quot;, &quot;#BE3144&quot;))#adipocytes</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-11-25.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>FeaturePlot(seuratM, features = get_full_gene_name(&quot;PLIN1&quot;,seuratM) , pt.size = 1, cols = c(&quot;lightgrey&quot;, &quot;#BE3144&quot;))#adipocytes</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-11-26.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>FeaturePlot(seuratM, features = get_full_gene_name(&quot;GPAM&quot;,seuratM) , pt.size = 1, cols = c(&quot;lightgrey&quot;, &quot;#BE3144&quot;))#adipocytes</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-11-27.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>FeaturePlot(seuratM, features = get_full_gene_name(&quot;ITGA7&quot;,seuratM) , pt.size = 1, cols = c(&quot;lightgrey&quot;, &quot;#BE3144&quot;))</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-11-28.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>FeaturePlot(seuratM, features = get_full_gene_name(&quot;ITGA1&quot;,seuratM) , pt.size = 1, cols = c(&quot;lightgrey&quot;, &quot;#BE3144&quot;))</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-11-29.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>FeaturePlot(seuratM, features = &quot;ENSG00000185811.IKZF1&quot;, pt.size = 1, cols = c(&quot;lightgrey&quot;, &quot;#BE3144&quot;))</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-11-30.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>FeaturePlot(seuratM, features = &quot;ENSG00000139187.KLRG1&quot;, pt.size = 1, cols = c(&quot;lightgrey&quot;, &quot;#BE3144&quot;))</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-11-31.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>FeaturePlot(seuratM, features = &quot;ENSG00000110324.IL10RA&quot;, pt.size = 1, cols = c(&quot;lightgrey&quot;, &quot;#BE3144&quot;))</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-11-32.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>FeaturePlot(seuratM, features = &quot;ENSG00000011465.DCN&quot;, pt.size = 1, cols = c(&quot;lightgrey&quot;, &quot;#BE3144&quot;))</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-11-33.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>FeaturePlot(seuratM, features = &quot;ENSG00000175084.DES&quot;, pt.size = 1, cols = c(&quot;lightgrey&quot;, &quot;#BE3144&quot;))</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-11-34.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>FeaturePlot(seuratM, features = &quot;ENSG00000133110.POSTN&quot;, pt.size = 1, cols = c(&quot;lightgrey&quot;, &quot;#BE3144&quot;))</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-11-35.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>FeaturePlot(seuratM, features = &quot;ENSG00000261371.PECAM1&quot;, pt.size = 1, cols = c(&quot;lightgrey&quot;, &quot;#BE3144&quot;))</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-11-36.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>FeaturePlot(seuratM, features = get_full_gene_name(&quot;ITGA10&quot;,seuratM) , pt.size = 1, cols = c(&quot;lightgrey&quot;, &quot;#BE3144&quot;))# BEC</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-11-37.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>FeaturePlot(seuratM, features = get_full_gene_name(&quot;CDH11&quot;,seuratM) , pt.size = 1, cols = c(&quot;lightgrey&quot;, &quot;#BE3144&quot;))# BEC</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-11-38.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>FeaturePlot(seuratM, features = &quot;ENSG00000133392.MYH11&quot;, pt.size = 1, cols = c(&quot;lightgrey&quot;, &quot;#BE3144&quot;))</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-11-39.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>FeaturePlot(seuratM, features = &quot;ENSG00000107796.ACTA2&quot;, pt.size = 1, cols = c(&quot;lightgrey&quot;, &quot;#BE3144&quot;))</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-11-40.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>FeaturePlot(seuratM, features = get_full_gene_name(&quot;EGFL7&quot;,seuratM) , pt.size = 1, cols = c(&quot;lightgrey&quot;, &quot;#BE3144&quot;))# EC BEC und LEC</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-11-41.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>FeaturePlot(seuratM, features = get_full_gene_name(&quot;CDH11&quot;,seuratM) , pt.size = 1, cols = c(&quot;lightgrey&quot;, &quot;#BE3144&quot;))#endothelial cells</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-11-42.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>FeaturePlot(seuratM, features = get_full_gene_name(&quot;CCL21&quot;,seuratM) , pt.size = 1, cols = c(&quot;lightgrey&quot;, &quot;#BE3144&quot;))# </code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-11-43.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>FeaturePlot(seuratM, features = get_full_gene_name(&quot;PROX1&quot;,seuratM) , pt.size = 1, cols = c(&quot;lightgrey&quot;, &quot;#BE3144&quot;))# </code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-11-44.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>FeaturePlot(seuratM, features = get_full_gene_name(&quot;FLT4&quot;,seuratM) , pt.size = 1, cols = c(&quot;lightgrey&quot;, &quot;#BE3144&quot;))# LEC</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-11-45.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>FeaturePlot(seuratM, features = get_full_gene_name(&quot;LYVE1&quot;,seuratM) , pt.size = 1, cols = c(&quot;lightgrey&quot;, &quot;#BE3144&quot;))# </code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-11-46.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># Feature Plot(seuratM, features = get_full_gene_name(&quot;LY6C&quot;, seuratM) , pt.size = 1, cols = c(&quot;lightgrey&quot;, &quot;#BE3144&quot;))#
+
+FeaturePlot(seuratM, features = &quot;ENSG00000149591.TAGLN&quot;, pt.size = 1, cols = c(&quot;lightgrey&quot;, &quot;#BE3144&quot;))</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-11-47.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>FeaturePlot(seuratM, features = &quot;ENSG00000138755.CXCL9&quot;, pt.size = 1, cols = c(&quot;lightgrey&quot;, &quot;#BE3144&quot;))</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-11-48.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>FeaturePlot(seuratM, features = &quot;ENSG00000169245.CXCL10&quot;, pt.size = 1, cols = c(&quot;lightgrey&quot;, &quot;#BE3144&quot;))</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-11-49.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>FeaturePlot(seuratM, features = &quot;ENSG00000137573.SULF1&quot;, pt.size = 1, cols = c(&quot;lightgrey&quot;, &quot;#BE3144&quot;))</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-11-50.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>FeaturePlot(seuratM, features = &quot;ENSG00000125378.BMP4&quot;, pt.size = 1, cols = c(&quot;lightgrey&quot;, &quot;#BE3144&quot;))</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-11-51.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>FeaturePlot(seuratM, features = get_full_gene_name(&quot;GREM1&quot;,seuratM) , pt.size = 1, cols = c(&quot;lightgrey&quot;, &quot;#BE3144&quot;))#</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-11-52.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>FeaturePlot(seuratM, features = get_full_gene_name(&quot;GREM2&quot;,seuratM) , pt.size = 1, cols = c(&quot;lightgrey&quot;, &quot;#BE3144&quot;))</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-11-53.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>FeaturePlot(seuratM, features = &quot;ENSG00000211592.IGKC&quot;, pt.size = 1, cols = c(&quot;lightgrey&quot;, &quot;#BE3144&quot;))</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-11-54.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>FeaturePlot(seuratM, features = &quot;ENSG00000078098.FAP&quot;, pt.size = 1, cols = c(&quot;lightgrey&quot;, &quot;#BE3144&quot;))</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-11-55.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>FeaturePlot(seuratM, features = &quot;ENSG00000179915.NRXN1&quot;, pt.size = 1, cols = c(&quot;lightgrey&quot;, &quot;#BE3144&quot;)) # neuron</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-11-56.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>FeaturePlot(seuratM, features = &quot;ENSG00000198910.L1CAM&quot;, pt.size = 1, cols = c(&quot;lightgrey&quot;, &quot;#BE3144&quot;))</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-11-57.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>FeaturePlot(seuratM, features = get_full_gene_name(&quot;CD79A&quot;,seuratM) , pt.size = 1, cols = c(&quot;lightgrey&quot;, &quot;#BE3144&quot;))# B cells</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-11-58.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>FeaturePlot(seuratM, features = get_full_gene_name(&quot;IGHM&quot;,seuratM) , pt.size = 1, cols = c(&quot;lightgrey&quot;, &quot;#BE3144&quot;))# B cells</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-11-59.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>FeaturePlot(seuratM, features = get_full_gene_name(&quot;CD20&quot;,seuratM) , pt.size = 1, cols = c(&quot;lightgrey&quot;, &quot;#BE3144&quot;))# B cells</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-11-60.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>FeaturePlot(seuratM, features = get_full_gene_name(&quot;MS4A1&quot;,seuratM) , pt.size = 1, cols = c(&quot;lightgrey&quot;, &quot;#BE3144&quot;))# B cells MS4A1 (CD20)</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-11-61.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>FeaturePlot(seuratM, features = get_full_gene_name(&quot;IGHM&quot;,seuratM) , pt.size = 1, cols = c(&quot;lightgrey&quot;, &quot;#BE3144&quot;))# B cells</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-11-62.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>FeaturePlot(seuratM, features = get_full_gene_name(&quot;BLNK&quot;,seuratM) , pt.size = 1, cols = c(&quot;lightgrey&quot;, &quot;#BE3144&quot;))# B cells</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-11-63.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>FeaturePlot(seuratM, features = get_full_gene_name(&quot;IGHM&quot;,seuratM) , pt.size = 1, cols = c(&quot;lightgrey&quot;, &quot;#BE3144&quot;))# B cells</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-11-64.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>FeaturePlot(seuratM, features = get_full_gene_name(&quot;PRDM1&quot;,seuratM) , pt.size = 1, cols = c(&quot;lightgrey&quot;, &quot;#BE3144&quot;))# Plasma cells PRDM1 (Blimp-1)</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-11-65.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>FeaturePlot(seuratM, features = get_full_gene_name(&quot;IRF4&quot;,seuratM) , pt.size = 1, cols = c(&quot;lightgrey&quot;, &quot;#BE3144&quot;))#  </code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-11-66.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># Label clusters
+
+seuratM$clusterName &lt;- &quot;clusterName&quot;
+Idents(seuratM) &lt;- seuratM$clusterName
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% &quot;0&quot; )] &lt;- &quot;Fb1&quot;
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% &quot;1&quot; )] &lt;- &quot;BEC1&quot;
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% &quot;2&quot; )] &lt;- &quot;PeriFb1&quot;
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% &quot;3&quot; )] &lt;- &quot;Cardiomyocyte&quot;
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% &quot;4&quot; )] &lt;- &quot;MCP1&quot;
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% &quot;5&quot; )] &lt;- &quot;TC&quot;
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% &quot;6&quot; )] &lt;- &quot;MCP2&quot;
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% &quot;7&quot; )] &lt;- &quot;BEC2&quot;
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% &quot;8&quot; )] &lt;- &quot;VSMC&quot;
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% &quot;9&quot; )] &lt;- &quot;NC&quot;
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% &quot;10&quot; )] &lt;- &quot;INT1&quot;
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% &quot;11&quot; )] &lt;- &quot;Fb2&quot;
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% &quot;12&quot; )] &lt;- &quot;Fb3&quot;
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% &quot;13&quot; )] &lt;- &quot;PeriFb2&quot;
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% &quot;14&quot; )] &lt;- &quot;AdipoC&quot;
+
+
+colclusterName &lt;- c(&quot;#D53E4F&quot;, &quot;#f4a582&quot;, &quot;#FEE08B&quot;,&quot;#feb24c&quot;,&quot;#67001f&quot;, &quot;#01665e&quot;,&quot;#66C2A5&quot;,&quot;#c7eae5&quot;,&quot;#BEAED4&quot;, &quot;#355C7D&quot;,&quot;#3288BD&quot;,&quot;#8c510a&quot; ,&quot;#fde0dd&quot;,&quot;#B45B5C&quot;,&quot;#dd1c77&quot;)
+
+                    
+names(colclusterName) &lt;- c(&quot;Cardiomyocyte&quot;,&quot;Fb1&quot;,&quot;Fb2&quot;,&quot;Fb3&quot;, &quot;INT1&quot;, &quot;PeriFb1&quot;, &quot;PeriFb2&quot;, &quot;VSMC&quot;,&quot;NC&quot;, &quot;BEC1&quot;,&quot;BEC2&quot;, &quot;AdipoC&quot;, &quot;MCP1&quot;,&quot;MCP2&quot;,&quot;TC&quot;)
+
+colpat_sub&lt;- c(&quot;#dfc27d&quot;,&quot;#BE3144&quot;,&quot;#355C7D&quot;, &quot;#779d8d&quot;)
+
+seuratM$clusterName &lt;- factor(seuratM$clusterName, levels=c(&quot;Cardiomyocyte&quot;, &quot;Fb1&quot;, &quot;Fb2&quot;, &quot;Fb3&quot;, &quot;INT1&quot;,&quot;PeriFb1&quot;, &quot;PeriFb2&quot;, &quot;VSMC&quot;, &quot;NC&quot;, &quot;BEC1&quot;, &quot;BEC2&quot;, &quot;AdipoC&quot;, &quot;MCP1&quot;, &quot;MCP2&quot;, &quot;TC&quot;))
+
+
+Idents(seuratM) &lt;- seuratM$clusterName
+DimPlot(seuratM, reduction = &quot;umap&quot;, pt.size = 0.1, label = TRUE, cols = colclusterName)</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-12-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># Table clusters for each condition
+table(seuratM$clusterName, seuratM$pat_sub)</code></pre>
+<pre><code>               
+                Healthy   AM  CMP Sarcoidosis
+  Cardiomyocyte    4098 2613 1160         351
+  Fb1              6658 6268 3379        1394
+  Fb2                52  614   16          12
+  Fb3               154  145   54          27
+  INT1              376  305  135          66
+  PeriFb1          6233 3842 1988         691
+  PeriFb2             8  235    0           6
+  VSMC              715  812  489         140
+  NC                388  311  158          48
+  BEC1             5506 3994 2532        1607
+  BEC2              715  846  598         206
+  AdipoC             13   13   65           0
+  MCP1             2996 1478  705         296
+  MCP2               56 3568   51          48
+  TC                322 4032  305         177</code></pre>
+<pre class="r"><code># Table cluster for each patient
+table(seuratM$patient)</code></pre>
+<pre><code>
+    Healthy 01     Healthy 02     Healthy 03     Healthy 04     Healthy 05     Healthy 06 
+          3921           3818           4908           9882           1442           1998 
+    Healthy 07     Healthy 08          AM 01          AM 02          AM 03          AM 04 
+           841           1480           6286           4323           1123            208 
+         AM 05          AM 06          AM 07          AM 08          AM 09          AM 10 
+           579            335           1217            604            513            426 
+         AM 11          AM 12          AM 13          AM 14          AM 15          AM 16 
+           236           1192           2740           1684           4439           2247 
+         AM 17          AM 18         CMP 01         CMP 02         CMP 03         CMP 04 
+           316            608            105            227            730           1428 
+        CMP 05         CMP 06         CMP 07         CMP 08         CMP 09         CMP 10 
+           620            653           1268           2280           2396            545 
+        CMP 11         CMP 12         CMP 13 Sarcoidosis 01 Sarcoidosis 02 
+           781            491            111           2363           2706 </code></pre>
+<pre class="r"><code>table(seuratM$patient,seuratM$clusterName)</code></pre>
+<pre><code>                
+                 Cardiomyocyte  Fb1  Fb2  Fb3 INT1 PeriFb1 PeriFb2 VSMC   NC BEC1 BEC2 AdipoC MCP1
+  Healthy 01               714 1135    3   15   31     581       0  153   64  752   28      4  362
+  Healthy 02               115 1111    0   17   75    1000       1   71   22 1130   18      0  216
+  Healthy 03               656 1496   40   14   16     815       2   94   33  594  433      5  647
+  Healthy 04              2224 2191    3   91  210    1466       2  239  207 2039  212      3  910
+  Healthy 05                58   93    0    4   12     766       0   37   15  249    0      0  185
+  Healthy 06               159  308    1    6   14     680       2   44   30  264    1      0  444
+  Healthy 07                54   65    0    3    6     321       1   17    7  207   13      0  131
+  Healthy 08               118  259    5    4   12     604       0   60   10  271   10      1  101
+  AM 01                    206   91  303    0    0       7     106   20   20  168   35      6   17
+  AM 02                    801 1484   15   31   70     645       1  222   35  726   74      3  131
+  AM 03                    109  397    0    4    2     158       1   32    4  156  148      0   91
+  AM 04                     76   30    1    2    5      25       0    3    1   42    2      0   14
+  AM 05                     64  155    0    7   10     158       0    3    4   92   11      0   58
+  AM 06                     62   72    0    2    5      12       0    8    6   51   63      1   30
+  AM 07                    233  488   28    3    4     182       0   19   12   37  132      1   66
+  AM 08                     84  196    0   17   21     120       0   17   12   58   11      0   51
+  AM 09                    192  132    0    4    3      51       0    4    8   38   10      0   58
+  AM 10                     62  183    1    5    5      48       0    1    4   65   18      1   29
+  AM 11                     47   41    0    1    0      36       0   20    0   48   29      0   14
+  AM 12                    178  350    2    1    5     187       0   40   22  204   51      0  122
+  AM 13                    208  758    3   19   21     489       1  197   59  315  146      0  294
+  AM 14                    109  641    0   18   33     259       0   44   30  318  110      1   82
+  AM 15                    116 1062   29   28  111    1356       0  141   80 1034    2      0  313
+  AM 16                     26   20  228    0    1       4     124   12    7  374    1      0    2
+  AM 17                     10   57    2    1    3      22       0   14    4   55    3      0   58
+  AM 18                     30  111    2    2    6      83       2   15    3  213    0      0   48
+  CMP 01                     9   40    0    0    0       6       0    2    1   11   15      0   14
+  CMP 02                    18   95    0    8    4      30       0    2    4   28   16      0   17
+  CMP 03                   107  266    0   12   16      77       0   16   10   74    7      3   99
+  CMP 04                    40  309    1    7   25     247       0   62   28  547   33      5   65
+  CMP 05                   179  112    3    3    4     129       0   11    5   86   13      0   49
+  CMP 06                    88  236    0    0    4      64       0   59    0  123    4     54   15
+  CMP 07                    50  314    1    2   11     363       0   76   10  314    3      0   86
+  CMP 08                   332  613    0    3   19     386       0  128   28  482  166      0   86
+  CMP 09                   240  824    7   17   35     425       0   57   35  391  208      3  118
+  CMP 10                    45  140    2    1    3      64       0   20    7  120   62      0   48
+  CMP 11                    39  260    2    1   10     116       0   37   27  214   27      0   31
+  CMP 12                    12  153    0    0    4      53       0   15    2  115   41      0   62
+  CMP 13                     1   17    0    0    0      28       0    4    1   27    3      0   15
+  Sarcoidosis 01           305  758   10   24   40     328       5   33   28  539   30      0  172
+  Sarcoidosis 02            46  636    2    3   26     363       1  107   20 1068  176      0  124
+                
+                 MCP2   TC
+  Healthy 01        6   73
+  Healthy 02        8   34
+  Healthy 03       21   42
+  Healthy 04        7   78
+  Healthy 05        1   22
+  Healthy 06        6   39
+  Healthy 07        1   15
+  Healthy 08        6   19
+  AM 01          2483 2824
+  AM 02            14   71
+  AM 03             2   19
+  AM 04             4    3
+  AM 05             7   10
+  AM 06             1   22
+  AM 07             7    5
+  AM 08             2   15
+  AM 09             0   13
+  AM 10             0    4
+  AM 11             0    0
+  AM 12             7   23
+  AM 13            18  212
+  AM 14             4   35
+  AM 15            23  144
+  AM 16           982  466
+  AM 17             5   82
+  AM 18             9   84
+  CMP 01            0    7
+  CMP 02            1    4
+  CMP 03           16   27
+  CMP 04            3   56
+  CMP 05            2   24
+  CMP 06            1    5
+  CMP 07            6   32
+  CMP 08            8   29
+  CMP 09            3   33
+  CMP 10            7   26
+  CMP 11            0   17
+  CMP 12            2   32
+  CMP 13            2   13
+  Sarcoidosis 01   35   56
+  Sarcoidosis 02   13  121</code></pre>
+<pre class="r"><code>#Plot cell count per cluster
+cell_count_cluster &lt;- data.frame(table(seuratM$RNA_snn_res.0.25))
+colnames(cell_count_cluster) &lt;- c(&quot;clusterName&quot;, &quot;Freq&quot;)
+hsize &lt;- 1.5
+
+ggplot(cell_count_cluster, aes(x = clusterName, y = Freq, fill = clusterName)) +
+  geom_col(color = &quot;white&quot;) +  # Use geom_col for a bar plot
+  theme_classic() +  
+  ggtitle(&quot;Cell Number by Cluster&quot;) +
+  theme(plot.title = element_text(hjust = 0.5, size = 15)) +
+  geom_text(aes(label = Freq), vjust = -0.3, size = 3) +  # labels above bars
+  xlab(&quot;Cluster Names&quot;) +  
+  ylab(&quot;Frequency (Cell Count)&quot;)  </code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-14-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># Plot cell count per condition
+
+
+#Plot cell count per clusterName
+cell_count_cluster &lt;- data.frame(table(seuratM$clusterName))
+colnames(cell_count_cluster) &lt;- c(&quot;clusterName&quot;, &quot;Freq&quot;)
+hsize &lt;- 1.5
+
+ggplot(cell_count_cluster, aes(x = clusterName, y = Freq, fill = clusterName)) +
+  geom_col(color = &quot;white&quot;) +  # Use geom_col for a bar plot
+  theme_classic() +  
+  ggtitle(&quot;Cell Number by Cluster&quot;) +
+  theme(plot.title = element_text(hjust = 0.5, size = 15)) +
+  geom_text(aes(label = Freq), vjust = -0.3, size = 3) +  # labels above bars
+  xlab(&quot;Cluster Names&quot;) +  
+  ylab(&quot;Frequency (Cell Count)&quot;)  </code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-14-2.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># Plot cell count per condition</code></pre>
+<pre class="r"><code>## marker genes by clusterName
+Idents(seuratM) &lt;- seuratM$clusterName
+markerGenes &lt;- FindAllMarkers(seuratM, only.pos=T) %&gt;% 
+  dplyr::filter(p_val_adj &lt; 0.01)
+
+#head(markerGenes)</code></pre>
+<pre class="r"><code>## Create Dotplot with marker genes
+
+genes &lt;- data.frame(gene=rownames(seuratM)) %&gt;% 
+  mutate(geneID=gsub(&quot;^.*\\.&quot;, &quot;&quot;, gene))
+
+
+genes &lt;- data.frame(gene=rownames(seuratM)) %&gt;% 
+  mutate(geneID=gsub(&quot;^.*\\.&quot;, &quot;&quot;, gene))
+
+# Selected genes for DotPlot
+selGenes &lt;- data.frame(geneID=rev(c(&quot;TTN&quot;, &quot;MYBPC3&quot;, &quot;RYR2&quot;, &quot;NEBL&quot;, &quot;CMYA5&quot;, &quot;COL6A3&quot;, &quot;DCN&quot;, &quot;BMP&quot;,  &quot;FBN1&quot;, &quot;C7&quot;, &quot;PDGFRA&quot;, &quot;CDH19&quot;, &quot;PDGFRB&quot;,&quot;ITGA7&quot;,&quot;RGS5&quot;, &quot;NOTCH3&quot;, &quot;MYH11&quot;, &quot;ACTA2&quot;,&quot;PECAM1&quot;, &quot;VWF&quot;, &quot;SMOC1&quot;, &quot;EGFL7&quot;, &quot;POSTN&quot;, &quot;ITGA10&quot;, &quot;CDH11&quot;,&quot;CCL21&quot;, &quot;PROX1&quot;, &quot;FLT4&quot;, &quot;NRXN1&quot;, &quot;ANK3&quot;, &quot;PTPRZ1&quot;, &quot;ACACB&quot;, &quot;PLIN1&quot;, &quot;GPAM&quot;, &quot;CD163&quot;, &quot;LYVE1&quot;, &quot;HLA-DMB&quot;, &quot;MRC1&quot;, &quot;SIGLEC1&quot;, &quot;STAB1&quot;, &quot;CSF1R&quot;, &quot;MERTK&quot;, &quot;IL7R&quot;, &quot;PTPRC&quot;, &quot;CD2&quot;, &quot;CD3E&quot;, &quot;CD3D&quot;, &quot;CD79B&quot;,&quot;JCHAIN&quot;, &quot;KLRG1&quot;, &quot;SIGL&quot;, &quot;SEPTIN3&quot;,&quot;IGHM&quot;))) %&gt;% left_join(., genes, by=&quot;geneID&quot;) %&gt;% filter(gene != &quot;ENSG00000232995.RGS5&quot;) 
+
+DotPlot(seuratM, features = selGenes$gene, group.by= &quot;clusterName&quot;) + RotatedAxis() + scale_color_viridis(option=&quot;T&quot;) + coord_flip()</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-15-1.png" width="1152" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># Violin Plot BMP4 per condition
+
+VlnPlot(seuratM, features = &quot;ENSG00000125378.BMP4&quot;, pt.size = 0.01, group.by =&quot;pat_sub&quot;) +
+  scale_fill_manual(values = c(&quot;#dfc27d&quot;,&quot;#BE3144&quot;,&quot;#355C7D&quot;, &quot;#779d8d&quot;))</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-16-1.png" width="1440" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># Violin Plot BMP4 per patient
+
+VlnPlot(seuratM, features = &quot;ENSG00000125378.BMP4&quot;, pt.size = 0.01, group.by =&quot;patient&quot;)</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-17-1.png" width="1440" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>selGenes_BMP4 &lt;- data.frame(geneID=rev(c(&quot;BMP4&quot;, &quot;GREM1&quot;, &quot;GREM2&quot;))) %&gt;% left_join(., genes, by=&quot;geneID&quot;) %&gt;% filter(gene != &quot;ENSG00000232995.RGS5&quot;) 
+
+DotPlot(seuratM, features = selGenes_BMP4, group.by= &quot;clusterName&quot;) + RotatedAxis() + scale_color_viridis(option=&quot;F&quot;) + coord_flip()</code></pre>
+<p><img src="figure/Myocarditis_snRNAseq_QC_merging_V3.Rmd/unnamed-chunk-18-1.png" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>#saveRDS(seuratM, file=&quot;/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/data/01 Merged Seurat files/Myocarditis_HH2_HH3_removed_V2_26.09.2024.rds&quot;)</code></pre>
+<pre class="r"><code>date()</code></pre>
+<pre><code>[1] &quot;Wed Nov 13 23:46:02 2024&quot;</code></pre>
+<pre class="r"><code>sessionInfo()</code></pre>
+<pre><code>R version 4.4.1 (2024-06-14)
+Platform: aarch64-apple-darwin20
+Running under: macOS Sonoma 14.3
+
+Matrix products: default
+BLAS:   /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/lib/libRblas.0.dylib 
+LAPACK: /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/lib/libRlapack.dylib;  LAPACK version 3.12.0
+
+locale:
+[1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+
+time zone: Europe/Zurich
+tzcode source: internal
+
+attached base packages:
+[1] grid      stats4    stats     graphics  grDevices utils     datasets  methods   base     
+
+other attached packages:
+ [1] geomtextpath_0.1.4          ggrepel_0.9.6               NCmisc_1.2.0               
+ [4] VennDiagram_1.7.3           futile.logger_1.4.3         ggupset_0.4.0              
+ [7] gridExtra_2.3               DOSE_3.30.5                 enrichplot_1.24.4          
+[10] msigdbr_7.5.1               org.Hs.eg.db_3.19.1         AnnotationDbi_1.66.0       
+[13] clusterProfiler_4.12.6      multtest_2.60.0             metap_1.11                 
+[16] scater_1.32.1               scuttle_1.14.0              destiny_3.18.0             
+[19] circlize_0.4.16             muscat_1.18.0               viridis_0.6.5              
+[22] viridisLite_0.4.2           lubridate_1.9.3             forcats_1.0.0              
+[25] stringr_1.5.1               purrr_1.0.2                 readr_2.1.5                
+[28] tidyr_1.3.1                 tibble_3.2.1                tidyverse_2.0.0            
+[31] dplyr_1.1.4                 SingleCellExperiment_1.26.0 SummarizedExperiment_1.34.0
+[34] Biobase_2.64.0              GenomicRanges_1.56.1        GenomeInfoDb_1.40.1        
+[37] IRanges_2.38.1              S4Vectors_0.42.1            BiocGenerics_0.50.0        
+[40] MatrixGenerics_1.16.0       matrixStats_1.4.1           pheatmap_1.0.12            
+[43] ggpubr_0.6.0                ggplot2_3.5.1               Seurat_5.1.0               
+[46] SeuratObject_5.0.2          sp_2.1-4                    runSeurat3_0.1.0           
+[49] ExploreSCdataSeurat3_0.1.0 
+
+loaded via a namespace (and not attached):
+  [1] igraph_2.0.3              ica_1.0-3                 plotly_4.10.4            
+  [4] Formula_1.2-5             zlibbioc_1.50.0           tidyselect_1.2.1         
+  [7] bit_4.5.0                 doParallel_1.0.17         clue_0.3-65              
+ [10] lattice_0.22-6            rjson_0.2.23              blob_1.2.4               
+ [13] S4Arrays_1.4.1            pbkrtest_0.5.3            parallel_4.4.1           
+ [16] png_0.1-8                 plotrix_3.8-4             cli_3.6.3                
+ [19] ggplotify_0.1.2           goftest_1.2-3             VIM_6.2.2                
+ [22] variancePartition_1.34.0  textshaping_0.4.0         BiocNeighbors_1.22.0     
+ [25] shadowtext_0.1.4          uwot_0.2.2                curl_5.2.3               
+ [28] tidytree_0.4.6            mime_0.12                 evaluate_1.0.1           
+ [31] leiden_0.4.3.1            ComplexHeatmap_2.20.0     stringi_1.8.4            
+ [34] backports_1.5.0           lmerTest_3.1-3            qqconf_1.3.2             
+ [37] httpuv_1.6.15             magrittr_2.0.3            rappdirs_0.3.3           
+ [40] splines_4.4.1             ggraph_2.2.1              sctransform_0.4.1        
+ [43] ggbeeswarm_0.7.2          DBI_1.2.3                 jquerylib_0.1.4          
+ [46] smoother_1.3              withr_3.0.1               git2r_0.33.0             
+ [49] corpcor_1.6.10            systemfonts_1.1.0         reformulas_0.3.0         
+ [52] class_7.3-22              rprojroot_2.0.4           lmtest_0.9-40            
+ [55] tidygraph_1.3.1           formatR_1.14              colourpicker_1.3.0       
+ [58] htmlwidgets_1.6.4         fs_1.6.4                  labeling_0.4.3           
+ [61] fANCOVA_0.6-1             SparseArray_1.4.8         DESeq2_1.44.0            
+ [64] ranger_0.16.0             DEoptimR_1.1-3            reticulate_1.39.0        
+ [67] hexbin_1.28.4             zoo_1.8-12                XVector_0.44.0           
+ [70] knitr_1.48                ggplot.multistats_1.0.1   UCSC.utils_1.0.0         
+ [73] RhpcBLASctl_0.23-42       timechange_0.3.0          foreach_1.5.2            
+ [76] fansi_1.0.6               patchwork_1.3.0           caTools_1.18.3           
+ [79] ggtree_3.12.0             data.table_1.16.0         R.oo_1.26.0              
+ [82] RSpectra_0.16-2           irlba_2.3.5.1             ggrastr_1.0.2            
+ [85] gridGraphics_0.5-1        fastDummies_1.7.4         lazyeval_0.2.2           
+ [88] yaml_2.3.10               survival_3.7-0            scattermore_1.2          
+ [91] crayon_1.5.3              RcppAnnoy_0.0.22          RColorBrewer_1.1-3       
+ [94] progressr_0.14.0          tweenr_2.0.3              later_1.3.2              
+ [97] ggridges_0.5.6            codetools_0.2-20          GlobalOptions_0.1.2      
+[100] aod_1.3.3                 KEGGREST_1.44.1           Rtsne_0.17               
+[103] shape_1.4.6.1             limma_3.60.6              pkgconfig_2.0.3          
+[106] TMB_1.9.15                spatstat.univar_3.0-1     mathjaxr_1.6-0           
+[109] EnvStats_3.0.0            aplot_0.2.3               scatterplot3d_0.3-44     
+[112] ape_5.8                   spatstat.sparse_3.1-0     xtable_1.8-4             
+[115] car_3.1-3                 highr_0.11                plyr_1.8.9               
+[118] httr_1.4.7                rbibutils_2.3             tools_4.4.1              
+[121] globals_0.16.3            beeswarm_0.4.0            broom_1.0.7              
+[124] nlme_3.1-166              lambda.r_1.2.4            lme4_1.1-35.5            
+[127] digest_0.6.37             numDeriv_2016.8-1.1       Matrix_1.7-0             
+[130] farver_2.1.2              tzdb_0.4.0                remaCor_0.0.18           
+[133] reshape2_1.4.4            yulab.utils_0.1.7         glue_1.8.0               
+[136] cachem_1.1.0              polyclip_1.10-7           generics_0.1.3           
+[139] Biostrings_2.72.1         mvtnorm_1.3-1             presto_1.0.0             
+[142] parallelly_1.38.0         mnormt_2.1.1              statmod_1.5.0            
+[145] RcppHNSW_0.6.0            ScaledMatrix_1.12.0       carData_3.0-5            
+[148] minqa_1.2.8               pbapply_1.7-2             httr2_1.0.5              
+[151] spam_2.11-0               gson_0.1.0                utf8_1.2.4               
+[154] graphlayouts_1.2.0        gtools_3.9.5              ggsignif_0.6.4           
+[157] RcppEigen_0.3.4.0.2       shiny_1.9.1               GenomeInfoDbData_1.2.12  
+[160] glmmTMB_1.1.10            R.utils_2.12.3            memoise_2.0.1            
+[163] rmarkdown_2.28            scales_1.3.0              R.methodsS3_1.8.2        
+[166] future_1.34.0             RANN_2.6.2                Cairo_1.6-2              
+[169] spatstat.data_3.1-2       rstudioapi_0.16.0         cluster_2.1.6            
+[172] mutoss_0.1-13             spatstat.utils_3.1-0      hms_1.1.3                
+[175] fitdistrplus_1.2-1        munsell_0.5.1             cowplot_1.1.3            
+[178] colorspace_2.1-1          rlang_1.1.4               DelayedMatrixStats_1.26.0
+[181] sparseMatrixStats_1.16.0  xts_0.14.0                dotCall64_1.2            
+[184] shinydashboard_0.7.2      ggforce_0.4.2             laeken_0.5.3             
+[187] mgcv_1.9-1                xfun_0.48                 e1071_1.7-16             
+[190] TH.data_1.1-2             iterators_1.0.14          abind_1.4-8              
+[193] GOSemSim_2.30.2           treeio_1.28.0             futile.options_1.0.1     
+[196] bitops_1.0-9              Rdpack_2.6.1              promises_1.3.0           
+[199] scatterpie_0.2.4          RSQLite_2.3.7             qvalue_2.36.0            
+[202] sandwich_3.1-1            fgsea_1.30.0              DelayedArray_0.30.1      
+[205] proxy_0.4-27              GO.db_3.19.1              compiler_4.4.1           
+[208] prettyunits_1.2.0         boot_1.3-31               beachmat_2.20.0          
+[211] listenv_0.9.1             Rcpp_1.0.13               edgeR_4.2.1              
+[214] workflowr_1.7.1           BiocSingular_1.20.0       tensor_1.5               
+[217] MASS_7.3-61               progress_1.2.3            BiocParallel_1.38.0      
+[220] babelgene_22.9            spatstat.random_3.3-2     R6_2.5.1                 
+[223] fastmap_1.2.0             multcomp_1.4-26           fastmatch_1.1-4          
+[226] rstatix_0.7.2             vipor_0.4.7               TTR_0.24.4               
+[229] ROCR_1.0-11               TFisher_0.2.0             rsvd_1.0.5               
+[232] vcd_1.4-13                nnet_7.3-19               gtable_0.3.5             
+[235] KernSmooth_2.23-24        miniUI_0.1.1.1            deldir_2.0-4             
+[238] htmltools_0.5.8.1         ggthemes_5.1.0            bit64_4.5.2              
+[241] spatstat.explore_3.3-2    lifecycle_1.0.4           blme_1.0-6               
+[244] nloptr_2.1.1              sass_0.4.9                vctrs_0.6.5              
+[247] robustbase_0.99-4-1       spatstat.geom_3.3-3       sn_2.1.1                 
+[250] ggfun_0.1.6               future.apply_1.11.2       bslib_0.8.0              
+[253] pillar_1.9.0              gplots_3.2.0              pcaMethods_1.96.0        
+[256] locfit_1.5-9.10           jsonlite_1.8.9            GetoptLong_1.0.5         </code></pre>
+<br>
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-sessioninfo" data-toggle="collapse" data-target="#workflowr-sessioninfo" style="display: block;">
+<span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
+Session information
+</button>
+</p>
+<div id="workflowr-sessioninfo" class="collapse">
+<pre class="r"><code>sessionInfo()</code></pre>
+<pre><code>R version 4.4.1 (2024-06-14)
+Platform: aarch64-apple-darwin20
+Running under: macOS Sonoma 14.3
+
+Matrix products: default
+BLAS:   /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/lib/libRblas.0.dylib 
+LAPACK: /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/lib/libRlapack.dylib;  LAPACK version 3.12.0
+
+locale:
+[1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+
+time zone: Europe/Zurich
+tzcode source: internal
+
+attached base packages:
+[1] grid      stats4    stats     graphics  grDevices utils     datasets  methods   base     
+
+other attached packages:
+ [1] geomtextpath_0.1.4          ggrepel_0.9.6               NCmisc_1.2.0               
+ [4] VennDiagram_1.7.3           futile.logger_1.4.3         ggupset_0.4.0              
+ [7] gridExtra_2.3               DOSE_3.30.5                 enrichplot_1.24.4          
+[10] msigdbr_7.5.1               org.Hs.eg.db_3.19.1         AnnotationDbi_1.66.0       
+[13] clusterProfiler_4.12.6      multtest_2.60.0             metap_1.11                 
+[16] scater_1.32.1               scuttle_1.14.0              destiny_3.18.0             
+[19] circlize_0.4.16             muscat_1.18.0               viridis_0.6.5              
+[22] viridisLite_0.4.2           lubridate_1.9.3             forcats_1.0.0              
+[25] stringr_1.5.1               purrr_1.0.2                 readr_2.1.5                
+[28] tidyr_1.3.1                 tibble_3.2.1                tidyverse_2.0.0            
+[31] dplyr_1.1.4                 SingleCellExperiment_1.26.0 SummarizedExperiment_1.34.0
+[34] Biobase_2.64.0              GenomicRanges_1.56.1        GenomeInfoDb_1.40.1        
+[37] IRanges_2.38.1              S4Vectors_0.42.1            BiocGenerics_0.50.0        
+[40] MatrixGenerics_1.16.0       matrixStats_1.4.1           pheatmap_1.0.12            
+[43] ggpubr_0.6.0                ggplot2_3.5.1               Seurat_5.1.0               
+[46] SeuratObject_5.0.2          sp_2.1-4                    runSeurat3_0.1.0           
+[49] ExploreSCdataSeurat3_0.1.0 
+
+loaded via a namespace (and not attached):
+  [1] igraph_2.0.3              ica_1.0-3                 plotly_4.10.4            
+  [4] Formula_1.2-5             zlibbioc_1.50.0           tidyselect_1.2.1         
+  [7] bit_4.5.0                 doParallel_1.0.17         clue_0.3-65              
+ [10] lattice_0.22-6            rjson_0.2.23              blob_1.2.4               
+ [13] S4Arrays_1.4.1            pbkrtest_0.5.3            parallel_4.4.1           
+ [16] png_0.1-8                 plotrix_3.8-4             cli_3.6.3                
+ [19] ggplotify_0.1.2           goftest_1.2-3             VIM_6.2.2                
+ [22] variancePartition_1.34.0  textshaping_0.4.0         BiocNeighbors_1.22.0     
+ [25] shadowtext_0.1.4          uwot_0.2.2                curl_5.2.3               
+ [28] tidytree_0.4.6            mime_0.12                 evaluate_1.0.1           
+ [31] leiden_0.4.3.1            ComplexHeatmap_2.20.0     stringi_1.8.4            
+ [34] backports_1.5.0           lmerTest_3.1-3            qqconf_1.3.2             
+ [37] httpuv_1.6.15             magrittr_2.0.3            rappdirs_0.3.3           
+ [40] splines_4.4.1             ggraph_2.2.1              sctransform_0.4.1        
+ [43] ggbeeswarm_0.7.2          DBI_1.2.3                 jquerylib_0.1.4          
+ [46] smoother_1.3              withr_3.0.1               git2r_0.33.0             
+ [49] corpcor_1.6.10            systemfonts_1.1.0         reformulas_0.3.0         
+ [52] class_7.3-22              rprojroot_2.0.4           lmtest_0.9-40            
+ [55] tidygraph_1.3.1           formatR_1.14              colourpicker_1.3.0       
+ [58] htmlwidgets_1.6.4         fs_1.6.4                  labeling_0.4.3           
+ [61] fANCOVA_0.6-1             SparseArray_1.4.8         DESeq2_1.44.0            
+ [64] ranger_0.16.0             DEoptimR_1.1-3            reticulate_1.39.0        
+ [67] hexbin_1.28.4             zoo_1.8-12                XVector_0.44.0           
+ [70] knitr_1.48                ggplot.multistats_1.0.1   UCSC.utils_1.0.0         
+ [73] RhpcBLASctl_0.23-42       timechange_0.3.0          foreach_1.5.2            
+ [76] fansi_1.0.6               patchwork_1.3.0           caTools_1.18.3           
+ [79] ggtree_3.12.0             data.table_1.16.0         R.oo_1.26.0              
+ [82] RSpectra_0.16-2           irlba_2.3.5.1             ggrastr_1.0.2            
+ [85] gridGraphics_0.5-1        fastDummies_1.7.4         lazyeval_0.2.2           
+ [88] yaml_2.3.10               survival_3.7-0            scattermore_1.2          
+ [91] crayon_1.5.3              RcppAnnoy_0.0.22          RColorBrewer_1.1-3       
+ [94] progressr_0.14.0          tweenr_2.0.3              later_1.3.2              
+ [97] ggridges_0.5.6            codetools_0.2-20          GlobalOptions_0.1.2      
+[100] aod_1.3.3                 KEGGREST_1.44.1           Rtsne_0.17               
+[103] shape_1.4.6.1             limma_3.60.6              pkgconfig_2.0.3          
+[106] TMB_1.9.15                spatstat.univar_3.0-1     mathjaxr_1.6-0           
+[109] EnvStats_3.0.0            aplot_0.2.3               scatterplot3d_0.3-44     
+[112] ape_5.8                   spatstat.sparse_3.1-0     xtable_1.8-4             
+[115] car_3.1-3                 highr_0.11                plyr_1.8.9               
+[118] httr_1.4.7                rbibutils_2.3             tools_4.4.1              
+[121] globals_0.16.3            beeswarm_0.4.0            broom_1.0.7              
+[124] nlme_3.1-166              lambda.r_1.2.4            lme4_1.1-35.5            
+[127] digest_0.6.37             numDeriv_2016.8-1.1       Matrix_1.7-0             
+[130] farver_2.1.2              tzdb_0.4.0                remaCor_0.0.18           
+[133] reshape2_1.4.4            yulab.utils_0.1.7         glue_1.8.0               
+[136] cachem_1.1.0              polyclip_1.10-7           generics_0.1.3           
+[139] Biostrings_2.72.1         mvtnorm_1.3-1             presto_1.0.0             
+[142] parallelly_1.38.0         mnormt_2.1.1              statmod_1.5.0            
+[145] RcppHNSW_0.6.0            ScaledMatrix_1.12.0       carData_3.0-5            
+[148] minqa_1.2.8               pbapply_1.7-2             httr2_1.0.5              
+[151] spam_2.11-0               gson_0.1.0                utf8_1.2.4               
+[154] graphlayouts_1.2.0        gtools_3.9.5              ggsignif_0.6.4           
+[157] RcppEigen_0.3.4.0.2       shiny_1.9.1               GenomeInfoDbData_1.2.12  
+[160] glmmTMB_1.1.10            R.utils_2.12.3            memoise_2.0.1            
+[163] rmarkdown_2.28            scales_1.3.0              R.methodsS3_1.8.2        
+[166] future_1.34.0             RANN_2.6.2                Cairo_1.6-2              
+[169] spatstat.data_3.1-2       rstudioapi_0.16.0         cluster_2.1.6            
+[172] mutoss_0.1-13             spatstat.utils_3.1-0      hms_1.1.3                
+[175] fitdistrplus_1.2-1        munsell_0.5.1             cowplot_1.1.3            
+[178] colorspace_2.1-1          rlang_1.1.4               DelayedMatrixStats_1.26.0
+[181] sparseMatrixStats_1.16.0  xts_0.14.0                dotCall64_1.2            
+[184] shinydashboard_0.7.2      ggforce_0.4.2             laeken_0.5.3             
+[187] mgcv_1.9-1                xfun_0.48                 e1071_1.7-16             
+[190] TH.data_1.1-2             iterators_1.0.14          abind_1.4-8              
+[193] GOSemSim_2.30.2           treeio_1.28.0             futile.options_1.0.1     
+[196] bitops_1.0-9              Rdpack_2.6.1              promises_1.3.0           
+[199] scatterpie_0.2.4          RSQLite_2.3.7             qvalue_2.36.0            
+[202] sandwich_3.1-1            fgsea_1.30.0              DelayedArray_0.30.1      
+[205] proxy_0.4-27              GO.db_3.19.1              compiler_4.4.1           
+[208] prettyunits_1.2.0         boot_1.3-31               beachmat_2.20.0          
+[211] listenv_0.9.1             Rcpp_1.0.13               edgeR_4.2.1              
+[214] workflowr_1.7.1           BiocSingular_1.20.0       tensor_1.5               
+[217] MASS_7.3-61               progress_1.2.3            BiocParallel_1.38.0      
+[220] babelgene_22.9            spatstat.random_3.3-2     R6_2.5.1                 
+[223] fastmap_1.2.0             multcomp_1.4-26           fastmatch_1.1-4          
+[226] rstatix_0.7.2             vipor_0.4.7               TTR_0.24.4               
+[229] ROCR_1.0-11               TFisher_0.2.0             rsvd_1.0.5               
+[232] vcd_1.4-13                nnet_7.3-19               gtable_0.3.5             
+[235] KernSmooth_2.23-24        miniUI_0.1.1.1            deldir_2.0-4             
+[238] htmltools_0.5.8.1         ggthemes_5.1.0            bit64_4.5.2              
+[241] spatstat.explore_3.3-2    lifecycle_1.0.4           blme_1.0-6               
+[244] nloptr_2.1.1              sass_0.4.9                vctrs_0.6.5              
+[247] robustbase_0.99-4-1       spatstat.geom_3.3-3       sn_2.1.1                 
+[250] ggfun_0.1.6               future.apply_1.11.2       bslib_0.8.0              
+[253] pillar_1.9.0              gplots_3.2.0              pcaMethods_1.96.0        
+[256] locfit_1.5-9.10           jsonlite_1.8.9            GetoptLong_1.0.5         </code></pre>
+</div>
+
+
+<!-- Adjust MathJax settings so that all math formulae are shown using
+TeX fonts only; see
+https://docs.mathjax.org/en/latest/web/configuration.html. This will make
+the presentation more consistent at the cost of the webpage sometimes
+taking slightly longer to load. Note that this only works because the
+footer is added to webpages before the MathJax javascript. -->
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    "HTML-CSS": { availableFonts: ["TeX"] }
+  });
+</script>
+
+
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+
+<script>
+$(document).ready(function ()  {
+
+    // temporarily add toc-ignore selector to headers for the consistency with Pandoc
+    $('.unlisted.unnumbered').addClass('toc-ignore')
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_');
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

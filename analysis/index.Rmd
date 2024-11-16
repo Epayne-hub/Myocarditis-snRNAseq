@@ -8,4 +8,35 @@ editor_options:
   chunk_output_type: console
 ---
 
-Welcome to my research website.
+### QC, merging, and clustering
+merge QC and display umaps
+[link](Myocarditis_snRNAseq_QC_merging_V3.html)
+
+### Relative Abundances
+Plotting relative abundances 
+[link](Relative_AbundancesV2.html)
+
+### DE Genes Patients across all clusters
+Patient stratification with DE genes
+[link](DEgenes_patient_stratificationV3.html)
+
+### T cell conditions
+Stratification and DE genes of different T cell conditions
+[link](Stratification_Tcell_conditionV2.html)
+
+### DE Genes Disease Conditions
+DE Genes by Disease Condition
+[link](DE_Genes_Disease_Condition.html)
+
+### Relative Abundance of MCP2 and Fb2 Patient Clustering
+MCP_Fb2_exploratory cut-offs for stratification
+[link](Relative_abundance_MCP2_Fb2_exploratory.html)
+
+### Stratification Myocarditis patients by sex
+Stratification by sex
+[link](Stratification_sex.html)
+
+### Fibroblast preliminary GSEA
+GSEA Fibroblast family preliminary
+[link]
+

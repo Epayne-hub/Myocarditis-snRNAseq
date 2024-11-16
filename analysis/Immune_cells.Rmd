@@ -1,0 +1,343 @@
+---
+title: "Immune cells Seurat"
+author: "Emily Payne"
+date: "2024-11-07"
+output: html_document
+---
+
+```{r setup, include = FALSE, fig.path = "custom/path", warning = FALSE, message = FALSE}
+
+options (width = 100)
+knitr::opts_chunk$set(warning = FALSE, echo = TRUE, message = FALSE, dev = c("png", "pdf"))
+seed <- 1234
+
+```
+
+```{r}
+
+
+
+
+```
+
+
+
+```{r load libraries, echo=FALSE, message=FALSE, warning=FALSE}
+
+suppressPackageStartupMessages({
+  library(ExploreSCdataSeurat3)
+  library(runSeurat3)
+  library(Seurat)
+  library(ggpubr)
+  library(pheatmap)
+  library(SingleCellExperiment)
+  library(dplyr)
+  library(tidyverse)
+  library(viridis)
+  library(muscat)
+  library(circlize)
+  library(destiny)
+  library(scater)
+  library(metap)
+  library(multtest)
+  library(clusterProfiler)
+  library(org.Hs.eg.db)
+  library(msigdbr)
+  library(enrichplot)
+  library(DOSE)
+  library(grid)
+  library(gridExtra)
+  library(ggupset)
+  library(VennDiagram)
+  library(NCmisc)
+  library(RColorBrewer)
+  library(EnhancedVolcano)
+  library(textshaping)
+  library(wordcloud)
+  library(pathview)
+  library(workflowr)
+})
+
+```
+
+```{r load merged file}
+##load merged file 
+seuratM <- readRDS("~/Desktop/Emily/Myocarditis snRNAseq/data/01 Merged Seurat files/seuratM_all_metadata_withAMvsHealthy_ventricle_sex_TC con_27.10.2024.rds")
+
+table(seuratM$dataset)
+table(seuratM$RNA_snn_res.0.25)
+table(seuratM$patient, seuratM$sex)
+table(seuratM$orig.ident)
+```
+
+```{r}
+
+seuratM$clusterName <- "clusterName"
+Idents(seuratM) <- seuratM$clusterName
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "0" )] <- "Fb1"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "1" )] <- "BEC1"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "2" )] <- "PeriFb1"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "3" )] <- "Cardiomyocyte"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "4" )] <- "MCP1"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "5" )] <- "TC"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "6" )] <- "MCP2"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "7" )] <- "BEC2"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "8" )] <- "VSMC"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "9" )] <- "NC"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "10" )] <- "INT1"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "11" )] <- "Fb2"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "12" )] <- "Fb3"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "13" )] <- "PeriFb2"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "14" )] <- "AdipoC"
+
+
+colclusterName <- c("#D53E4F", "#f4a582", "#FEE08B","#feb24c","#67001f", "#01665e","#66C2A5","#c7eae5","#BEAED4", "#355C7D","#3288BD","#8c510a" ,"#fde0dd","#B45B5C","#dd1c77")
+
+                    
+names(colclusterName) <- c("Cardiomyocyte","Fb1","Fb2","Fb3", "INT1", "PeriFb1", "PeriFb2", "VSMC","NC", "BEC1","BEC2", "AdipoC", "MCP1","MCP2","TC")
+
+colpat_sub<- c("#dfc27d","#BE3144","#355C7D", "#779d8d")
+
+seuratM$clusterName <- factor(seuratM$clusterName, levels=c("Cardiomyocyte", "Fb1", "Fb2", "Fb3", "INT1","PeriFb1", "PeriFb2", "VSMC", "NC", "BEC1", "BEC2", "AdipoC", "MCP1", "MCP2", "TC"))
+
+
+Idents(seuratM) <- seuratM$clusterName
+DimPlot(seuratM, reduction = "umap", pt.size = 0.1, label = TRUE, cols = colclusterName)
+
+```
+
+```{r}
+
+seuratAM_immun <- subset(seuratAM, clusterName %in% c("MCP1", "MCP2","TC", "Fb1", "Fb2", "Fb3", "Cardiomyocyte"))
+table(seuratAM_immun$orig.ident)
+table(seuratAM_immun$patient, seuratAM_immun$sex)
+table(seuratAM_immun$TC, seuratAM_immun$sex)
+table(seuratAM_immun$sex)
+table(seuratAM_immun$clusterName, seuratAM_immun$sex)
+
+Idents(seuratAM_immun) <- seuratAM_immun$sex
+
+colsex <- c("#dd1c77","#355C7D")
+names(colsex) <- c("female", "male")
+            
+
+DimPlot(seuratAM_immun, reduction = "umap", pt.size = 0.3, cols = colsex)
+
+colcluster<- c("#D53E4F", "#f4a582", "#FEE08B","#feb24c","#67001f" ,"#fde0dd","#B45B5C","#dd1c77")
+
+                    
+names(colcluster) <- c("Cardiomyocyte","Fb1", "Fb2","Fb3","MCP1","MCP2","TC")
+
+Idents(seuratAM_immun) <- seuratAM_immun$clusterName
+
+DimPlot(seuratAM_immun, reduction = "umap", cols = colcluster, pt.size = 0.3)
+
+```
+
+```{r}
+seuratAM_immun <- NormalizeData (object = seuratAM_immun)
+seuratAM_immun <- FindVariableFeatures(object = seuratAM_immun)
+seuratAM_immun <- ScaleData(object = seuratAM_immun, verbose = TRUE)
+seuratAM_immun <- RunPCA(object=seuratAM_immun, npcs = 30, verbose = FALSE)
+seuratAM_immun <- RunTSNE(object=seuratAM_immun, reduction="pca", dims = 1:20)
+seuratAM_immun <- RunUMAP(object=seuratAM_immun, reduction="pca", dims = 1:20)
+seuratAM_immun <- FindNeighbors(object = seuratAM_immun, reduction = "pca", dims= 1:20)
+
+res <- c(0.25, 0.6, 0.8, 0.4)
+for (i in 1:length(res)) {
+  seuratAM_immun <- FindClusters(object = seuratAM_immun, resolution = res[i], random.seed = 1234)
+}
+
+table(seuratAM_immun$orig.ident)
+table(seuratAM_immun$clusterName)
+```
+
+
+```{r Umap clusterName}
+
+Idents (seuratAM_immun) <- seuratAM_immun$clusterName
+
+DimPlot(seuratAM_immun, reduction = "umap", pt.size = 0.3, label = TRUE, cols = colcluster)
+
+```
+
+
+
+```{r Umap by sex}
+
+Idents (seuratAM_immun) <- (seuratAM_immun$sex)
+DimPlot(seuratAM_immun, reduction = "umap", pt.size = 0.3)
+
+```
+
+
+```{r Umap by patient}
+
+Idents (seuratAM_immun) <- (seuratAM_immun$patient)
+DimPlot(seuratAM_immun, reduction = "umap", pt.size = 0.3)
+
+```
+
+
+
+
+
+```{r Umap by resolution}
+
+Idents (seuratAM_immun) <- (seuratAM_immun$RNA_snn_res.0.25)
+
+DimPlot(seuratAM_immun, reduction = "umap", pt.size = 0.3, label = TRUE)
+
+```
+
+```{r}
+
+# Visualize the expression of specific marker genes on UMAP
+
+get_full_gene_name <- function(gene, obj){
+  return(grep(gene,rownames(obj), value =TRUE))
+}
+get_full_gene_name("XIST",seuratAM_immun) 
+
+
+
+FeaturePlot(seuratAM_immun, features = "ENSG00000177575.CD163", pt.size = 1, cols = c("lightgrey", "#BE3144"))
+
+FeaturePlot(seuratAM_immun, features = "ENSG00000182578.CSF1R", pt.size = 1, cols = c("lightgrey", "#BE3144"))
+
+FeaturePlot(seuratAM_immun, features = "ENSG00000081237.PTPRC", pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seuratAM_immun, features = "ENSG00000168685.IL7R", pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seuratAM_immun, features = "ENSG00000010610.CD4", pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seuratAM_immun, features = "ENSG00000172116.CD8B", pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seuratAM_immun, features = "ENSG00000167286.CD3D", pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seuratAM_immun, features = "ENSG00000198851.CD3E", pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seuratAM_immun, features = "ENSG00000163599.CTLA4", pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seuratAM_immun, features = "ENSG00000104970.KIR3DX1", pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seuratAM_immun, features = "ENSG00000111537.IFNG", pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seuratAM_immun, features = "ENSG00000178562.CD28", pt.size = 1, cols = c("lightgrey", "#BE3144"))
+
+FeaturePlot(seuratAM_immun, features = "ENSG00000004468.CD38", pt.size = 1, cols = c("lightgrey", "#BE3144"))
+
+
+FeaturePlot(seuratAM_immun, features = get_full_gene_name("IGHM",seuratAM_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+FeaturePlot(seuratAM_immun, features = get_full_gene_name("KIR2",seuratAM_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+
+FeaturePlot(seuratAM_immun, features = get_full_gene_name("XIST",seuratAM_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seuratAM_immun, features = get_full_gene_name("HLA-DMB",seuratAM_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seuratAM_immun, features = get_full_gene_name("HLA-A",seuratAM_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seuratAM_immun, features = get_full_gene_name("IL32",seuratAM_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))
+
+FeaturePlot(seuratAM_immun, features = get_full_gene_name("STAT1",seuratAM_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seuratAM_immun, features = get_full_gene_name("LYVE1",seuratAM_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+
+FeaturePlot(seuratAM_immun, features = get_full_gene_name("CXCL9",seuratAM_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+
+FeaturePlot(seuratAM_immun, features = get_full_gene_name("CXCL10",seuratAM_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+
+
+```
+
+```{r DE genes for clustered immune cells}
+
+DEGenesAM_GSEA<- FindAllMarkers (seuratAM_immun, only.pos = TRUE, logfc.threshold = 0.2) %>%
+                                      dplyr::filter(p_val_adj < 0.01)
+
+
+#write.table(DEGenesAM_GSEA, file= "/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/docs/Markers/DEGenesAM_GSEA", sep="\t",quote=F,row.names=F,col.names=T)
+
+Idents(seuratAM_immun) <- seuratAM_immun$RNA_snn_res.0.25
+DimPlot(seuratAM_immun, reduction = "umap", pt.size = 0.3, label = TRUE)
+
+table(seuratAM$clusterName)
+table(seuratAM_immun$RNA_snn_res.0.25)
+
+head(DEGenesAM_GSEA)
+
+```
+
+
+
+```{r GSEA Cluster 1}
+
+##adjust table
+DEGenesAM_GSEAadj <- DEGenesAM_GSEA %>% 
+  mutate(Gene=gene) %>%
+  mutate(gene=gsub("^.*\\.", "", Gene))  %>%
+  mutate(EnsID=gsub("\\..*","", Gene))
+
+
+DEGenes1 <- DEGenesAM_GSEAadj %>% filter(cluster == "1")
+#head(DEGenesAM)
+
+ego1 <- enrichGO(gene = unique(DEGenes1$EnsID),
+                          OrgDb = org.Hs.eg.db,
+                          keyType = 'ENSEMBL',
+                          ont = "BP",
+                          pAdjustMethod = "BH",
+                          pvalueCutoff = 0.05,
+                          qvalueCutoff = 0.05)
+
+ego1 <- setReadable(ego1, OrgDb = org.Hs.eg.db)
+
+dotplot(ego1, showCategory=20, title = "Cluster 1", font.size = 10)
+
+barplot(ego1, 
+        drop = TRUE, 
+        showCategory = 20, 
+        title = "Cluster 1",
+        font.size = 10)
+```
+
+
+```{r GSEA Cluster 2}
+##GSEA 
+DEGenes2 <- DEGenesAM_GSEAadj %>% filter(cluster == "2")
+#head(DEGenesAM)
+
+ego2 <- enrichGO(gene = unique(DEGenes2$EnsID),
+                          OrgDb = org.Hs.eg.db,
+                          keyType = 'ENSEMBL',
+                          ont = "BP",
+                          pAdjustMethod = "BH",
+                          pvalueCutoff = 0.05,
+                          qvalueCutoff = 0.05)
+
+ego2 <- setReadable (ego2, OrgDb = org.Hs.eg.db)
+
+dotplot(ego2, showCategory=20, title = "Cluster 2", font.size = 10)
+barplot(ego2, 
+        drop = TRUE, 
+        showCategory = 20, 
+        title = "Cluster 2",
+        font.size = 10)
+
+```
+
+
+```{r GSEA Cluster 3}
+DEGenes3 <- DEGenesAM_GSEAadj %>% filter(cluster == "Cluster 3")
+#head(DEGenesAM)
+
+ego3 <- enrichGO(gene = unique(DEGenes3$EnsID),
+                          OrgDb = org.Hs.eg.db,
+                          keyType = 'ENSEMBL',
+                          ont = "BP",
+                          pAdjustMethod = "BH",
+                          pvalueCutoff = 0.05,
+                          qvalueCutoff = 0.05)
+
+ego3 <- setReadable(ego3, OrgDb = org.Hs.eg.db)
+
+dotplot(ego3, showCategory=20, title = "Cluster 3", font.size = 10)
+barplot(ego2, 
+        drop = TRUE, 
+        showCategory = 20, 
+        title = "Cluster 3",
+        font.size = 10)
+```
+
+
+```{r Session Info}
+
+date()
+sessionInfo()

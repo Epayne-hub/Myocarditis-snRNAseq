@@ -1,0 +1,315 @@
+---
+title: "Relative Abundances"
+output: html_document
+date: "2024-09-20"
+---
+```{r setup, include = FALSE, fig.path = "custom/path", warning = FALSE, message = FALSE}
+
+options (width = 100)
+knitr::opts_chunk$set(warning = FALSE, echo = TRUE, message = FALSE, dev = c("png", "pdf"))
+seed <- 1234
+
+```
+```
+
+
+
+```{r load libraries, echo=FALSE, message=FALSE, warning=FALSE}
+
+suppressPackageStartupMessages({
+  library(ExploreSCdataSeurat3)
+  library(runSeurat3)
+  library(Seurat)
+  library(ggpubr)
+  library(pheatmap)
+  library(SingleCellExperiment)
+  library(dplyr)
+  library(tidyverse)
+  library(viridis)
+  library(muscat)
+  library(circlize)
+  library(destiny)
+  library(scater)
+  library(metap)
+  library(multtest)
+  library(clusterProfiler)
+  library(org.Hs.eg.db)
+  library(msigdbr)
+  library(enrichplot)
+  library(DOSE)
+  library(grid)
+  library(gridExtra)
+  library(ggupset)
+  library(VennDiagram)
+  library(NCmisc)
+  library(RColorBrewer)
+  library(EnhancedVolcano)
+  library(textshaping)
+  library(wordcloud)
+  library(pathview)
+  library(workflowr)
+})
+
+```
+
+
+```{r}
+
+##load merged file 
+seuratM <- readRDS("~/Desktop/Emily/Myocarditis snRNAseq/data/01 Merged Seurat files/Myocarditis_RDS_04.10.2024.rds")
+
+table(seuratM$dataset)
+table(seuratM$RNA_snn_res.0.25)
+table(seuratM$orig.ident)
+
+```
+
+
+
+
+
+
+
+```{r}
+
+
+seuratM$clusterName <- "clusterName"
+Idents(seuratM) <- seuratM$clusterName
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "0" )] <- "Fb1"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "1" )] <- "BEC1"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "2" )] <- "PeriFb1"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "3" )] <- "Cardiomyocyte"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "4" )] <- "MCP1"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "5" )] <- "TC"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "6" )] <- "MCP2"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "7" )] <- "BEC2"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "8" )] <- "VSMC"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "9" )] <- "NC"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "10" )] <- "INT1"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "11" )] <- "Fb2"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "12" )] <- "Fb3"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "13" )] <- "PeriFb2"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "14" )] <- "AdipoC"
+
+seuratM$clusterName <- factor(seuratM$clusterName, levels =c("TC", "MCP1","MCP2","Cardiomyocyte","Fb1","Fb2","Fb3", "PeriFb1", "PeriFb2","VSMC", "INT1","NC", "BEC1","BEC2", "AdipoC"))
+
+##set color vectors
+
+colclusterName <- c("#dd1c77", "#fde0dd", "#B45B5C", "#D53E4F", "#f4a582", "#FEE08B", "#feb24c", "#01665e","#66C2A5", "#c7eae5", "#67001f", "#BEAED4", "#355C7D","#3288BD","#8c510a")
+                    
+names(colclusterName) <- c("TC", "MCP1","MCP2","Cardiomyocyte","Fb1","Fb2","Fb3", "PeriFb1", "PeriFb2","VSMC", "INT1","NC", "BEC1","BEC2", "AdipoC")
+
+
+colpat_sub<- c("#dfc27d","#BE3144","#355C7D", "#779d8d")
+
+coldiseaseCond <- colpat_sub
+names(coldiseaseCond) <- c("Healthy", "AM", "CMP", "Sarcoidosis")
+order_coldiseaseCond <- c("Healthy", "AM", "CMP", "Sarcoidosis")
+
+head(seuratM@meta.data)
+
+Idents(seuratM) <- seuratM$clusterName
+DimPlot(seuratM, reduction = "umap", pt.size = 0.1, cols = colclusterName)
+
+### Order of Conditions
+Idents(seuratM) <- seuratM$pat_sub
+DimPlot(seuratM, reduction = "umap", pt.size = 0.1, group.by = "pat_sub", cols = coldiseaseCond)
+
+```
+
+```{r Relative abundance per disease condition}
+
+datList <- NULL
+for(con in unique(seuratM$pat_sub)){
+  seuratSub <- subset(seuratM, pat_sub==con)
+  print(dim(seuratSub))
+  dat_con <- as.data.frame(table(seuratSub$clusterName)) %>%
+  mutate(percent=Freq/ncol(seuratSub)) %>% mutate(diseaseCond=con)
+  datList[[con]] <- dat_con
+  
+}
+
+dat_all <- do.call("rbind", datList)
+
+order_patsub <- c("Healthy", "AM", "CMP", "Sarcoidosis")
+
+ggbarplot(dat_all, x = "diseaseCond", y = "percent", fill = "Var1", palette = colclusterName, legend = "right", legend.titel = "cluster", xlab = "condition", ylab = "frequency") +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  scale_x_discrete(limits = order_patsub)
+
+
+
+
+```
+
+```{r Relative abundance per patient}
+
+datList <- NULL
+for(con in unique(seuratM$patient)){
+  seuratSub <- subset(seuratM, patient==con)
+  print(dim(seuratSub))
+  dat_con <- as.data.frame(table(seuratSub$clusterName)) %>%
+  mutate(percent=Freq/ncol(seuratSub)) %>% mutate(patient=con)
+  datList[[con]] <- dat_con
+}
+
+
+dat_all <- do.call("rbind", datList)
+
+# Order 
+patient_order <- c("Healthy 01", "Healthy 02", "Healthy 03", "Healthy 04", "Healthy 05", 
+                   "Healthy 06", "Healthy 07", "Healthy 08", "Healthy 09", "Healthy 10", 
+                   "AM 01", "AM 02", "AM 03", "AM 04", "AM 05", "AM 06", "AM 07", 
+                   "AM 08", "AM 09", "AM 10", "AM 11", "AM 12", "AM 13", "AM 14", 
+                   "AM 15", "AM 16", "AM 17", "AM 18", "CMP 01", "CMP 02", "CMP 03", 
+                   "CMP 04", "CMP 05", "CMP 06", "CMP 07", "CMP 08", "CMP 09", 
+                   "CMP 10", "CMP 11", "CMP 12", "CMP 13", "Sarcoidosis 01", "Sarcoidosis 02")
+
+#View(dat_all)
+
+#write.table(dat_all, file= "/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/docs/Markers_dat_all_clusters_frequency_relative abundance_V2", sep = "\t",quote=F,row.names=T,col.names=T)
+
+
+dat_all$patient <- factor(dat_all$patient, levels = patient_order)
+
+## plot abundance
+ggbarplot(dat_all, x= "patient", y= "percent", fill = "Var1", legend = "right", legend.titel = "cluster", ylab = "frequency", palette = colclusterName )  + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+## Change order
+
+# Subset TC cluster
+dat_tc <- dat_all[dat_all$Var1 == "TC", ]
+
+# T cells in descending order
+dat_all$patient <- factor(dat_all$patient, levels = dat_tc$patient[order(-dat_tc$percent)])
+
+ggbarplot(dat_all, x= "patient", y= "percent", fill = "Var1", legend = "right", legend.titel = "cluster", ylab = "frequency", palette = colclusterName )  + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+## Inflammatory Macrophages MCP2 in descending order
+dat_mcp2 <- dat_all[dat_all$Var1 == "MCP2", ]
+
+dat_all$patient <- factor(dat_all$patient, levels = dat_mcp2$patient[order(-dat_mcp2$percent)])
+
+ggbarplot(dat_all, x= "patient", y= "percent", fill = "Var1", legend = "right", legend.titel = "cluster", ylab = "frequency", palette = colclusterName )  + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+
+
+```
+
+
+
+
+
+
+
+
+
+```{r Heatmap with marker genes, fig.height = 20}
+
+## Create Heatmap
+
+Idents(seuratM) <- seuratM$clusterName
+seuratM$clusterName <- factor(seuratM$clusterName, levels =c("Cardiomyocyte","Fb1","Fb2","Fb3", "INT1", "PeriFb1", "PeriFb2", "VSMC","NC", "BEC1","BEC2", "AdipoC", "MCP1","MCP2","TC"))
+
+genes <- data.frame(gene=rownames(seuratM)) %>% 
+  mutate(geneID=gsub("^.*\\.", "", gene))
+
+selGenes <- data.frame(geneID=rev(c("TTN", "MYBPC3", "RYR2", "NEBL", "TNNT2", "CMYA5", "COL6A3", "DCN",  "FBN1", "C7", "PDGFRA", "CDH19", "PDGFRB", "BMP4", "GREM1", "ITGA7","RGS5", "NOTCH3", "MYH11", "ACTA2","PECAM1", "VWF", "EGFL7", "POSTN", "ITGA10", "CDH11","CCL21", "FLT4", "NRXN1", "ANK3", "PTPRZ1", "PLIN1", "GPAM", "CD163", "LYVE1", "MRC1", "SIGLEC1", "STAB1", "CSF1R","MERTK", "HLA-DQB1","CCR2", "CD79B","JCHAIN", "IL7R", "CD3E", "PTPRC", "CD2"))) %>% left_join(., genes, by="geneID") %>% filter(gene != "ENSG00000232995.RGS5") 
+
+
+avgHeatmap <- function(seuratM, selGenes, colVecIdent, colVecCond=NULL,
+                       ordVec=NULL, gapVecR=NULL, gapVecC=NULL,cc=FALSE,
+                       cr=FALSE, condCol=FALSE){
+  selGenes <- selGenes$gene
+  
+  ## assay data
+  clusterAssigned <- as.data.frame(Idents(seuratM)) %>%
+  dplyr::mutate(cell=rownames(.))
+  colnames(clusterAssigned)[1] <- "ident"
+  seuratDat <- GetAssayData(seuratM)
+  
+  ## genes of interest
+  genes <- data.frame(gene=rownames(seuratM)) %>% 
+    mutate(geneID=gsub("^.*\\.", "", gene)) %>% filter(geneID %in% selGenes)
+
+  ## matrix with averaged cnts per ident
+  logNormExpres <- as.data.frame(t(as.matrix(
+    seuratDat[which(rownames(seuratDat) %in% genes$gene),])))
+  logNormExpres <- logNormExpres %>% dplyr::mutate(cell=rownames(.)) %>%
+    dplyr::left_join(.,clusterAssigned, by=c("cell")) %>%
+    dplyr::select(-cell) %>% dplyr::group_by(ident) %>%
+    dplyr::summarise_all(mean)
+  logNormExpresMa <- logNormExpres %>% dplyr::select(-ident) %>% as.matrix()
+  rownames(logNormExpresMa) <- logNormExpres$ident
+  logNormExpresMa <- t(logNormExpresMa)
+  rownames(logNormExpresMa) <- gsub("^.*?\\.","",rownames(logNormExpresMa))
+  
+  ## remove genes if they are all the same in all groups
+  ind <- apply(logNormExpresMa, 1, sd) == 0
+  logNormExpresMa <- logNormExpresMa[!ind,]
+  genes <- genes[!ind,]
+
+  ## color columns according to cluster
+  annotation_col <- as.data.frame(gsub("(^.*?_)","",
+                                       colnames(logNormExpresMa)))%>%
+    dplyr::mutate(celltype=gsub("(_.*$)","",colnames(logNormExpresMa)))
+  colnames(annotation_col)[1] <- "col1"
+  annotation_col <- annotation_col %>%
+    dplyr::mutate(cond = gsub("(^[0-9]_?)","",col1)) %>%
+    dplyr::select(cond, celltype)
+  rownames(annotation_col) <- colnames(logNormExpresMa) 
+
+  ann_colors = list(
+      celltype=colVec)
+  if(is.null(ann_colors$cond)){
+    annotation_col$cond <- NULL
+  }
+  
+  ## adjust order
+  logNormExpresMa <- logNormExpresMa[selGenes,]
+  if(is.null(ordVec)){
+  ordVec <- levels(seuratM)
+  ordVec <- c(c("Cardiomyocyte","Fb1","Fb2","Fb3", "INT1", "PeriFb1", "PeriFb2", "VSMC","NC", "BEC1","BEC2", "AdipoC", "MCP1","MCP2","TC"))
+  }
+  logNormExpresMa <- logNormExpresMa[,ordVec]
+
+  ## scaled row-wise
+  pheatmap(logNormExpresMa, scale="row" ,treeheight_row = 0,cluster_rows = cr, 
+         cluster_cols = cc, color = colorRampPalette(c("#2166AC", "#F7F7F7", "#B2182B"))(50),
+         annotation_col = annotation_col, cellwidth=15, cellheight=10,
+         annotation_colors = ann_colors, gaps_row = gapVecR, gaps_col = gapVecC)
+}
+
+genesPlot <- data.frame(gene=c("TTN", "MYBPC3", "RYR2", "NEBL", "TNNT2", "CMYA5", "COL6A3", "DCN",  "FBN1", "C7", "PDGFRA", "CDH19", "PDGFRB", "BMP4", "GREM1", "ITGA7","RGS5", "NOTCH3", "MYH11", "ACTA2","PECAM1", "VWF", "EGFL7", "POSTN", "ITGA10", "CDH11","CCL21", "FLT4", "NRXN1", "ANK3", "PTPRZ1", "PLIN1", "GPAM", "CD163", "LYVE1", "MRC1", "SIGLEC1", "STAB1", "CSF1R","MERTK", "HLA-DQB1", "CCR2", "CD79B","JCHAIN", "IL7R","CD3E", "PTPRC", "CD2"))
+
+levels(seuratM)
+
+
+colVec <- colclusterName
+
+# colVec <- c(colPal, colPal, colPal)
+# colVec <- c("blue", "red")
+
+avgHeatmap(seuratM, selGenes = genesPlot, colVecIdent = colVec)
+
+
+```
+
+
+```{r}
+
+date()
+sessionInfo()
+
+```
+
+
+
+
+
+
+
+
+
+
+`

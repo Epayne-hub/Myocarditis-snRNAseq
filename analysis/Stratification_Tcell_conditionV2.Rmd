@@ -1,0 +1,2012 @@
+---
+title: "T cell Conditions"
+output: html_document
+date: "2024-09-21"
+---
+
+
+
+```{r setup, include = FALSE, fig.path = "custom/path", warning = FALSE, message = FALSE}
+
+options (width = 100)
+knitr::opts_chunk$set(warning = FALSE, echo = TRUE, message = FALSE, dev = c("png", "pdf"))
+seed <- 1234
+
+```
+
+```{r Load library}
+suppressPackageStartupMessages({
+  library(ExploreSCdataSeurat3)
+  library(runSeurat3)
+  library(Seurat)
+  library(ggpubr)
+  library(pheatmap)
+  library(SingleCellExperiment)
+  library(dplyr)
+  library(tidyverse)
+  library(viridis)
+  library(muscat)
+  library(circlize)
+  library(destiny)
+  library(scater)
+  library(metap)
+  library(multtest)
+  library(clusterProfiler)
+  library(org.Hs.eg.db)
+  library(msigdbr)
+  library(enrichplot)
+  library(DOSE)
+  library(grid)
+  library(gridExtra)
+  library(ggupset)
+  library(VennDiagram)
+  library(NCmisc)
+  library(RColorBrewer)
+  library(EnhancedVolcano)
+  library(textshaping)
+  library(wordcloud)
+  library(pathview)
+  library(workflowr)
+})
+
+
+```
+
+
+```{r load merged file}
+
+##load merged file 
+
+seuratM <- readRDS("/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/data/01 Merged Seurat files/Myocarditis_allfiltered_12.11.24.rds")
+
+
+table(seuratM$dataset)
+
+```
+
+
+```{r}
+
+table(seuratM$RNA_snn_res.0.25)
+table(seuratM$orig.ident)
+
+```
+
+
+```{r Plot umap}
+
+Idents(seuratM) <- seuratM$RNA_snn_res.0.25
+DimPlot(seuratM, reduction = "umap", pt.size = 0.1, label = TRUE)
+
+unique(seuratM$clusterName)
+```
+
+```{r}
+#### Rename clusters
+
+seuratM$clusterName <- "clusterName"
+Idents(seuratM) <- seuratM$clusterName
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "0" )] <- "Fb1"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "1" )] <- "BEC1"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "2" )] <- "PeriFb1"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "3" )] <- "Cardiomyocyte"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "4" )] <- "MCP1"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "5" )] <- "TC"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "6" )] <- "MCP2"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "7" )] <- "BEC2"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "8" )] <- "VSMC"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "9" )] <- "NC"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "10" )] <- "INT1"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "11" )] <- "Fb2"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "12" )] <- "Fb3"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "13" )] <- "PeriFb2"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "14" )] <- "AdipoC"
+
+
+colclusterName <- c("#D53E4F", "#f4a582", "#FEE08B","#feb24c","#67001f", "#01665e","#66C2A5","#c7eae5","#BEAED4", "#355C7D","#3288BD","#8c510a" ,"#fde0dd","#B45B5C","#dd1c77")
+
+                    
+names(colclusterName) <- c("Cardiomyocyte","Fb1","Fb2","Fb3", "INT1", "PeriFb1", "PeriFb2", "VSMC","NC", "BEC1","BEC2", "AdipoC", "MCP1","MCP2","TC")
+
+colpat_sub<- c("#dfc27d","#BE3144","#355C7D", "#779d8d")
+
+seuratM$clusterName <- factor(seuratM$clusterName, levels=c("Cardiomyocyte", "Fb1", "Fb2", "Fb3", "INT1","PeriFb1", "PeriFb2", "VSMC", "NC", "BEC1", "BEC2", "AdipoC", "MCP1", "MCP2", "TC"))
+
+
+Idents(seuratM) <- seuratM$clusterName
+DimPlot(seuratM, reduction = "umap", pt.size = 0.1, label = TRUE, cols = colclusterName)
+
+```
+
+
+```{r}
+
+#saveRDS(seuratM, file="/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/data/01 Merged Seurat files/Myocarditis_RDS_04.10.2024.rds")
+
+```
+
+
+
+```{r}
+###patient relative amount of cell type
+datList <- NULL
+for(con in unique(seuratM$patient)){
+  seuratSub <- subset(seuratM, patient==con)
+  print(dim(seuratSub))
+  dat_con <- as.data.frame(table(seuratSub$clusterName)) %>%
+  mutate(percent=Freq/ncol(seuratSub)) %>% mutate(patient=con)
+  datList[[con]] <- dat_con
+}
+dat_all <- do.call("rbind", datList)
+
+#View(dat_all)
+```
+
+
+```{r}
+###patient_patsub
+
+datList2 <- NULL
+for(con in unique(seuratM$patient_pat_sub)){
+  seuratSub <- subset(seuratM, patient_pat_sub==con)
+  print(dim(seuratSub))
+  dat_con <- as.data.frame(table(seuratSub$clusterName)) %>%
+  mutate(percent=Freq/ncol(seuratSub)) %>% mutate(patient_pat_sub=con)
+  datList2[[con]] <- dat_con
+}
+dat_all2 <- do.call("rbind", datList2)
+
+library(stringr)
+# Split patient_pat_sub into patient and pat_sub 
+dat_all2 <- as.data.frame(dat_all2) 
+ 
+dat_all2[c('patient', 'pat_sub')] <- str_split_fixed(dat_all2$patient_pat_sub, '_', 2)
+
+
+#View(dat_all2)
+ 
+#write.table(dat_all2, file= "/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/docs/dat_all2_abundance by condition_4-10%_04.10.2024", sep="\t",quote=F,row.names=F,col.names=T)
+
+```
+
+
+
+
+```{r subgroup Tcell conditions}
+
+# Filter "T cell" cluster
+dat_all2 <- filter(dat_all2, Var1 == "TC")
+
+# New column
+dat_all2$Tgrp <- NA  
+
+# 4 T cell Subgroups: T cell abundance > 10% = T cell High; 5-10% = T cell Intermediate, 2% =< T cell Low <5%; <2% T cell Very Low
+dat_all2$Tgrp[dat_all2$percent > 0.1] <- "Tcell High"
+dat_all2$Tgrp[dat_all2$percent < 0.1 & dat_all2$percent >= 0.05] <- "Tcell Intermediate"
+dat_all2$Tgrp[dat_all2$percent < 0.05 & dat_all2$percent >= 0.02] <- "Tcell Low"
+dat_all2$Tgrp[dat_all2$percent < 0.02] <- "Tcell Very Low"
+
+table(dat_all2$Tgrp)
+
+#write.table(dat_all2, file= "/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/docs/dat_all2_con_pat_Tc highvs.low_04.10.2024_final", sep="\t",quote=F,row.names=F,col.names=T)
+
+ggplot(dat_all2, aes(x = Tgrp, y = percent, fill = Tgrp)) +
+  geom_boxplot(outlier.shape = NA, alpha = 0.5) +  
+  geom_jitter(size = 0.8, width = 0.2, aes(color = Tgrp)) +  
+  theme_classic() +
+  ggtitle("Frequencies of T cells") +
+  xlab("T cell groups") +
+  ylab("T Cell Frequency") +
+  stat_compare_means(method = "kruskal", label = "p.signif", hide.ns = FALSE) +
+  stat_compare_means(label = "p.format", comparisons = list(c("Tcell High", "Tcell Intermediate", "Tcell Low", "T cell Very Low")), method = "kruskal")  
+
+## with cutoffs high >10%, intermediate 4-10%, low 2-4%, very low <2% -> 
+# N patients: high N = 5, intermediate N = 6, low N = 10, very low N = 20 
+# N nuclei: high = 9034, intermediate = 10840, low = 18066 , very low = 36130 
+
+
+## with cutoffs high >10%, intermediate 5-10%, low 2-5%, very low <2% -> 
+# N patients: high N = 5, intermediate N = 4, low N = 12, very low N = 20 
+# N nuclei: high = 9034, intermediate = 7227, low = 21679 , very low = 36130 
+
+#View(dat_all2)
+
+```
+
+
+```{r datall2 allocate to TC group and add to metadata}
+
+
+## Allocate to T cell group and add this to metadata
+## with cutoffs high >10%, intermediate 5-10%, low 2-5%, very low <2% -> 
+# N patients: high N = 5, intermediate N = 4, low N = 12, very low N = 20 
+
+#View(dat_all2)
+
+# T Cell high (descending order): AM 01, AM 17, AM 16, AM 18, CMP 13
+
+TC_high <- c("o292731_3-3_20220818_Hu_nucseq_SG_33_EMB_GEM", #AM01 
+             "359861_11-1_20240730_Hu_nucseq_Ber_Pat1_EMB1537",# AM17
+             "359861_09-11_20240723_Hu_nucseq_Ber_Pat5_EM979_1","359861_10-13_20240723_Hu_nucseq_Ber_Pat5_EM979_2", #AM 16
+             "359861_12-2_20240730_Hu_nucseq_Ber_Pat2_EMB1041", # AM 18
+             "o294781_10-10_20220912_Hu_nucseq_Graz_19_EMB_GEM") # CMP 13
+
+
+# T Cell intermediate: AM 13, CMP 01, AM 06, CMP12
+
+TC_int <- c("o28576_1_01-1_20220525_Hu_nucseq_Graz_1_EMB_GEM", # AM 13
+            "353921_29-29_20240529_Hu_nucseq_Immpath_EMB24", # CMP 01
+            "353921_32-32_20240529_Hu_nucseq_Immpath_EMB29", # AM 29
+            "o28576_1_06-6_20220525_Hu_nucseq_Graz_6_EMB_GEM") #CMP 12
+
+
+# T Cell low: CMP 10, Sarcoidosis 02, CMP 04, CMP 05, CMP 03, AM 15, AM 09, CMP 07, AM 08, Sarcoidosis 01, CMP 11, AM 14
+
+TC_low <- c("o28576_1_04-4_20220525_Hu_nucseq_Graz_4_EMB_GEM", #CMP 10
+            "o294781_11-11_20220912_Hu_nucseq_Graz_20_EMB_GEM", # Sarcoidosis 02
+            "o28576_1_13-13_20220525_Hu_nucseq_EMB32_GEM", # CMP 04
+            "o292731_4-4_20220818_Hu_nucseq_SG_34_EMB_GEM", # CMP 05
+            "353921_33-33_20240529_Hu_nucseq_Immpath_EMB30", # CMP 03
+            "o294781_06-6_20220912_Hu_nucseq_Graz_15_EMB_GEM", # AM 15
+            "359861_16-8_20240730_Hu_nucseq_Immpath_EMB47", # AM 09
+            "o294781_05-5_20220912_Hu_nucseq_Graz_14_EMB_GEM", # CMP 07
+            "353921_35-35_20240529_Hu_nucseq_Immpath_EMB37", # AM 08
+            "o292731_5-5_20220818_Hu_nucseq_SG_35_EMB_GEM", # Sarcoidosis 01
+            "o28576_1_05-5_20220525_Hu_nucseq_Graz_5_EMB_GEM", # CMP 11
+            "o28576_1_02-2_20220525_Hu_nucseq_Graz_2_EMB_GEM") # AM 14
+            
+
+# T Cell Very Low: Healthy 06, AM 12, Heatlhy 01, Healthy 07, CMP 02, AM 05, AM 03, AM 02, Healthy 05, AM 04, CMP 09, Healthy 08, CMP 08, AM 10, Healthy 02, Healthy 03, Healthy 04, CMP 06, AM 07, AM 11
+
+TC_vlow <- c ("o294781_02-2_20220912_Hu_nucseq_Graz_22_HH_GEM", # Healthy 06
+              "o27936_1_7-7_20220309_Hu_nucseq_EMB32_GEM", # AM 12
+              "o28576_1_08-8_20220525_Hu_nucseq_Graz_8_HH_GEM", # Healthy 01
+              "o294781_03-3_20220912_Hu_nucseq_Graz_23_HH_GEM", # Healthy 07
+              "353921_30-30_20240529_Hu_nucseq_Immpath_EMB25", # CMP 02
+              "353921_31-31_20240529_Hu_nucseq_Immpath_EMB27", # AM 05
+              "312581_06-6_20230308_Hu_nucseq_SG37_EMB_GEM", # AM 03
+              "312581_05-5_20230308_Hu_nucseq_SG36_EMB_GEM", # AM 02
+              "o294781_01-1_20220912_Hu_nucseq_Graz_21_HH_GEM", # Healthy 05
+              "353921_28-28_20240529_Hu_nucseq_Immpath_EMB18", # AM 04
+              "o28576_1_03-3_20220525_Hu_nucseq_Graz_3_EMB_GEM", # CMP 09
+              "o294781_04-4_20220912_Hu_nucseq_Graz_24_HH_GEM", # Healthy 08
+              "o294781_09-9_20220912_Hu_nucseq_Graz_18_EMB_GEM", # CMP 08
+              "359861_17-9_20240730_Hu_nucseq_Immpath_EMB48", # AM 10
+              "o28576_1_12-12_20220525_Hu_nucseq_Graz_12_HH_GEM", # Healthy 02
+              "o292731_1-1_20220818_Hu_nucseq_Graz_9_HH_GEM", # Healthy 03
+              "o292731_2-2_20220818_Hu_nucseq_Graz_13_HH_GEM", # Healthy 04
+              "o28576_1_07-7_20220525_Hu_nucseq_Graz_7_EMB_GEM", # CMP 06
+              "353921_34-34_20240529_Hu_nucseq_Immpath_EMB35", # AM 07
+              "o27533_1_12-12_20220203_Hu_nucseq_EMB31_GEM") # AM 11
+
+
+seuratM$TC <- "TC"
+seuratM$TC[which(seuratM$dataset %in% TC_high)] <- "Tcell High"
+seuratM$TC[which(seuratM$dataset %in% TC_int)] <- "Tcell Intermediate"
+seuratM$TC[which(seuratM$dataset %in% TC_low)] <- "Tcell Low"
+seuratM$TC[which(seuratM$dataset %in% TC_vlow)] <- "Tcell Very Low"
+
+table (seuratM$TC)
+table(seuratM$orig.ident)
+table(seuratM$patient)
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r add condition to list}
+
+Idents(seuratM) <- seuratM$TC
+
+colTC <- c("#BE3144","#de2d26","#fc9272", "#fee0d2")
+names(colTC) <- c("Tcell High", "Tcell Intermediate", "Tcell Low", "Tcell Very Low")
+
+seuratM$TC <- factor(seuratM$TC, levels = c("Tcell High", "Tcell Intermediate", "Tcell Low", "Tcell Very Low"))
+
+
+DimPlot(seuratM, reduction = "umap", pt.size = 0.1, group.by = "TC", cols = colTC)
+
+DimPlot(seuratM, reduction = "umap", pt.size = 0.1, group.by = "pat_sub", cols = colpat_sub)
+
+
+
+Idents(seuratM) <- seuratM$clusterName
+DimPlot(seuratM, reduction = "umap", pt.size = 0.1, label = TRUE, cols = colclusterName)
+
+```
+
+
+
+
+
+
+```{r}
+
+Idents(seuratM) <- seuratM$TC
+orderTC <- c("Tcell Very High", "Tcell High", "Tcell Intermediate", "Tcell Low", "Tcell Very Low")
+
+DimPlot(seuratM, reduction = "umap", pt.size = 0.1, group.by = "TC", cols = colTC)
+
+
+seuratTC_high <- subset(seuratM, TC == "Tcell High")
+DimPlot(seuratTC_high, reduction = "umap", pt.size = 0.1, cols = colTC, raster=FALSE)
+
+seuratTC_intermediate <- subset(seuratM, TC == "Tcell Intermediate")
+DimPlot(seuratTC_intermediate, reduction = "umap", pt.size = 0.1, cols = colTC, raster=FALSE)
+
+seuratTC_low <- subset(seuratM, TC == "Tcell Low")
+DimPlot(seuratTC_low, reduction = "umap", pt.size = 0.1, cols = colTC, raster=FALSE)
+
+seuratTC_verylow <- subset(seuratM, TC == "Tcell Very Low")
+DimPlot(seuratTC_verylow, reduction = "umap", pt.size = 0.05, cols = colTC, raster=FALSE)
+```
+
+
+```{r }
+### label split by T cell Grp
+
+DimPlot(seuratM, reduction = "umap", group.by = "clusterName", cols=colclusterName,
+        split.by = "TC", shuffle = TRUE)+
+  theme_void()
+
+
+```
+
+```{r}
+## DE Genes all Clusters
+
+Idents(seuratM) <- seuratM$clusterName
+markers <- FindAllMarkers(seuratM, only.pos = T, logfc.threshold = 0.2) %>%
+  dplyr::filter(p_val_adj < 0.01)
+
+#View(markers)
+
+```
+
+
+
+
+```{r }
+
+Idents(seuratM) <- seuratM$TC
+# Tcell high vs. very low
+seuratTC_high_vs_vlow <- subset(seuratM, TC %in% c("Tcell High", "Tcell Very Low"))
+levels(seuratTC_high_vs_vlow)
+Idents(seuratTC_high_vs_vlow) <- seuratTC_high_vs_vlow$clusterName
+
+table(seuratTC_high_vs_vlow$orig.ident)
+# 45164 nuclei for Tcell High vs. Very Low
+
+DimPlot(seuratTC_high_vs_vlow, reduction = "umap", pt.size = 0.1, raster=FALSE, cols = colclusterName, label = T)
+
+```
+
+
+```{r Cellcount per Tcell condition}
+
+cellcount_TC_high_vs_vlow <- data.frame(table(seuratTC_high_vs_vlow$RNA_snn_res.0.25))
+colnames(cellcount_TC_high_vs_vlow) <- c("clusterName", "Freq")
+hsize <- 1.5
+
+ggplot(cellcount_TC_high_vs_vlow, aes(x = clusterName, y = Freq, fill = clusterName)) +
+  geom_col(color = "white") + 
+  theme_classic() +  
+  ggtitle("Cell Number by Cluster for Tcell high vs. vlow") +
+  theme(plot.title = element_text(hjust = 0.5, size = 15)) +
+  geom_text(aes(label = Freq), vjust = -0.3, size = 3) +  
+  xlab("Cluster Names") +  
+  ylab("Frequency (Cell Count)")  
+
+#cell count per condition
+cellcount_TC_high_vs_vlow_con <- data.frame(table(seuratTC_high_vs_vlow$pat_sub))
+colnames(cellcount_TC_high_vs_vlow_con) <- c("Condition", "Freq")
+hsize <- 1.5
+
+ggplot(cellcount_TC_high_vs_vlow_con, aes(x = hsize, y = Freq, fill = Condition)) +
+  #scale_fill_manual(values = colpat2) +
+  geom_col(color = "white") +
+  coord_polar(theta = "y") +
+  xlim(c(0.2, hsize + 0.5)) +
+  theme_void() +
+  ggtitle("Tcell High vs. Very Low per condition") +
+  theme(plot.title = element_text(hjust = 0.5, size = 15)) +
+  geom_text(aes(label = Freq), position = position_stack(vjust = 0.5))
+
+# Healthy 17250, AM 17730, CMP 7095, Sarcoidosis 3089, highest nucleus number patient Healthy 04
+
+```
+
+```{r Cellcount per patient Tcell, fig.width = 10, fig.height = 6}
+
+#cell count per patient for T cell high vs. very low condition, greatest contribution
+cellcount_TC_high_vs_vlow_pat <- data.frame(table(seuratTC_high_vs_vlow$patient))
+colnames(cellcount_TC_high_vs_vlow_pat) <- c("patient", "Freq")
+hsize <- 1.5
+
+ggplot(cellcount_TC_high_vs_vlow_pat, aes(x = patient, y = Freq, fill = patient)) +
+  geom_col(color = "white") +  
+  theme_classic() +  
+  ggtitle("Cell Number by Patient high vs. vlow T cell condition") +
+  theme(plot.title = element_text(hjust = 0.5, size = 15)) +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
+  geom_text(aes(label = Freq), vjust = -0.3, size = 3) +  
+  xlab("Patients") +  
+  ylab("Frequency (Cell Count)")  
+
+```
+
+
+
+
+
+
+```{r Subset Macrophage 2 cluster)}
+
+## For inflammatory macrophages MCP2 check DE gene expression for different T cell conditions
+Idents(seuratM) <- seuratM$TC
+
+seuratMCP2 <- subset(seuratM, clusterName %in% "MCP2")
+table(seuratMCP2$clusterName)
+
+Idents(seuratMCP2) <- seuratMCP2$TC
+
+table(seuratMCP2$orig.ident)
+table(seuratMCP2$TC)
+
+DimPlot(seuratMCP2, reduction = "umap", cols = colTC)
+
+levels(seuratMCP2)
+
+table(seuratMCP2$TC)
+
+
+table(seuratMCP2$patient, seuratMCP2$TC)
+
+# for MCP2 Tcell High N = 447, Tcell Intermediate N = 372, Tcell Low = 1098, Tcell Very Low = 1806 
+
+
+
+```
+
+
+
+```{r DE genes pos. neg. MCP2}
+
+## DE Genes pos. and neg. for Macrophage 2 Cluster 
+DEGenesMCP2all <- FindAllMarkers(seuratMCP2, only.pos = F, logfc.threshold = 0.2) %>% 
+  dplyr::filter(p_val_adj < 0.01)
+
+DEGenesMCP2all <- DEGenesMCP2all %>% 
+  mutate(Gene=gene) %>%
+  mutate(gene=gsub("^.*\\.", "", Gene))  %>%
+  mutate(EnsID=gsub("\\..*","", Gene))
+
+#View(DEGenesMCP2all)
+
+
+```
+
+
+
+
+```{r Volcano Plot Tcell High MCP2, fig.width = 8, fig.height = 6}
+
+# DE Genes neg. and pos. markers for T cell high condition in MCP2 Cluster
+DEGenesMCP2all_TChigh <- DEGenesMCP2all %>% filter(cluster == "Tcell High")
+
+res_MCP2_TChigh <- as.data.frame(DEGenesMCP2all_TChigh)
+
+EnhancedVolcano(res_MCP2_TChigh, 
+                x = 'avg_log2FC',
+                y = 'p_val_adj',
+                lab = res_MCP2_TChigh$gene,
+                # xlim =c(-6, 6), 
+                title = 'DE Genes T cell High Condition in MCP2 Cluster',
+                xlab = bquote(~Log[2]~ 'fold change'),
+                pCutoff = 10e-1,
+                FCcutoff = 1.5,
+    cutoffLineType = 'twodash',
+    cutoffLineWidth = 0.8,
+    pointSize = 2.0,
+    labSize = 3.0,
+    # shape = c(1,4, 23,25),
+    colAlpha = 1,
+    legendLabels=c('Not sig.','Log (base 2) FC','p-value',
+      'p-value & Log (base 2) FC'),
+    legendPosition = 'right',
+    legendLabSize = 12,
+    legendIconSize = 5.0,
+    # drawConnectors = TRUE,
+    # widthConnectors = 0.75,
+    # ridlines.major = FALSE,
+    gridlines.minor = FALSE)
+
+
+
+```
+
+```{r Volcano Plot Tcell Intermediate MCP2, fig.width = 8, fig.height = 6}
+
+# DE Genes neg. and pos. markers for T cell Intermediate Condition in MCP2 Cluster
+DEGenesMCP2all_TCint <- DEGenesMCP2all %>% filter(cluster == "Tcell Intermediate")
+
+res_MCP2_TCint <- as.data.frame(DEGenesMCP2all_TCint)
+
+EnhancedVolcano(res_MCP2_TCint, 
+                x = 'avg_log2FC',
+                y = 'p_val_adj',
+                lab = res_MCP2_TCint$gene,
+                # xlim =c(-6, 6), 
+                title = 'DE Genes T cell Intermediate Condition in MCP2 Cluster',
+                xlab = bquote(~Log[2]~ 'fold change'),
+                pCutoff = 10e-1,
+                FCcutoff = 1.5,
+    cutoffLineType = 'twodash',
+    cutoffLineWidth = 0.8,
+    pointSize = 2.0,
+    labSize = 3.0,
+    # shape = c(1,4, 23,25),
+    colAlpha = 1,
+    legendLabels=c('Not sig.','Log (base 2) FC','p-value',
+      'p-value & Log (base 2) FC'),
+    legendPosition = 'right',
+    legendLabSize = 12,
+    legendIconSize = 5.0,
+    # drawConnectors = TRUE,
+    # widthConnectors = 0.75,
+    # ridlines.major = FALSE,
+    gridlines.minor = FALSE)
+
+
+
+```
+
+
+```{r Volcano Plot Tcell Low MCP2, fig.width = 8, fig.height = 6}
+
+# DE Genes neg. and pos. markers for T cell Low condition in MCP2 Cluster
+DEGenesMCP2all_TClow <- DEGenesMCP2all %>% filter(cluster == "Tcell Low")
+
+res_MCP2_TClow <- as.data.frame(DEGenesMCP2all_TClow)
+
+EnhancedVolcano(res_MCP2_TClow, 
+                x = 'avg_log2FC',
+                y = 'p_val_adj',
+                lab = res_MCP2_TClow$gene,
+                # xlim =c(-6, 6), 
+                title = 'DE Genes T cell Low Condition in MCP2 Cluster',
+                xlab = bquote(~Log[2]~ 'fold change'),
+                pCutoff = 10e-1,
+                FCcutoff = 1.5,
+    cutoffLineType = 'twodash',
+    cutoffLineWidth = 0.8,
+    pointSize = 2.0,
+    labSize = 3.0,
+    # shape = c(1,4, 23,25),
+    colAlpha = 1,
+    legendLabels=c('Not sig.','Log (base 2) FC','p-value',
+      'p-value & Log (base 2) FC'),
+    legendPosition = 'right',
+    legendLabSize = 12,
+    legendIconSize = 5.0,
+    # drawConnectors = TRUE,
+    # widthConnectors = 0.75,
+    # ridlines.major = FALSE,
+    gridlines.minor = FALSE)
+
+
+
+```
+
+
+```{r Volcano Plot Tcell very low MCP2, fig.width = 8, fig.height = 6}
+
+# DE Genes neg. and pos. markers for T cell Very Low condition in MCP2 Cluster
+DEGenesMCP2all_TCvlow <- DEGenesMCP2all %>% filter(cluster == "Tcell Very Low")
+
+res_MCP2_TCvlow <- as.data.frame(DEGenesMCP2all_TCvlow)
+
+EnhancedVolcano(res_MCP2_TCvlow, 
+                x = 'avg_log2FC',
+                y = 'p_val_adj',
+                lab = res_MCP2_TCvlow$gene,
+                # xlim =c(-6, 6), 
+                title = 'DE Genes T cell Very Low Condition in MCP2 Cluster',
+                xlab = bquote(~Log[2]~ 'fold change'),
+                pCutoff = 10e-1,
+                FCcutoff = 1.5,
+    cutoffLineType = 'twodash',
+    cutoffLineWidth = 0.8,
+    pointSize = 2.0,
+    labSize = 3.0,
+    # shape = c(1,4, 23,25),
+    colAlpha = 1,
+    legendLabels=c('Not sig.','Log (base 2) FC','p-value',
+      'p-value & Log (base 2) FC'),
+    legendPosition = 'right',
+    legendLabSize = 12,
+    legendIconSize = 5.0,
+    # drawConnectors = TRUE,
+    # widthConnectors = 0.75,
+    # ridlines.major = FALSE,
+    gridlines.minor = FALSE)
+
+
+
+```
+
+
+```{r Macrophage Dotplot according to TC condition, fig.width = 12, fig.height= 10 }
+
+# Dotplot of DE genes by TC conditions for MCP2 cluster
+
+Idents(seuratMCP2) <- seuratMCP2$TC
+seuratMCP2$TC <- factor(seuratMCP2$TC, levels = c("Tcell High","Tcell Intermediate","Tcell Low","Tcell Very Low"))
+
+genes <- data.frame(gene=rownames(seuratM)) %>% 
+  mutate(geneID=gsub("^.*\\.", "", gene))
+
+
+# Selected genes for DotPlot
+selGenes <- data.frame(geneID=rev(c("XIST", "TSIX", "STAT1", "STAT2", "GBP5", "RNF213", "SAMD9L", "HLA-B", "HLA-A", "SIGLEC1", "IFI44L", "B2M", "SCO2", "XAF1", "CXCR2P1", "TYMP", "C1QA", "TNFAIP2", "CD38","IRF1", "DDX3Y", "FTL", "TAP1", "JAK2","CXCL9", "CXCL10", "LRRK2", "TFEC", "P2RY6","AKT1S1", "GBP2", "SLAMF7", "VMP1", "XRN1", "APOL2", "MS4A6A", "SERPING1", "MSR1", "CD163", "PARP9", "IFI44", "NLRC5", "LILRB4", "FYB1", "CD72", "CD274", "CD2", "LAIR1", "CD46", "IL10RA", "PHYHP", "LYVE1", "CCL24", "KDM5D"))) %>% left_join(., genes, by="geneID") %>% filter(gene != "ENSG00000232995.RGS5") 
+
+
+DotPlot(seuratMCP2, features = selGenes$gene, group.by= "TC") + RotatedAxis() + scale_color_viridis(option="T") + coord_flip()
+
+
+```
+
+
+
+
+
+
+
+```{r}
+## DE Genes only pos. for Macrophage 2 Cluster 
+DEGenesMCP2 <- FindAllMarkers(seuratMCP2, only.pos = T, logfc.threshold = 0.2) %>% 
+  dplyr::filter(p_val_adj < 0.01)
+
+DEGenesMCP2 <- DEGenesMCP2 %>% 
+  mutate(Gene=gene) %>%
+  mutate(gene=gsub("^.*\\.", "", Gene))  %>%
+  mutate(EnsID=gsub("\\..*","", Gene))
+
+```
+
+
+
+```{r, MCP2 TC high Dotplot, fig.width = 14, fig.height = 10}
+
+## Inflammatory Macrophages (MCP2) cluster for Tcell High
+
+##GSEA Macrophage type 2 (inflammatory) 
+DEGenes_MCP2_TChigh <- DEGenesMCP2 %>% filter(cluster == "Tcell High")
+egoMCP2_TChigh <- enrichGO(gene = unique(DEGenes_MCP2_TChigh$EnsID),
+                          OrgDb = org.Hs.eg.db,
+                          keyType = 'ENSEMBL',
+                          ont = "BP",
+                          pAdjustMethod = "BH",
+                          pvalueCutoff = 0.05,
+                          qvalueCutoff = 0.05)
+
+egoMCP2_TChigh <- setReadable(egoMCP2_TChigh, OrgDb = org.Hs.eg.db)
+
+#write.table(egoMCP2_TChigh@result, file= "/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/docs/egoMCP2 for TC high 12.10.2024", sep="\t",quote=F,row.names=F,col.names=T)
+
+dotplot(egoMCP2_TChigh, showCategory = 20, title = "T cell High in Inflammatory Macrophage Cluster MCP2")
+
+```
+
+
+```{r Barplot TC high MCP 2}
+
+barplot(egoMCP2_TChigh,
+        drop = TRUE,
+        showCategory = 4,
+        title = "T cell High in Inflammatory Macrophage Cluster MCP2",
+        font.size = 14)
+
+
+```
+
+
+
+
+```{r MCP2 cluster for Tcell Intermediate, fig.width = 10, fig.height = 6}
+## Biological Process MCP2 Cluster (inflammatory macrophages) for Tcell Intermediate
+
+DEGenes_MCP2_TCint <- DEGenesMCP2 %>% filter(cluster == "Tcell Intermediate")
+egoMCP2_int <- enrichGO(gene = unique(DEGenes_MCP2_TCint$EnsID),
+                          OrgDb = org.Hs.eg.db,
+                          keyType = 'ENSEMBL',
+                          ont = "BP",
+                          pAdjustMethod = "BH")
+                          #pvalueCutoff = 0.05,
+                          #qvalueCutoff = 0.05)
+egoMCP2_int <- setReadable(egoMCP2_int, OrgDb = org.Hs.eg.db)
+
+#View(egoMCP2_int@result)
+
+#write.table(egoMCP2_int@result, file= "/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/docs/Markers/egoMCP2 for TC intermediate 12.10.2024", sep="\t",quote=F,row.names=F,col.names=T)
+
+egoMCP2_int_df <- as.data.frame(egoMCP2_int@result)
+ggplot(egoMCP2_int@result[1:30, ], aes(x = reorder(Description, zScore), y = zScore)) +
+  geom_bar(stat = "identity", aes(fill = zScore)) +
+  coord_flip() +
+  theme_classic() +
+  scale_fill_gradient2(low = "blue", mid = "white", high = "red") +
+  labs(title = "Macrophage type 2 by Z-score for T cell Intermediate Condition", y = "Z-score", x = "Description")
+```
+
+
+
+```{r MCP2 cellular component Tcell int, fig.width = 10, fig.height = 6}
+## cellular component T cell int MCP2 cluster
+DEGenes_MCP2_TCint <- DEGenesMCP2 %>% filter(cluster == "Tcell Intermediate")
+egoMCP2_int <- enrichGO(gene = unique(DEGenes_MCP2_TCint$EnsID),
+                          OrgDb = org.Hs.eg.db,
+                          keyType = 'ENSEMBL',
+                          ont = "CC",
+                          pAdjustMethod = "BH")
+                          #pvalueCutoff = 0.05,
+                          #qvalueCutoff = 0.05)
+egoMCP2_int <- setReadable(egoMCP2_int, OrgDb = org.Hs.eg.db)
+
+egoMCP2_int_df <- as.data.frame(egoMCP2_int@result)
+ggplot(egoMCP2_int@result[1:30, ], aes(x = reorder(Description, zScore), y = zScore)) +
+  geom_bar(stat = "identity", aes(fill = zScore)) +
+  coord_flip() +
+  theme_classic() +
+  scale_fill_gradient2(low = "blue", mid = "white", high = "red") +
+  labs(title = "Macrophage type 2 by Z-score for T cell Intermediate Condition", y = "Z-score", x = "Description")
+
+#View(egoMCP2_int@result)
+
+#write.table(egoMCP2_int@result, file= "/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/docs/Markers/egoMCP2 for TC intermediate 12.10.2024", sep="\t",quote=F,row.names=F,col.names=T)
+```
+
+
+
+
+```{r Metabolic function Tcell Int MCP2, fig.width = 10, fig.height=6}
+
+## Metabolic function MCP2 T cell Intermediate
+
+DEGenes_MCP2_TCint <- DEGenesMCP2 %>% filter(cluster == "Tcell Intermediate")
+egoMCP2_int <- enrichGO(gene = unique(DEGenes_MCP2_TCint$EnsID),
+                          OrgDb = org.Hs.eg.db,
+                          keyType = 'ENSEMBL',
+                          ont = "MF",
+                          pAdjustMethod = "BH")
+                          #pvalueCutoff = 0.05,
+                          #qvalueCutoff = 0.05)
+egoMCP2_int <- setReadable(egoMCP2_int, OrgDb = org.Hs.eg.db)
+
+# p value adj > 0.05
+#View(egoMCP2_int@result)
+
+#write.table(egoMCP2_int@result, file= "/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/docs/Markers/egoMCP2 for TC intermediate 12.10.2024", sep="\t",quote=F,row.names=F,col.names=T)
+
+egoMCP2_int_df <- as.data.frame(egoMCP2_int@result)
+ggplot(egoMCP2_int@result[1:30, ], aes(x = reorder(Description, zScore), y = zScore)) +
+  geom_bar(stat = "identity", aes(fill = zScore)) +
+  coord_flip() +
+  theme_classic() +
+  scale_fill_gradient2(low = "blue", mid = "white", high = "red") +
+  labs(title = "Macrophage type 2 by Z-score for T cell Intermediate", y = "Z-score", x = "Description")
+
+
+
+```
+```
+
+
+```
+
+
+
+```{r Inflammatory Macrophages (MCP2) cluster for Tcell Low, fig.width = 10, fig.height=6}
+
+# (MCP2) cluster for Tcell Low
+DEGenes_MCP2_TClow <- DEGenesMCP2 %>% filter(cluster == "Tcell Low")
+egoMCP2_low <- enrichGO(gene = unique(DEGenes_MCP2_TClow$EnsID),
+                          OrgDb = org.Hs.eg.db,
+                          keyType = 'ENSEMBL',
+                          ont = "BP",
+                          pAdjustMethod = "BH",
+                          pvalueCutoff = 0.05,
+                         qvalueCutoff = 0.05)
+egoMCP2_low <- setReadable(egoMCP2_low, OrgDb = org.Hs.eg.db)
+
+
+#View(egoMCP2_low@result)
+
+# p adjust > 0.05 
+
+DEGenes_MCP2_TClow <- DEGenesMCP2 %>% filter(cluster == "Tcell Low")
+egoMCP2_low <- enrichGO(gene = unique(DEGenes_MCP2_TClow$EnsID),
+                          OrgDb = org.Hs.eg.db,
+                          keyType = 'ENSEMBL',
+                          ont = "BP",
+                          pAdjustMethod = "BH")
+                         
+egoMCP2_low <- setReadable(egoMCP2_low, OrgDb = org.Hs.eg.db)
+
+
+# write.table(egoMCP2_low@result, file= "/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/docs/Markers/egoMCP2 for TC low 12.10.2024", sep="\t",quote=F,row.names=F,col.names=T)
+
+egoMCP2_low_df <- as.data.frame(egoMCP2_low@result)
+ggplot(egoMCP2_low_df[1:20, ], aes(x = reorder(Description, zScore), y = zScore)) +
+  geom_bar(stat = "identity", aes(fill = zScore)) +
+  coord_flip() +
+  theme_classic() +
+  scale_fill_gradient2(low = "blue", mid = "white", high = "red") +
+  labs(title = "MCP2 DE Z-score for T cell Low Condition Biological Process", y = "Z-score", x = "Description")
+
+```
+
+
+```{r Inflammatory Macrophages (MCP2) cluster for Tcell Very Low, fig.width = 9, fig.height=5}
+
+#(MCP2) cluster for Tcell Very Low
+
+DEGenes_MCP2_TCvlow <- DEGenesMCP2 %>% filter(cluster == "Tcell Very Low")
+egoMCP2_vlow <- enrichGO(gene = unique(DEGenes_MCP2_TCvlow$EnsID),
+                          OrgDb = org.Hs.eg.db,
+                          keyType = 'ENSEMBL',
+                          ont = "BP",
+                          pAdjustMethod = "BH")
+                          # pvalueCutoff = 0.05,
+                          # qvalueCutoff = 0.05)
+egoMCP2_vlow <- setReadable(egoMCP2_vlow, OrgDb = org.Hs.eg.db)
+
+#View(egoMCP2_vlow)
+
+#write.table (egoMCP2_vlow@result, file= "/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/docs/Markers/egoMCP2 for TC vlow 12.10.2024", sep="\t",quote=F,row.names=F,col.names=T)
+
+egoMCP2_vlow_df <- as.data.frame(egoMCP2_vlow@result)
+#by zScore
+ggplot(egoMCP2_vlow_df[1:30, ], aes(x = reorder(Description, zScore), y = zScore)) +
+  geom_bar(stat = "identity", aes(fill = zScore)) +
+  coord_flip() +
+  theme_classic() +
+  scale_fill_gradient2(low = "blue", mid = "white", high = "red") +
+  labs(title = "MCP2 DE Z-score for T cell Very Low Condition", y = "Z-score", x = "Description")
+
+
+
+```
+
+
+
+
+
+
+
+
+
+```{r Subset Cardiomyocytes}
+
+## Subset Cardiomyocyte Cluster for different T cell conditions
+seuratCM <- subset(seuratM, clusterName %in% "Cardiomyocyte")
+table(seuratCM$clusterName)
+
+table(seuratCM$patient)
+
+table(seuratCM$pat_sub)
+
+Idents(seuratCM) <- seuratCM$TC
+
+DimPlot(seuratCM, reduction = "umap", cols = colTC)
+
+#levels(seuratCM)
+
+table(seuratCM$orig.ident)
+
+table(seuratCM$TC)
+
+```
+
+
+```{r DE genes pos. neg. Cardiomyo}
+
+## DE Genes pos. and neg.
+DEGenesCMall <- FindAllMarkers(seuratCM, only.pos = F, logfc.threshold = 0.2) %>% 
+  dplyr::filter(p_val_adj < 0.01)
+
+DEGenesCMall <- DEGenesCMall %>% 
+  mutate(Gene=gene) %>%
+  mutate(gene=gsub("^.*\\.", "", Gene))  %>%
+  mutate(EnsID=gsub("\\..*","", Gene))
+
+#View(DEGenesCM)
+
+```
+
+
+```{r Volcano Plot Tcell High Cardiomyocytes, fig.width = 8, fig.height = 6}
+
+
+# DE Genes neg. and pos. markers for T cell high condition in Cardiomyocyte Cluster
+DEGenes_CM_TChigh <- DEGenesCMall %>% filter(cluster == "Tcell High")
+
+res_CM_TChigh <- as.data.frame(DEGenes_CM_TChigh)
+
+EnhancedVolcano(res_CM_TChigh, 
+                x = 'avg_log2FC',
+                y = 'p_val_adj',
+                lab = res_CM_TChigh$gene,
+                # xlim =c(-6, 6), 
+                title = 'DE Genes T cell High Condition in Cardiomyocytes',
+                xlab = bquote(~Log[2]~ 'fold change'),
+                pCutoff = 10e-1,
+                FCcutoff = 1.5,
+    cutoffLineType = 'twodash',
+    cutoffLineWidth = 0.8,
+    pointSize = 2.0,
+    labSize = 3.0,
+    # shape = c(1,4, 23,25),
+    colAlpha = 1,
+    legendLabels=c('Not sig.','Log (base 2) FC','p-value',
+      'p-value & Log (base 2) FC'),
+    legendPosition = 'right',
+    legendLabSize = 12,
+    legendIconSize = 5.0,
+    # drawConnectors = TRUE,
+    # widthConnectors = 0.75,
+    # ridlines.major = FALSE,
+    gridlines.minor = FALSE)
+
+
+
+```
+
+```{r Volcano CM Tc int, fig.width = 8, fig.height = 6}
+
+
+## Volcano Plot for T cell intermediate in Cardiomyocytes, 
+# Note Pseudogenes and RNA genes shown as single numbers in Volcano plot
+
+DEGenes_CM_TCint <- DEGenesCMall %>% filter(cluster == "Tcell Intermediate")
+
+res_CM_TCint <- as.data.frame(DEGenes_CM_TCint)
+
+EnhancedVolcano(res_CM_TCint, 
+                x = 'avg_log2FC',
+                y = 'p_val_adj',
+                lab = res_CM_TCint$gene,
+                # xlim =c(-6, 6), 
+                title = 'DE Genes T cell Intermediate Condition in Cardiomyocytes',
+                xlab = bquote(~Log[2]~ 'fold change'),
+                pCutoff = 10e-1,
+                FCcutoff = 1.5,
+    cutoffLineType = 'twodash',
+    cutoffLineWidth = 0.8,
+    pointSize = 2.0,
+    labSize = 3.0,
+    # shape = c(1,4, 23,25),
+    colAlpha = 1,
+    legendLabels=c('Not sig.','Log (base 2) FC','p-value',
+      'p-value & Log (base 2) FC'),
+    legendPosition = 'right',
+    legendLabSize = 12,
+    legendIconSize = 5.0,
+    # drawConnectors = TRUE,
+    # widthConnectors = 0.75,
+    # ridlines.major = FALSE,
+    gridlines.minor = FALSE)
+
+
+```
+
+```{r Volcano CM Tc low, fig.width = 8, fig.height = 6}
+
+
+## Volcano Plot for T cell low in Cardiomyocytes 
+
+DEGenes_CM_TClow <- DEGenesCMall %>% filter(cluster == "Tcell Low")
+
+res_CM_TClow <- as.data.frame(DEGenes_CM_TClow)
+
+EnhancedVolcano(res_CM_TClow, 
+                x = 'avg_log2FC',
+                y = 'p_val_adj',
+                lab = res_CM_TClow$gene,
+                # xlim =c(-6, 6), 
+                title = 'DE Genes T cell Low Condition in Cardiomyocytes',
+                xlab = bquote(~Log[2]~ 'fold change'),
+                pCutoff = 10e-1,
+                FCcutoff = 1.5,
+    cutoffLineType = 'twodash',
+    cutoffLineWidth = 0.8,
+    pointSize = 2.0,
+    labSize = 3.0,
+    # shape = c(1,4, 23,25),
+    colAlpha = 1,
+    legendLabels=c('Not sig.','Log (base 2) FC','p-value',
+      'p-value & Log (base 2) FC'),
+    legendPosition = 'right',
+    legendLabSize = 12,
+    legendIconSize = 5.0,
+    # drawConnectors = TRUE,
+    # widthConnectors = 0.75,
+    # ridlines.major = FALSE,
+    gridlines.minor = FALSE)
+
+```
+
+```{r Volcano CM Tc vlow, fig.width = 8, fig.height = 6}
+
+
+## Volcano Plot for T cell very low in Cardiomyocytes 
+
+DEGenes_CM_TCvlow <- DEGenesCMall %>% filter(cluster == "Tcell Very Low")
+
+res_CM_TCvlow <- as.data.frame(DEGenes_CM_TCvlow)
+
+EnhancedVolcano(res_CM_TCvlow, 
+                x = 'avg_log2FC',
+                y = 'p_val_adj',
+                lab = res_CM_TCvlow$gene,
+                # xlim =c(-6, 6), 
+                title = 'DE Genes T cell Very Low Condition in Cardiomyocytes',
+                xlab = bquote(~Log[2]~ 'fold change'),
+                pCutoff = 10e-1,
+                FCcutoff = 1.5,
+    cutoffLineType = 'twodash',
+    cutoffLineWidth = 0.8,
+    pointSize = 2.0,
+    labSize = 3.0,
+    # shape = c(1,4, 23,25),
+    colAlpha = 1,
+    legendLabels=c('Not sig.','Log (base 2) FC','p-value',
+      'p-value & Log (base 2) FC'),
+    legendPosition = 'right',
+    legendLabSize = 12,
+    legendIconSize = 5.0,
+    # drawConnectors = TRUE,
+    # widthConnectors = 0.75,
+    # ridlines.major = FALSE,
+    gridlines.minor = FALSE)
+
+```
+
+
+
+
+
+```{r Cardiomyocyte Dotplot according to TC condition, fig.width = 12, fig.height= 10 }
+
+# Dotplot of DE genes by TC conditions for Cardiomyocyte cluster
+
+
+Idents(seuratCM) <- seuratCM$TC
+seuratCM$TC <- factor(seuratCM$TC, levels = c("Tcell High","Tcell Intermediate","Tcell Low","Tcell Very Low"))
+
+genes <- data.frame(gene=rownames(seuratCM)) %>% 
+  mutate(geneID=gsub("^.*\\.", "", gene))
+
+
+# Selected genes for DotPlot
+selGenes <- data.frame(geneID=rev(c("TTN", "MYBPC3", "RYR2", "NEBL", "CMYA5", "NPPA", "NPPB", "TAP1", "XIST", "HLA-B", "HLA-A", "GBP5", "CXCL9", "STAT1", "PLAAT4", "EPSTI1", "BATF2", "FYB1", "GBP3", "TGFB2", "TNFRSF12A","RASD1", "APOL6", "SERPINE1", "CADHR3", "ABCC3", "CYTOR", "Corf54"))) %>% left_join(., genes, by="geneID") %>% filter(gene != "ENSG00000232995.RGS5") 
+
+DotPlot(seuratCM, features = selGenes$gene, group.by= "TC") + RotatedAxis() + scale_color_viridis(option="T") + coord_flip()
+
+
+```
+
+
+
+
+```{r DE Genes CM}
+
+## Find marker Genes for Cardiomyocytes for each TC condition
+DEGenesCM <- FindAllMarkers(seuratCM, only.pos = T, logfc.threshold = 0.2) %>% 
+  dplyr::filter(p_val_adj < 0.01)
+
+DEGenesCM <- DEGenesCM %>% 
+  mutate(Gene=gene) %>%
+  mutate(gene=gsub("^.*\\.", "", Gene))  %>%
+  mutate(EnsID=gsub("\\..*","", Gene))
+
+#head(DEGenesCM)
+
+#View(DEGenesCM)
+
+#write.table (DEGenesCM, file= "/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/docs/Markers/DE Genes CM for all TCell conditions", sep="\t",quote=F,row.names=F,col.names=T)
+
+```
+
+
+
+```{r Cardiomyocyte T cell High Condition, fig.width = 14, fig.height = 12}
+
+
+##GSEA Cardiomyocyte
+DEGenes_CM_TChigh <- DEGenesCM %>% filter(cluster == "Tcell High")
+egoCM <- enrichGO(gene = unique(DEGenes_CM_TChigh$EnsID),
+                          OrgDb = org.Hs.eg.db,
+                          keyType = 'ENSEMBL',
+                          ont = "BP",
+                          pAdjustMethod = "BH",
+                          pvalueCutoff = 0.05,
+                          qvalueCutoff = 0.05)
+
+egoCM <- setReadable(egoCM, OrgDb = org.Hs.eg.db)
+
+dotplot(egoCM, showCategory = 20, title = "T cell High in Cardiomyocyte Cluster Biological Process")
+#View(egoCM)
+
+
+#write.table(egoCM@result, file= "/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/docs/Markers/egoCM for TC high 12.10.2024", sep="\t",quote=F,row.names=F,col.names=T)
+
+```
+
+
+
+
+
+
+
+
+
+`
+```{r Cardiomyocyte Cluster T cell Intermediate Dotplot, fig.width= 14, fig.height = 12}
+
+## Cardiomyocyte GSEA T cell Intermediate Condition
+
+DEGenes_CM_TCint <- DEGenesCM %>% filter(cluster == "Tcell Intermediate")
+egoCM_int <- enrichGO(gene = unique(DEGenes_CM_TCint$EnsID),
+                          OrgDb = org.Hs.eg.db,
+                          keyType = 'ENSEMBL',
+                          ont = "BP",
+                          pAdjustMethod = "BH",
+                          pvalueCutoff = 0.05,
+                          qvalueCutoff = 0.05)
+
+egoCM_int <- setReadable(egoCM_int, OrgDb = org.Hs.eg.db)
+#head(egoCM_int)
+
+dotplot(egoCM_int, showCategory = 30, title = "T cell Intermediate in Cardiomyocyte Cluster Biological Process")
+
+
+```
+
+
+```{r Cardiomyocyte Cluster T cell Barplot}
+
+barplot(egoCM_int,
+        drop = TRUE,
+        showCategory = 4,
+        title = "T cell Intermediate in Cardiomyocyte Cluster",
+        font.size = 14)
+
+```
+
+
+
+
+```{r Cardiomyocyte Cluster T cell Low Condition, fig.width=12, fig.height = 10}
+
+##GSEA Cardiomyocyte T cell low
+
+DEGenes_CM_TClow <- DEGenesCM %>% filter(cluster == "Tcell Low")
+egoCM_low <- enrichGO(gene = unique(DEGenes_CM_TClow$EnsID),
+                          OrgDb = org.Hs.eg.db,
+                          keyType = 'ENSEMBL',
+                          ont = "BP",
+                          pAdjustMethod = "BH",
+                          pvalueCutoff = 0.05,
+                          qvalueCutoff = 0.05)
+
+egoCM_low <- setReadable(egoCM_low, OrgDb = org.Hs.eg.db)
+#head(egoCM_low)
+
+dotplot(egoCM_low, showCategory = 20, title = "T cell Low Cardiomyocyte Cluster Biological Process")
+
+
+#write.table(egoCM_low@result, file= "/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/docs/Markers/egoCM for TC low 12.10.2024", sep="\t",quote=F,row.names=F,col.names=T)
+
+
+```
+
+
+
+
+```{r Cardiomyocyte Cluster T cell Very Low Condition, fig.width = 12, fig.height = 10 }
+
+##GSEA Cardiomyocyte T cell Very Low Condition
+DEGenes_CM_TCvlow <- DEGenesCM %>% filter(cluster == "Tcell Very Low")
+egoCM_vlow <- enrichGO(gene = unique(DEGenes_CM_TCvlow$EnsID),
+                          OrgDb = org.Hs.eg.db,
+                          keyType = 'ENSEMBL',
+                          ont = "BP",
+                          pAdjustMethod = "BH",
+                          pvalueCutoff = 0.05,
+                          qvalueCutoff = 0.05)
+
+egoCM_vlow <- setReadable(egoCM_vlow, OrgDb = org.Hs.eg.db)
+#head(egoCM_vlow)
+
+dotplot(egoCM_vlow, showCategory = 25, title = "T cell Very Low Cardiomyocyte Cluster Biological Process")
+
+#write.table(egoCM_vlow@result, file= "/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/docs/Markers/egoCM for TC very low 12.10.2024", sep="\t",quote=F,row.names=F,col.names=T)
+
+```
+
+
+
+
+
+
+```{r}
+
+## Subset T cell cluster from seuratM object
+seuratTcell <- subset(seuratM, clusterName %in% "TC")
+table(seuratTcell$clusterName)
+table(seuratTcell$patient)
+table(seuratTcell$pat_sub)
+
+Idents(seuratTcell) <- seuratTcell$TC
+
+table(seuratM$clusterName)
+table(seuratTcell$orig.ident)
+
+DimPlot(seuratTcell, reduction = "umap", cols = colTC)
+
+levels(seuratTcell)
+
+table(seuratTcell$patient)
+
+# for Tcell cluster TC High N = 608, Tcell Intermediate N = 468, Tcell Low = 1385, Tcell Very Low = 2375; N = 4836
+```
+
+
+```{r}
+
+## Marker Genes for T cell cluster with different T cell conditions
+DEGenesTC <- FindAllMarkers(seuratTcell, only.pos = F, logfc.threshold = 0.2) %>% 
+  dplyr::filter(p_val_adj < 0.01)
+
+DEGenesTC <- DEGenesTC %>% 
+  mutate(Gene=gene) %>%
+  mutate(gene=gsub("^.*\\.", "", Gene))  %>%
+  mutate(EnsID=gsub("\\..*","", Gene))
+
+#head(DEGenesTC)
+
+#View(DEGenesTC)
+
+#write.table (DEGenesTC, file= "/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/docs/Markers/DE Genes Tcell cluster for all TCell conditions", sep="\t",quote=F,row.names=F,col.names=T)
+
+```
+
+
+
+```{r Volcano Plot Tcell high, TC cluster, fig.width = 8, fig.height = 6}
+
+## Volcano Plot for T cell High Condition in T cell cluster
+
+DEGenesTC_high <- DEGenesTC %>% filter(cluster == "Tcell High")
+
+resTC_high <- as.data.frame(DEGenesTC_high)
+
+EnhancedVolcano(resTC_high, 
+                x = 'avg_log2FC',
+                y = 'p_val_adj',
+                lab = resTC_high$gene,
+                # xlim =c(-6, 6), 
+                title = 'DE Genes T cell High Condition in T cell Cluster',
+                xlab = bquote(~Log[2]~ 'fold change'),
+                pCutoff = 10e-1,
+                FCcutoff = 1.5,
+    cutoffLineType = 'twodash',
+    cutoffLineWidth = 0.8,
+    pointSize = 2.0,
+    labSize = 4.0,
+    # shape = c(1,4, 23,25),
+    colAlpha = 1,
+    legendLabels=c('Not sig.','Log (base 2) FC','p-value',
+      'p-value & Log (base 2) FC'),
+    legendPosition = 'right',
+    legendLabSize = 12,
+    legendIconSize = 5.0,
+    # drawConnectors = TRUE,
+    # widthConnectors = 0.75,
+    # ridlines.major = FALSE,
+    gridlines.minor = FALSE)
+
+
+```
+
+```{r Volcano Plot Tcell int, TC cluster, fig.width = 8, fig.height = 6}
+
+## Volcano Plot for T cell Intermediate Condition in T cell cluster
+
+DEGenesTC_int <- DEGenesTC %>% filter(cluster == "Tcell Intermediate")
+
+resTC_int <- as.data.frame(DEGenesTC_int)
+
+EnhancedVolcano(resTC_int, 
+                x = 'avg_log2FC',
+                y = 'p_val_adj',
+                lab = resTC_int$gene,
+                # xlim =c(-6, 6), 
+                title = 'DE Genes T cell Intermediate Condition in T cell Cluster',
+                xlab = bquote(~Log[2]~ 'fold change'),
+                pCutoff = 10e-1,
+                FCcutoff = 1.5,
+    cutoffLineType = 'twodash',
+    cutoffLineWidth = 0.8,
+    pointSize = 2.0,
+    labSize = 4.0,
+    # shape = c(1,4, 23,25),
+    colAlpha = 1,
+    legendLabels=c('Not sig.','Log (base 2) FC','p-value',
+      'p-value & Log (base 2) FC'),
+    legendPosition = 'right',
+    legendLabSize = 12,
+    legendIconSize = 5.0,
+    # drawConnectors = TRUE,
+    # widthConnectors = 0.75,
+    # ridlines.major = FALSE,
+    gridlines.minor = FALSE)
+
+
+```
+
+
+```{r Volcano Plot Tcell low, TC cluster, fig.width = 8, fig.height = 6}
+
+## Volcano Plot for T cell Low Condition in T cell cluster
+
+DEGenesTClow <- DEGenesTC %>% filter(cluster == "Tcell Low")
+
+resTC_low <- as.data.frame(DEGenesTClow)
+
+EnhancedVolcano(resTC_low, 
+                x = 'avg_log2FC',
+                y = 'p_val_adj',
+                lab = resTC_low$gene,
+                # xlim =c(-6, 6), 
+                title = 'DE Genes T cell Low Condition in T cell Cluster',
+                xlab = bquote(~Log[2]~ 'fold change'),
+                pCutoff = 10e-1,
+                FCcutoff = 1.5,
+    cutoffLineType = 'twodash',
+    cutoffLineWidth = 0.8,
+    pointSize = 2.0,
+    labSize = 4.0,
+    # shape = c(1,4, 23,25),
+    colAlpha = 1,
+    legendLabels=c('Not sig.','Log (base 2) FC','p-value',
+      'p-value & Log (base 2) FC'),
+    legendPosition = 'right',
+    legendLabSize = 12,
+    legendIconSize = 5.0,
+    # drawConnectors = TRUE,
+    # widthConnectors = 0.75,
+    # ridlines.major = FALSE,
+    gridlines.minor = FALSE)
+
+```
+
+
+```{r Volcano Plot TC vlow, TC cluster, fig.width = 8, fig.height = 6}
+
+## Volcano Plot for T cell Intermediate in T cell cluster
+
+DEGenesTCvlow <- DEGenesTC %>% filter(cluster == "Tcell Very Low")
+
+resTC_vlow <- as.data.frame(DEGenesTCvlow)
+
+EnhancedVolcano(resTC_vlow, 
+                x = 'avg_log2FC',
+                y = 'p_val_adj',
+                lab = resTC_vlow$gene,
+                # xlim =c(-6, 6), 
+                title = 'DE Genes T cell Very Low Condition in T cell Cluster',
+                xlab = bquote(~Log[2]~ 'fold change'),
+                pCutoff = 10e-1,
+                FCcutoff = 1.5,
+    cutoffLineType = 'twodash',
+    cutoffLineWidth = 0.8,
+    pointSize = 2.0,
+    labSize = 4.0,
+    # shape = c(1,4, 23,25),
+    colAlpha = 1,
+    legendLabels=c('Not sig.','Log (base 2) FC','p-value',
+      'p-value & Log (base 2) FC'),
+    legendPosition = 'right',
+    legendLabSize = 12,
+    legendIconSize = 5.0,
+    # drawConnectors = TRUE,
+    # widthConnectors = 0.75,
+    # ridlines.major = FALSE,
+    gridlines.minor = FALSE)
+
+
+```
+
+
+```{r Dotplot Tcell cluster TC con, fig.width = 10, fig.height = 8}
+
+## Dotplot of DE genes across Tcell conditions for T cell cluster
+
+
+#View(DEGenesTC)
+
+Idents(seuratTcell) <- seuratTcell$TC
+seuratTcell$TC <- factor(seuratTcell$TC, levels = c("Tcell High","Tcell Intermediate","Tcell Low","Tcell Very Low"))
+
+
+genes <- data.frame(gene = rownames (seuratTcell)) %>%
+  mutate(geneID =gsub("^.*\\.", "", gene))
+
+
+# Selected genes for DotPlot
+selGenes <- data.frame(geneID=rev(c("XIST", "TSIX", "STAT1","JAK2", "PRKY", "MALAT1", "KDM5D", "FAM118A", "HLA-DRA", "VMP1", "SAT1", "CXCL9", "CXCL10", "GBP5", "CD74", "IFI44L", "SPON2", "TYMP", "APOD", "KLRF1", "CXCR1", "TNFAIP3", "TBX3", "GZMH", "TGFBR3", "KIT", "GATA2", "THBS4"))) %>% left_join(., genes, by="geneID") %>% filter(gene != "ENSG00000232995.RGS5") 
+
+DotPlot(seuratCM, features = selGenes$gene, group.by= "TC") + RotatedAxis() + scale_color_viridis(option="T") + coord_flip()
+
+
+
+```
+
+
+
+```{r DE genes TC cluster: Tcell High condition, fig.width = 10, fig.height = 10}
+
+##GSEA Tcell Cluster T cell High Condition
+
+DEGenesTC <- FindAllMarkers(seuratTcell, only.pos = T, logfc.threshold = 0.2) %>% 
+  dplyr::filter(p_val_adj < 0.01)
+
+DEGenesTC <- DEGenesTC %>% 
+  mutate(Gene=gene) %>%
+  mutate(gene=gsub("^.*\\.", "", Gene))  %>%
+  mutate(EnsID=gsub("\\..*","", Gene))
+
+#head(DEGenesTC)
+
+DEGenesTC_high <- DEGenesTC %>% filter(cluster == "Tcell High")
+egoTC_high <- enrichGO(gene = unique(DEGenesTC_high$EnsID),
+                          OrgDb = org.Hs.eg.db,
+                          keyType = 'ENSEMBL',
+                          ont = "BP",
+                          pAdjustMethod = "BH",
+                          pvalueCutoff = 0.05,
+                          qvalueCutoff = 0.05)
+
+egoTC_high <- setReadable(egoTC_high, OrgDb = org.Hs.eg.db)
+
+#head(egoTC_high)
+
+dotplot(egoTC_high, showCategory = 20, title = "T cell High Condition in T cell Cluster Biological Process")
+
+#write.table(egoTC@result, file= "/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/docs/Markers/egoTC for TC high 12.10.2024", sep="\t",quote=F,row.names=F,col.names=T)
+#View(egoTC@result)
+
+```
+
+
+
+
+
+
+
+
+```{r T cell cluster: Tcell Intermediate condition}
+
+##GSEA Tcell Cluster in Tcell Intermediate condition
+
+DEGenesTC_int <- DEGenesTC %>% filter(cluster == "Tcell Intermediate")
+egoTC_int <- enrichGO(gene = unique(DEGenesTC_int$EnsID),
+                          OrgDb = org.Hs.eg.db,
+                          keyType = 'ENSEMBL',
+                          ont = "BP",
+                          pAdjustMethod = "BH",
+                          pvalueCutoff = 0.05,
+                          qvalueCutoff = 0.05)
+
+egoTC_int <- setReadable(egoTC_int, OrgDb = org.Hs.eg.db)
+dotplot(egoTC_int, showCategory = 20, title = "T cell Intermediate Condition in T cell Cluster Biological Process")
+
+#head(egoTC_int)
+# View(egoTC_int@result)
+
+#write.table(egoTC_int@result, file= "/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/docs/Markers/egoTC for TC intermediate 12.10.2024", sep="\t",quote=F,row.names=F,col.names=T)
+
+
+```
+
+
+
+```{r T cell cluster: Tcell Low condition, fig.width = 8, fig.height = 8}
+
+##GSEA Tcell Cluster in T cell Low condition
+
+DEGenesTC_low <- DEGenesTC %>% filter(cluster == "Tcell Low")
+egoTC_low <- enrichGO(gene = unique(DEGenesTC_low$EnsID),
+                          OrgDb = org.Hs.eg.db,
+                          keyType = 'ENSEMBL',
+                          ont = "BP",
+                          pAdjustMethod = "BH",
+                          pvalueCutoff = 0.05,
+                          qvalueCutoff = 0.05)
+
+egoTC_low <- setReadable(egoTC_low, OrgDb = org.Hs.eg.db)
+
+dotplot(egoTC_low, showCategory = 20, title = "T cell Low Condition in T cell Cluster Biological Process")
+
+#head(egoTC_low)
+
+#View(egoTC_low@result)
+
+#write.table(egoTC_low@result, file= "/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/docs/Markers/egoTC for TC low 12.10.2024", sep="\t",quote=F,row.names=F,col.names=T)
+```
+
+
+
+```{r T cell cluster: Tcell Very Low condition, fig.width = 9, fig.heigt = 8}
+
+##GSEA Tcell cluster Tcell Very Low condition
+
+DEGenesTC_vlow <- DEGenesTC %>% filter(cluster == "Tcell Very Low")
+egoTC_vlow <- enrichGO(gene = unique(DEGenesTC_vlow$EnsID),
+                          OrgDb = org.Hs.eg.db,
+                          keyType = 'ENSEMBL',
+                          ont = "BP",
+                          pAdjustMethod = "BH",
+                          pvalueCutoff = 0.05,
+                          qvalueCutoff = 0.05)
+
+egoTC_vlow <- setReadable(egoTC_vlow, OrgDb = org.Hs.eg.db)
+
+
+
+dotplot(egoTC_vlow, showCategory = 15, title = "T cell Very Low Condition in T cell Cluster Biological Process")
+
+
+```
+
+
+
+```{r Fb Clusters stratified by Tcell condition}
+
+
+###Subset Fibroblasts 
+
+seuratFb <- subset(seuratM, clusterName %in% c("Fb1","Fb2", "Fb3"))
+table(seuratFb$clusterName)
+table(seuratFb$patient)
+table(seuratFb$pat_sub)
+table(seuratFb$orig.ident)
+
+Idents(seuratFb) <- seuratFb$TC
+
+DimPlot(seuratFb, reduction = "umap", cols = colTC)
+
+levels(seuratFb)
+
+table(seuratFb$TC)
+
+
+DEGenesFb <- FindAllMarkers(seuratFb, only.pos = F, logfc.threshold = 0.2) %>% 
+  dplyr::filter(p_val_adj < 0.01)
+
+
+DEGenesFb <- DEGenesFb %>% 
+  mutate(Gene=gene) %>%
+  mutate(gene=gsub("^.*\\.", "", Gene))  %>%
+  mutate(EnsID=gsub("\\..*","", Gene))
+
+```
+
+```{r Volcano Plot Tcell high, Fb cluster, fig.width = 10, fig.height = 6}
+
+## Volcano Plot for T cell High condition across all fibroblasts 
+
+DEGenesFb_high <- DEGenesFb %>% filter(cluster == "Tcell High")
+
+resFb_high <- as.data.frame(DEGenesFb_high)
+
+                
+EnhancedVolcano(DEGenesFb_high, 
+                x = 'avg_log2FC',
+                y = 'p_val_adj',
+                lab = resFb_high$gene,
+                # xlim =c(-6, 6), 
+                title = 'DE Genes T cell High across all Fibroblasts',
+                xlab = bquote(~Log[2]~ 'fold change'),
+                pCutoff = 10e-1,
+                FCcutoff = 1.5,
+    cutoffLineType = 'twodash',
+    cutoffLineWidth = 0.8,
+    pointSize = 2.0,
+    labSize = 3.0,
+    # shape = c(1,4, 23,25),
+    colAlpha = 1,
+    legendLabels=c('Not sig.','Log (base 2) FC','p-value',
+      'p-value & Log (base 2) FC'),
+    legendPosition = 'right',
+    legendLabSize = 12,
+    legendIconSize = 5.0,
+    # drawConnectors = TRUE,
+    # widthConnectors = 0.75,
+    # ridlines.major = FALSE,
+    gridlines.minor = FALSE)
+
+
+```
+
+
+
+```{r Volcano Plot TCint, TC cluster, fig.width = 8, fig.height = 6}
+
+## Volcano Plot for T cell Intermediate condition across all fibroblasts
+
+DEGenesFb_int <- DEGenesFb %>% filter(cluster == "Tcell Intermediate")
+
+resFb_int <- as.data.frame(DEGenesFb_int)
+
+                
+EnhancedVolcano(DEGenesFb_int, 
+                x = 'avg_log2FC',
+                y = 'p_val_adj',
+                lab = resFb_int$gene,
+                # xlim =c(-6, 6), 
+                title = 'DE Genes T cell Intermediate across all Fibroblasts',
+                xlab = bquote(~Log[2]~ 'fold change'),
+                pCutoff = 10e-1,
+                FCcutoff = 1.5,
+    cutoffLineType = 'twodash',
+    cutoffLineWidth = 0.8,
+    pointSize = 2.0,
+    labSize = 4.0,
+    # shape = c(1,4, 23,25),
+    colAlpha = 1,
+    legendLabels=c('Not sig.','Log (base 2) FC','p-value',
+      'p-value & Log (base 2) FC'),
+    legendPosition = 'right',
+    legendLabSize = 12,
+    legendIconSize = 5.0,
+    # drawConnectors = TRUE,
+    # widthConnectors = 0.75,
+    # ridlines.major = FALSE,
+    gridlines.minor = FALSE)
+
+
+
+```
+```{r Volcano TC low Fb, fig.width=8, fig.height=6}
+
+## Volcano Plot for T cell Low condition across all fibroblasts
+
+DEGenesFb_low <- DEGenesFb %>% filter(cluster == "Tcell Low")
+
+resFb_low <- as.data.frame(DEGenesFb_low)
+
+                
+EnhancedVolcano(DEGenesFb_low, 
+                x = 'avg_log2FC',
+                y = 'p_val_adj',
+                lab = resFb_low$gene,
+                # xlim =c(-6, 6), 
+                title = 'DE Genes T cell Low across all Fibroblasts',
+                xlab = bquote(~Log[2]~ 'fold change'),
+                pCutoff = 10e-1,
+                FCcutoff = 1.5,
+    cutoffLineType = 'twodash',
+    cutoffLineWidth = 0.8,
+    pointSize = 2.0,
+    labSize = 3.0,
+    # shape = c(1,4, 23,25),
+    colAlpha = 1,
+    legendLabels=c('Not sig.','Log (base 2) FC','p-value',
+      'p-value & Log (base 2) FC'),
+    legendPosition = 'right',
+    legendLabSize = 12,
+    legendIconSize = 5.0,
+    # drawConnectors = TRUE,
+    # widthConnectors = 0.75,
+    # ridlines.major = FALSE,
+    gridlines.minor = FALSE)
+
+
+
+```
+```{r Volcano TC vlow Fb, fig.width = 8, fig.height=6}
+
+## Volcano Plot for T cell Very Low condition across all fibroblasts
+
+DEGenesFb_vlow <- DEGenesFb %>% filter(cluster == "Tcell Very Low")
+
+resFb_vlow <- as.data.frame(DEGenesFb_vlow)
+
+                
+EnhancedVolcano(DEGenesFb_vlow, 
+                x = 'avg_log2FC',
+                y = 'p_val_adj',
+                lab = resFb_vlow$gene,
+                # xlim =c(-6, 6), 
+                title = 'DE Genes T cell Very Low across all Fibroblasts',
+                xlab = bquote(~Log[2]~ 'fold change'),
+                pCutoff = 10e-1,
+                FCcutoff = 1.5,
+    cutoffLineType = 'twodash',
+    cutoffLineWidth = 0.8,
+    pointSize = 2.0,
+    labSize = 3.0,
+    # shape = c(1,4, 23,25),
+    colAlpha = 1,
+    legendLabels=c('Not sig.','Log (base 2) FC','p-value',
+      'p-value & Log (base 2) FC'),
+    legendPosition = 'right',
+    legendLabSize = 12,
+    legendIconSize = 5.0,
+    # drawConnectors = TRUE,
+    # widthConnectors = 0.75,
+    # ridlines.major = FALSE,
+    gridlines.minor = FALSE)
+
+
+
+```
+
+```{r Dotplot Fb cluster TC con, fig.width = 10, fig.height = 6}
+
+
+## Dotplot of DE genes across Tcell conditions for all Fbs
+
+
+Idents(seuratFb) <- seuratFb$TC
+seuratFb$TC <- factor(seuratFb$TC, levels = c("Tcell High","Tcell Intermediate","Tcell Low","Tcell Very Low"))
+
+
+genes <- data.frame(gene = rownames (seuratTcell)) %>%
+  mutate(geneID =gsub("^.*\\.", "", gene))
+
+
+# Selected genes for DotPlot
+selGenes <- data.frame(geneID=rev(c("XIST", "GBP1", "GBP5", "CXCL9", "IRF8", "VMP1", "HLA-DMB", "APOL2", "IL7R", "CXCR2P1", "JAK2", "SLAMF8", "CD2", "CCL8", "CXCL6", "IL2RG", "COL1A2", "TNFSF10", "COl1A2", "SNX10", "XAF1","ZBTB16", "APOD", "ADAMTS5", "ADAMTS1", "RGS2", "GRAMD2B", "WNK3", "SLC7A8", "PLEKHG4", "S100A8")))  %>% left_join(., genes, by="geneID") %>% filter(gene != "ENSG00000232995.RGS5") 
+
+
+DotPlot(seuratFb, features = selGenes$gene, group.by= "TC") + RotatedAxis() + scale_color_viridis(option="T") + coord_flip() 
+
+
+
+```
+
+
+
+
+
+```{r DE ontology TChigh Fb Clusters, fig.width= 10, fig.height = 8}
+DEGenesFb <- FindAllMarkers(seuratFb, only.pos = T, logfc.threshold = 0.2) %>%
+  dplyr::filter(p_val_adj < 0.01)
+
+DEGenesFb <- DEGenesFb %>% 
+  mutate(Gene=gene) %>%
+  mutate(gene=gsub("^.*\\.", "", Gene))  %>%
+  mutate(EnsID=gsub("\\..*","", Gene))
+
+##GSEA Fibroblast Group
+DEGenes_Fb_TChigh <- DEGenesFb %>% filter(cluster == "Tcell High")
+egoFb <- enrichGO(gene = unique(DEGenes_Fb_TChigh$EnsID),
+                          OrgDb = org.Hs.eg.db,
+                          keyType = 'ENSEMBL',
+                          ont = "BP",
+                          pAdjustMethod = "BH")
+                        
+
+egoFb <- setReadable(egoFb, OrgDb = org.Hs.eg.db)
+
+dotplot(egoFb, showCategory = 20, title = "DE Genes for T Cell High Condition across all Fibroblasts")
+
+#write.table(egoFb@result, file= "/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/docs/Markers/egoFb for TC high 12.10.2024", sep="\t",quote=F,row.names=F,col.names=T)
+
+#View (egoFb@result)
+
+
+```
+
+
+```{r DE ontology TCint Fb Clusters, fig.width= 12, fig.height = 8.5}
+
+##GSEA Fibroblast Group
+DEGenes_Fb_TCint <- DEGenesFb %>% filter(cluster == "Tcell Intermediate")
+egoFb <- enrichGO(gene = unique(DEGenes_Fb_TCint$EnsID),
+                          OrgDb = org.Hs.eg.db,
+                          keyType = 'ENSEMBL',
+                          ont = "BP",
+                          pAdjustMethod = "BH")
+                        
+
+egoFb <- setReadable(egoFb, OrgDb = org.Hs.eg.db)
+
+dotplot(egoFb, showCategory = 20, title = "DE Genes for T Cell Intermediate Condition across all Fibroblasts")
+
+
+#View (egoFb@result)
+
+
+```
+
+```{r DE ontology TClow Fb Clusters, fig.width= 14, fig.height = 10}
+
+DEGenesFb <- FindAllMarkers(seuratFb, only.pos = T, logfc.threshold = 0.2) %>%
+  dplyr::filter(p_val_adj < 0.01)
+
+DEGenesFb <- DEGenesFb %>% 
+  mutate(Gene=gene) %>%
+  mutate(gene=gsub("^.*\\.", "", Gene))  %>%
+  mutate(EnsID=gsub("\\..*","", Gene))
+
+##GSEA Fibroblast Group
+DEGenes_Fb_TClow <- DEGenesFb %>% filter(cluster == "Tcell Low")
+egoFb <- enrichGO(gene = unique(DEGenes_Fb_TClow$EnsID),
+                          OrgDb = org.Hs.eg.db,
+                          keyType = 'ENSEMBL',
+                          ont = "BP",
+                          pAdjustMethod = "BH")
+                        
+
+egoFb <- setReadable(egoFb, OrgDb = org.Hs.eg.db)
+
+dotplot(egoFb, showCategory = 20, title = "DE Genes for T Cell Low Condition across all Fibroblasts")
+
+
+View (egoFb@result)
+
+# TGF beta pathway: LTBP4/LTBP2/SPRY1/COL1A1/SMURF2/ASPN/NR3C1/LTBP3/ANKRD1/SOX9/HTRA3/STUB1/SPRY2/SKIL/LTBP1/IL17RD/HSP90AB1/NREP/FUT8/FNTA/TET1/ROCK2/TGFB2/ZMIZ1/TGFBR1/APPL2/BMPR1A/PENK/ITGA3/SMAD5/APPL1/PPM1A/PMEPA1/ACTA2/SPRED2/ZFYVE9/SIRT1/APAF1/ITGB8/ITGB5/SUDS3/CD109/FAM89B/SAP30/ACVR1/SNW1/THBS1/AXIN1/SMAD1/MTMR4/ZYX
+
+
+```
+
+
+
+`
+```{r DE ontology TCvlow Fb Clusters, fig.width= 10, fig.height = 8}
+##GSEA Fibroblast
+DEGenes_Fb_TCvlow <- DEGenesFb %>% filter(cluster == "Tcell Very Low")
+egoFb_vlow <- enrichGO(gene = unique(DEGenes_Fb_TCvlow$EnsID),
+                          OrgDb = org.Hs.eg.db,
+                          keyType = 'ENSEMBL',
+                          ont = "BP",
+                          pAdjustMethod = "BH",
+                          pvalueCutoff = 0.05,
+                          qvalueCutoff = 0.05)
+
+egoFb_vlow <- setReadable(egoFb_vlow, OrgDb = org.Hs.eg.db)
+
+dotplot(egoFb_vlow, showCategory = 20, title = "DE Genes for T Cell Very Low Condition across all Fibroblasts")
+
+
+#View (egoFb_vlow@result)
+
+
+```
+
+
+
+```{r DE genes all TC conditions}
+
+Idents(seuratM) <- seuratM$TC
+
+DimPlot(seuratM, reduction = "umap", cols = colTC)
+
+table(seuratM$TC)
+
+DEGenes <- FindAllMarkers(seuratM, only.pos = T, logfc.threshold = 0.2) %>% 
+  dplyr::filter(p_val_adj < 0.01)
+
+DEGenes <- DEGenes %>% 
+  mutate(Gene=gene) %>%
+  mutate(gene=gsub("^.*\\.", "", Gene))  %>%
+  mutate(EnsID=gsub("\\..*","", Gene))
+
+```
+
+
+```{r DE genes TC high, fig.width = 12, fig.height = 8}
+
+# DE genes TC high
+DEGenes_high <- DEGenes %>% filter(cluster == "Tcell High")
+ego_high <- enrichGO(gene = unique(DEGenes_high$EnsID),
+                          OrgDb = org.Hs.eg.db,
+                          keyType = 'ENSEMBL',
+                          ont = "BP",
+                          pAdjustMethod = "BH",
+                          pvalueCutoff = 0.05,
+                          qvalueCutoff = 0.05)
+
+dotplot(ego_high, showCategory = 20, title = "T Cell High Condition across all Clusters")
+
+```
+
+
+```{r DE genes TC int, fig.width = 12, fig.height = 10}
+
+# DE genes TC int
+
+DEGenes_int <- DEGenes %>% filter(cluster == "Tcell Intermediate")
+ego_int <- enrichGO(gene = unique(DEGenes_int$EnsID),
+                          OrgDb = org.Hs.eg.db,
+                          keyType = 'ENSEMBL',
+                          ont = "BP",
+                          pAdjustMethod = "BH",
+                          pvalueCutoff = 0.05,
+                          qvalueCutoff = 0.05)
+
+dotplot(ego_int, showCategory = 20, title = "T Cell Intermediate Condition across all Clusters")
+
+```
+
+
+```{r DE genes TC low, fig.width = 12, fig.height = 10}
+
+# DE genes TC low
+DEGenes_low <- DEGenes %>% filter(cluster == "Tcell Low")
+ego_low <- enrichGO(gene = unique(DEGenes_low$EnsID),
+                          OrgDb = org.Hs.eg.db,
+                          keyType = 'ENSEMBL',
+                          ont = "BP",
+                          pAdjustMethod = "BH",
+                          pvalueCutoff = 0.05,
+                          qvalueCutoff = 0.05)
+
+dotplot(ego_low, showCategory = 20, title = "T Cell Low Condition across all Clusters")
+
+```
+
+
+```{r DE genes TC vlow, fig.width = 12, fig.height = 10}
+
+# DE genes TC vlow
+DEGenes_vlow <- DEGenes %>% filter(cluster == "Tcell Very Low")
+ego_vlow <- enrichGO(gene = unique(DEGenes_vlow$EnsID),
+                          OrgDb = org.Hs.eg.db,
+                          keyType = 'ENSEMBL',
+                          ont = "BP",
+                          pAdjustMethod = "BH",
+                          pvalueCutoff = 0.05,
+                          qvalueCutoff = 0.05)
+
+dotplot(ego_vlow, showCategory = 20, title = "T Cell Very Low Condition across all Clusters")
+
+
+```
+
+
+```{r save RDS file}
+
+
+#write.table(dat_all, file= "/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/docs/Markers_dat_all_clusters_Tcell_high_lowV2", sep = "\t",quote=F,row.names=F,col.names=T)
+
+#saveRDS(seuratM, file="/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/data/01 Merged Seurat files/Myocarditis_clusters_Tc_condition_26.09.24.rds")
+
+```
+
+
+```{r}
+date()
+sessionInfo()
+
+```
+
+
