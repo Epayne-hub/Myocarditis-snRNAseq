@@ -1,0 +1,350 @@
+---
+title: "T cells preliminary GSEA"
+author: "Emily Payne"
+date: "2024-11-25"
+output: html_document
+---
+
+```{r setup, include = FALSE, fig.path = "custom/path", warning = FALSE, message = FALSE}
+
+options (width = 100)
+knitr::opts_chunk$set(warning = FALSE, echo = TRUE, message = FALSE, dev = c("png", "pdf"))
+seed <- 1234
+
+```
+
+
+```{r load libraries}
+
+suppressPackageStartupMessages({
+  library(ExploreSCdataSeurat3)
+  library(runSeurat3)
+  library(Seurat)
+  library(ggpubr)
+  library(pheatmap)
+  library(SingleCellExperiment)
+  library(dplyr)
+  library(tidyverse)
+  library(viridis)
+  library(muscat)
+  library(circlize)
+  library(destiny)
+  library(scater)
+  library(metap)
+  library(multtest)
+  library(clusterProfiler)
+  library(org.Hs.eg.db)
+  library(msigdbr)
+  library(enrichplot)
+  library(DOSE)
+  library(grid)
+  library(gridExtra)
+  library(ggupset)
+  library(VennDiagram)
+  library(NCmisc)
+  library(RColorBrewer)
+  library(EnhancedVolcano)
+  library(textshaping)
+  library(wordcloud)
+  library(pathview)
+  library(workflowr)
+})
+
+```
+
+
+
+```{r load merged file}
+##load merged file 
+seuratM <- readRDS("~/Desktop/Emily/Myocarditis snRNAseq/data/01 Merged Seurat files/Myocarditis_allfiltered_V3_15.11.2024.rds")
+
+table(seuratM$RNA_snn_res.0.25)
+table(seuratM$patient)
+table(seuratM$orig.ident)
+
+```
+
+```{r clusterName}
+
+seuratM$clusterName <- "clusterName"
+Idents(seuratM) <- seuratM$clusterName
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "0" )] <- "Fb1"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "1" )] <- "BEC1"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "2" )] <- "PeriFb1"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "3" )] <- "Cardiomyocyte"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "4" )] <- "MCP1"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "5" )] <- "TC"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "6" )] <- "MCP2"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "7" )] <- "BEC2"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "8" )] <- "VSMC"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "9" )] <- "NC"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "10" )] <- "INT1"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "11" )] <- "Fb2"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "12" )] <- "Fb3"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "13" )] <- "PeriFb2"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "14" )] <- "AdipoC"
+
+
+colclusterName <- c("#D53E4F", "#f4a582", "#FEE08B","#feb24c","#67001f", "#01665e","#66C2A5","#c7eae5","#BEAED4", "#355C7D","#3288BD","#8c510a" ,"#fde0dd","#B45B5C","#dd1c77")
+
+                    
+names(colclusterName) <- c("Cardiomyocyte","Fb1","Fb2","Fb3", "INT1", "PeriFb1", "PeriFb2", "VSMC","NC", "BEC1","BEC2", "AdipoC", "MCP1","MCP2","TC")
+
+colpat_sub<- c("#dfc27d","#BE3144","#355C7D", "#779d8d")
+
+seuratM$clusterName <- factor(seuratM$clusterName, levels=c("Cardiomyocyte", "Fb1", "Fb2", "Fb3", "INT1","PeriFb1", "PeriFb2", "VSMC", "NC", "BEC1", "BEC2", "AdipoC", "MCP1", "MCP2", "TC"))
+
+
+Idents(seuratM) <- seuratM$clusterName
+DimPlot(seuratM, reduction = "umap", pt.size = 0.1, label = TRUE, cols = colclusterName)
+
+table(seuratM$patient, seuratM$TC)
+
+```
+
+
+```{r}
+
+## Subset from AM cohort, inflammatory clusters
+
+seuratTcell <- subset(seuratM, clusterName %in% "TC")
+table(seuratTcell$orig.ident)
+table(seuratTcell$patient, seuratTcell$clusterName)
+table(seuratTcell$patient, seuratTcell$sex)
+
+## Plot single Tcell cluster
+Idents(seuratTcell) <- seuratTcell$clusterName
+DimPlot(seuratTcell, reduction = "umap", cols = colclusterName, pt.size = 0.3)
+
+
+## Plot Tcell sorted by sex
+colsex <- c("#dd1c77","#355C7D")
+names(colsex) <- c("female", "male")
+
+Idents(seuratTcell) <- seuratTcell$sex
+DimPlot(seuratTcell, reduction = "umap", pt.size = 0.3, cols = colsex)
+
+## Plot Tcell sorted by Tcell
+Idents(seuratTcell) <- (seuratTcell$TC)
+
+colTC <- c("#BE3144","#de2d26","#fc9272", "#fee0d2")
+names(colTC) <- c("Tcell High", "Tcell Intermediate", "Tcell Low", "Tcell Very Low")
+
+DimPlot(seuratTcell, reduction = "umap", pt.size = 0.3, cols = colTC)
+                    
+
+Idents(seuratTcell) <- seuratTcell$clusterName
+
+table(seuratM$clusterName)
+
+
+
+```
+
+```{r Normalize Data for GSEA}
+seuratTcell <- NormalizeData (object = seuratTcell)
+seuratTcell <- FindVariableFeatures(object = seuratTcell)
+seuratTcell <- ScaleData(object = seuratTcell, verbose = TRUE)
+seuratTcell <- RunPCA(object = seuratTcell, npcs = 30, verbose = FALSE)
+seuratTcell <- RunTSNE(object = seuratTcell, reduction="pca", dims = 1:20)
+seuratTcell <- RunUMAP(object = seuratTcell, reduction="pca", dims = 1:20)
+seuratTcell <- FindNeighbors(object = seuratTcell, reduction = "pca", dims= 1:20)
+
+res <- c(0.25, 0.6, 0.8, 0.4, 0.3)
+for (i in 1:length(res)) {
+  seuratTcell <- FindClusters(object = seuratTcell, resolution = res[i], random.seed = 1234)
+}
+
+table(seuratTcell$orig.ident)
+table(seuratTcell$clusterName)
+```
+
+
+```{r Plot umaps by sex}
+## Plot Tcell sorted by sex
+
+colsex <- c("#dd1c77","#355C7D")
+names(colsex) <- c("female", "male")
+
+Idents(seuratTcell) <- seuratTcell$sex
+DimPlot(seuratTcell, reduction = "umap", pt.size = 0.3, cols = colsex)
+```
+
+
+```{r Plot umaps by Tcell condition}
+
+## Plot Tcell sorted by Tcell condition
+Idents(seuratTcell) <- (seuratTcell$TC)
+
+colTC <- c("#BE3144","#de2d26","#fc9272", "#fee0d2")
+names(colTC) <- c("Tcell High", "Tcell Intermediate", "Tcell Low", "Tcell Very Low")
+
+DimPlot(seuratTcell, reduction = "umap", pt.size = 0.3, cols = colTC)
+                    
+
+Idents(seuratTcell) <- seuratTcell$clusterName
+
+table(seuratM$clusterName)
+
+```
+
+
+```{r}
+Idents (seuratTcell) <- seuratTcell$RNA_snn_res.0.25
+
+DimPlot(seuratTcell, reduction = "umap", pt.size = 0.3, label = TRUE)
+
+Idents (seuratTcell) <- seuratTcell$RNA_snn_res.0.3
+
+DimPlot(seuratTcell, reduction = "umap", pt.size = 0.3, label = TRUE)
+
+Idents (seuratTcell) <- seuratTcell$RNA_snn_res.0.4
+
+DimPlot(seuratTcell, reduction = "umap", pt.size = 0.3, label = TRUE)
+
+Idents (seuratTcell) <- seuratTcell$RNA_snn_res.0.6
+
+DimPlot(seuratTcell, reduction = "umap", pt.size = 0.3, label = TRUE)
+
+
+```
+
+```{r}
+
+## Find all markers within AM cohort, only positive
+DEGenesTcell <- FindAllMarkers (seuratTcell, only.pos = TRUE, logfc.threshold = 0.2) %>%
+                                      dplyr::filter(p_val_adj < 0.01)
+
+
+#write.table(DEGenesTcell, file= "/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/docs/Markers/DEGenesTcell", sep="\t",quote=F,row.names=F,col.names=T)
+
+#View(DEGenesTcell)
+
+```
+
+
+
+```{r}
+
+get_full_gene_name <- function(gene, obj){
+  return(grep(gene,rownames(obj), value =TRUE))
+}
+get_full_gene_name("XIST",seuratTcell) 
+
+FeaturePlot(seuratTcell, features = "ENSG00000081237.PTPRC", pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seuratTcell, features = "ENSG00000168685.IL7R", pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seuratTcell, features = "ENSG00000010610.CD4", pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seuratTcell, features = "ENSG00000172116.CD8B", pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seuratTcell, features = get_full_gene_name("CD8A", seuratTcell) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+FeaturePlot(seuratTcell, features = "ENSG00000116824.CD2", pt.size = 1, cols = c("lightgrey", "#BE3144"))
+
+FeaturePlot(seuratTcell, features = "ENSG00000167286.CD3D", pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seuratTcell, features = "ENSG00000198851.CD3E", pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seuratTcell, features = "ENSG00000178562.CD28", pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seuratTcell, features = get_full_gene_name("CD96",seuratTcell) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+FeaturePlot(seuratTcell, features = get_full_gene_name("RIPOR2",seuratTcell) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+FeaturePlot(seuratTcell, features = "ENSG00000227507.LTB", pt.size = 1, cols = c("lightgrey", "#BE3144"))# Cluster 1 spec
+FeaturePlot(seuratTcell, features = "ENSG00000069667.RORA", pt.size = 1, cols = c("lightgrey", "#BE3144"))# Cluster 1
+FeaturePlot(seuratTcell, features = get_full_gene_name("PATJ",seuratTcell) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+
+#cl 6: CD8+ T cells proliferating ASPM, RRM2, KNL1, FANC; TOP2A, CEP152, DIAPH3, KIF18B, KIF14, CDCA3, TROAP, SAC3D1, MS4A7, ZNF683, GEN1, SAC8D1, SKA3, RAD54L, UWOMT. SPC25, BRACA1, BUB1B, Gen1, FoxM1, SKA3, CCNB1, SAC8D1, FANCI, CIT, SPAG5, ZNF683, E2F2, ZWINT
+
+
+FeaturePlot(seuratTcell, features = "ENSG00000163599.CTLA4", pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seuratTcell, features = get_full_gene_name("LAG3",seuratTcell) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# exhaustion
+FeaturePlot(seuratTcell, features = get_full_gene_name("TIGIT",seuratTcell) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+FeaturePlot(seuratTcell, features = get_full_gene_name("PDCD1",seuratTcell) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+FeaturePlot(seuratTcell, features = get_full_gene_name("HAVCR2",seuratTcell) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+
+FeaturePlot(seuratTcell, features = get_full_gene_name("FOXP3",seuratTcell) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# Tregs
+FeaturePlot(seuratTcell, features = "ENSG00000136634.IL10", pt.size = 1, cols = c("lightgrey", "#BE3144"))
+
+FeaturePlot(seuratTcell, features = get_full_gene_name("TGFB1",seuratTcell) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+FeaturePlot(seuratTcell, features = get_full_gene_name("STAT5A",seuratTcell) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+FeaturePlot(seuratTcell, features = get_full_gene_name("STAT5B",seuratTcell) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+
+FeaturePlot(seuratTcell, features = get_full_gene_name("RORC", seuratTcell) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# Th17 (and also IL3)
+FeaturePlot(seuratTcell, features = get_full_gene_name("IL22", seuratTcell) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+FeaturePlot(seuratTcell, features = get_full_gene_name("STAT3", seuratTcell) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+FeaturePlot(seuratTcell, features = get_full_gene_name("IL17RA", seuratTcell) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# did not find IL17A, only R
+FeaturePlot(seuratTcell, features = get_full_gene_name("CCR6", seuratTcell) , pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seuratTcell, features = "ENSG00000162594.IL23R", pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seuratTcell, features = "ENSG00000138795.LEF1", pt.size = 1, cols = c("lightgrey", "#BE3144"))
+
+
+FeaturePlot(seuratTcell, features = "ENSG00000109906.ZBTB16", pt.size = 1, cols = c("lightgrey", "#BE3144"))	
+FeaturePlot(seuratTcell, features = "ENSG00000165810.BTNL9", pt.size = 1, cols = c("lightgrey", "#BE3144"))	# MAIT
+
+
+FeaturePlot(seuratTcell, features = get_full_gene_name("TBX21",seuratTcell) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# Th1
+FeaturePlot(seuratTcell, features = get_full_gene_name("IFNG",seuratTcell) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+FeaturePlot(seuratTcell, features = get_full_gene_name("IL12RB1",seuratTcell) , pt.size = 1, cols = c("lightgrey", "#BE3144"))#
+FeaturePlot(seuratTcell, features = get_full_gene_name("CXCR3",seuratTcell) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+FeaturePlot(seuratTcell, features = get_full_gene_name("STAT4",seuratTcell) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+
+FeaturePlot(seuratTcell, features = get_full_gene_name("GATA3",seuratTcell) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# Th2
+
+FeaturePlot(seuratTcell, features = get_full_gene_name("BCL6",seuratTcell) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# Tfh
+FeaturePlot(seuratTcell, features = get_full_gene_name("IL21",seuratTcell) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+FeaturePlot(seuratTcell, features = "ENSG00000163600.ICOS", pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seuratTcell, features = get_full_gene_name("CCR5",seuratTcell) , pt.size = 1, cols = c("lightgrey", "#BE3144"))
+
+FeaturePlot(seuratTcell, features = "ENSG00000172116.CD8B", pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seuratTcell, features = get_full_gene_name("KIR2",seuratTcell) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+FeaturePlot(seuratTcell, features = get_full_gene_name("GZMB",seuratTcell) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+FeaturePlot(seuratTcell, features = get_full_gene_name("PRF1",seuratTcell) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+FeaturePlot(seuratTcell, features = "ENSG00000104970.KIR3DX1", pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seuratTcell, features = "ENSG00000111537.IFNG", pt.size = 1, cols = c("lightgrey", "#BE3144"))
+
+FeaturePlot(seuratTcell, features = get_full_gene_name("TRGV9",seuratTcell) , pt.size = 1, cols = c("lightgrey", "#BE3144")) #yd Tcells
+FeaturePlot(seuratTcell, features = get_full_gene_name("TRDV2",seuratTcell) , pt.size = 1, cols = c("lightgrey", "#BE3144")) # 
+FeaturePlot(seuratTcell, features = get_full_gene_name("TRGC1",seuratTcell) , pt.size = 1, cols = c("lightgrey", "#BE3144")) 
+
+FeaturePlot(seuratTcell, features = get_full_gene_name("KIR3DL1",seuratTcell) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# NK
+FeaturePlot(seuratTcell, features = get_full_gene_name("TXK",seuratTcell) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+FeaturePlot(seuratTcell, features = get_full_gene_name("NCAM1",seuratTcell) , pt.size = 1, cols = c("lightgrey", "#BE3144")) #CD56,NK marker
+FeaturePlot(seuratTcell, features = get_full_gene_name("KLRD1",seuratTcell) , pt.size = 1, cols = c("lightgrey", "#BE3144")) # CD94
+FeaturePlot(seuratTcell, features = get_full_gene_name("FCGR3A",seuratTcell) , pt.size = 1, cols = c("lightgrey", "#BE3144")) #CD16
+FeaturePlot(seuratTcell, features = get_full_gene_name("GZMB",seuratTcell) , pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seuratTcell, features = "ENSG00000189430.NCR1", pt.size = 1, cols = c("lightgrey", "#BE3144"))
+
+FeaturePlot(seuratTcell, features = "ENSG00000004468.CD38", pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seuratTcell, features = get_full_gene_name("JCHAIN",seuratTcell) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# plasma cells
+FeaturePlot(seuratTcell, features = "ENSG00000057657.PRDM1", pt.size = 1, cols = c("lightgrey", "#BE3144"))
+
+
+FeaturePlot(seuratTcell, features = "ENSG00000211899.IGHM", pt.size = 1, cols = c("lightgrey", "#BE3144"))## proliferating cells 
+FeaturePlot(seuratTcell, features = "ENSG00000156738.MS4A1", pt.size = 1, cols = c("lightgrey", "#BE3144")) # CD20
+FeaturePlot(seuratTcell, features = get_full_gene_name("CD19",seuratTcell) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+
+FeaturePlot(seuratTcell, features = "ENSG00000148773.MKI67", pt.size = 1, cols = c("lightgrey", "#BE3144"))## proliferating cells
+FeaturePlot(seuratTcell, features = get_full_gene_name("TOP2A", seuratTcell) , pt.size = 1, cols = c("lightgrey", "#BE3144"))
+
+FeaturePlot(seuratTcell, features = get_full_gene_name("SELL",seuratTcell) , pt.size = 1, cols = c("lightgrey", "#BE3144")) # SELL = CD62L# naive
+FeaturePlot(seuratTcell, features = get_full_gene_name("PTPRC",seuratTcell) , pt.size = 1, cols = c("lightgrey", "#BE3144")) #CD45
+FeaturePlot(seuratTcell, features = get_full_gene_name("CCR7",seuratTcell) , pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seuratTcell, features = get_full_gene_name("CXCL12",seuratTcell) , pt.size = 1, cols = c("lightgrey", "#BE3144"))
+
+FeaturePlot(seuratTcell, features = "ENSG00000110448.CD5", pt.size = 1, cols = c("lightgrey", "#BE3144"))
+
+FeaturePlot(seuratTcell, features = get_full_gene_name("STAT1",seuratTcell) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+FeaturePlot(seuratTcell, features = get_full_gene_name("STAT2",seuratTcell) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+FeaturePlot(seuratTcell, features = get_full_gene_name("STAT3",seuratTcell) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+FeaturePlot(seuratTcell, features = get_full_gene_name("STAT4",seuratTcell) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+FeaturePlot(seuratTcell, features = get_full_gene_name("STAT5",seuratTcell) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+
+```
+
+
+
+
+
+
+```{r Session Info}
+
+date()
+sessionInfo()
+
+
+```
+

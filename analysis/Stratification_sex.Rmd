@@ -111,13 +111,17 @@ DimPlot(seuratM, reduction = "umap", pt.size = 0.1, label = TRUE, cols= colclust
 Idents(seuratM) <- seuratM$sex
 DimPlot(seuratM, reduction = "umap", split.by = "sex")
 
+
+colsex <- c("#dd1c77","#355C7D")
+names(colsex) <- c("female", "male")
+
 #subset AM group in TC High, Intermediate, Low, Vlow
 
 seuratAM <- subset(seuratM, pat_sub == "AM")
 table(seuratAM$orig.ident)
 table(seuratAM$sex)
 Idents(seuratAM) <- seuratAM$sex
-DimPlot(seuratAM, reduction = "umap", pt.size = 0.1, raster=FALSE, group.by = "sex")
+DimPlot(seuratAM, reduction = "umap", pt.size = 0.1, raster=FALSE, group.by = "sex", cols = colsex)
 
 
 ```
@@ -330,6 +334,39 @@ top_genes_AM_male <- DEGenesAM_male %>%
 
 
 
+```{r}
+
+Idents(seuratM) <- seuratM$pat_sub
+seuratAM <- subset(seuratM, pat_sub == "AM")
+levels(seuratAM)
+table(seuratAM$orig.ident)
+
+seuratAM_immun <- subset(seuratAM, clusterName %in% c("MCP1", "MCP2","TC", "Fb1", "Fb2", "Fb3", "INT1", "PeriFb2", "Cardiomyocyte"))
+table(seuratAM_immun$orig.ident)
+table(seuratAM_immun$patient, seuratAM_immun$sex)
+table(seuratAM_immun$TC, seuratAM_immun$sex)
+table(seuratAM_immun$sex)
+table(seuratAM_immun$clusterName, seuratAM_immun$sex)
+
+Idents(seuratAM_immun) <- seuratAM_immun$sex
+
+colsex <- c("#dd1c77","#355C7D")
+names(colsex) <- c("female", "male")
+            
+
+DimPlot(seuratAM_immun, reduction = "umap", pt.size = 0.3, cols = colsex)
+
+colcluster<- c("#D53E4F", "#f4a582", "#FEE08B","#feb24c","#67001f" , "#66C2A5", "#fde0dd","#B45B5C","#dd1c77")
+
+                    
+names(colcluster) <- c("Cardiomyocyte","Fb1", "Fb2","Fb3", "INT", "PeriFb2", "MCP1","MCP2","TC")
+
+Idents(seuratAM_immun) <- seuratAM_immun$clusterName
+
+DimPlot(seuratAM_immun, reduction = "umap", cols = colcluster, pt.size = 0.3)
+
+
+```
 
 
 

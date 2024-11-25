@@ -140,6 +140,7 @@ for(con in unique(seuratM$patient)){
 dat_all <- do.call("rbind", datList)
 
 #View(dat_all)
+
 ```
 
 
@@ -2001,6 +2002,107 @@ dotplot(ego_vlow, showCategory = 20, title = "T Cell Very Low Condition across a
 #saveRDS(seuratM, file="/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/data/01 Merged Seurat files/Myocarditis_clusters_Tc_condition_26.09.24.rds")
 
 ```
+
+
+```{r T cell subgroup}
+Idents(seuratM) <- seuratM$TC
+
+seuratTC_high <- subset(seuratM, TC == "Tcell High")
+DimPlot(seuratTC_high, reduction = "umap", pt.size = 0.1, cols = colTC, raster=FALSE)
+table(seuratTC_high$orig.ident)
+table(seuratTC_high$TC)
+
+seuratTC_intermediate <- subset(seuratM, TC == "Tcell Intermediate")
+DimPlot(seuratTC_intermediate, reduction = "umap", pt.size = 0.1, cols = colTC, raster=FALSE)
+table(seuratTC_intermediate$orig.ident)
+table(seuratTC_intermediate$TC)
+
+seuratTC_low <- subset(seuratM, TC == "Tcell Low")
+DimPlot(seuratTC_low, reduction = "umap", pt.size = 0.1, cols = colTC, raster=FALSE)
+table(seuratTC_low$orig.ident)
+table(seuratTC_low$TC)
+
+seuratTC_verylow <- subset(seuratM, TC == "Tcell Very Low")
+DimPlot(seuratTC_verylow, reduction = "umap", pt.size = 0.05, cols = colTC, raster=FALSE)
+table(seuratTC_verylow$orig.ident)
+table(seuratTC_verylow$TC)
+
+
+```
+```{r}
+
+Idents (seuratM) <- seuratM$patient
+
+seurat_inflam <- subset(seuratM, patient %in% c("AM 01", "AM 16"))
+levels(seurat_inflam)
+table(seurat_inflam$orig.ident)
+table(seurat_inflam$clusterName)
+
+Idents(seurat_inflam) <- seurat_inflam$patient
+
+## Marker Genes for T cell cluster with different T cell conditions
+Inflam_high <- FindAllMarkers(seurat_inflam, only.pos = F, logfc.threshold = 0.2) %>% 
+  dplyr::filter(p_val_adj < 0.01)
+
+
+View (Inflam_high)
+
+```
+
+
+```{r T cell subgroup}
+
+Idents(seuratTC_high) <- seuratTC_high$clusterName
+
+DimPlot(seuratTC_high, reduction = "umap", cols = colTC)
+
+levels(seuratTC_high)
+
+table(seuratTC_high$patient)
+
+# AM 01, AM 16, AM 17, AM 18  CMP13 included
+
+```
+
+
+```{r}
+
+Idents(seuratTC_high) <- seuratTC_high$patient
+
+## Marker Genes for T cell cluster with different T cell conditions
+TChigh <- FindAllMarkers(seuratTC_high, only.pos = F, logfc.threshold = 0.2) %>% 
+  dplyr::filter(p_val_adj < 0.01)
+
+TChigh <- TChigh %>% 
+  mutate(Gene=gene) %>%
+  mutate(gene=gsub("^.*\\.", "", Gene))  %>%
+  mutate(EnsID=gsub("\\..*","", Gene))
+
+View(TChigh)
+
+
+```
+
+
+```{r}
+## DE Genes within
+DETChigh <- FindAllMarkers(seuratTC_high, only.pos = F, logfc.threshold = 0.2) #%>% 
+  #dplyr::filter(p_val_adj < 0.01)
+
+
+Fbmarkers <- FindAllMarkers(seuratFb, only.pos=F, logfc.threshold = 0.2) %>% 
+  dplyr::filter(p_val_adj < 0.01)
+
+DETChigh <- DETChigh %>% 
+  mutate(Gene=gene) %>%
+  mutate(gene=gsub("^.*\\.", "", Gene))  %>%
+  mutate(EnsID=gsub("\\..*","", Gene))
+
+View(DETChigh)
+
+
+```
+
 
 
 ```{r}

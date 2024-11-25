@@ -1,0 +1,2355 @@
+---
+title: "Activated clusters and immune cell clusters"
+author: "Emily Payne"
+date: "2024-11-07"
+output: html_document
+---
+
+
+```{r setup, include = FALSE, fig.path = "custom/path", warning = FALSE, message = FALSE}
+
+options (width = 100)
+knitr::opts_chunk$set(warning = FALSE, echo = TRUE, message = FALSE, dev = c("png", "pdf"))
+seed <- 1234
+
+```
+
+
+
+
+```{r load libraries, echo=FALSE, message=FALSE, warning=FALSE}
+
+suppressPackageStartupMessages({
+  library(ExploreSCdataSeurat3)
+  library(runSeurat3)
+  library(Seurat)
+  library(ggpubr)
+  library(pheatmap)
+  library(SingleCellExperiment)
+  library(dplyr)
+  library(tidyverse)
+  library(viridis)
+  library(muscat)
+  library(circlize)
+  library(destiny)
+  library(scater)
+  library(metap)
+  library(multtest)
+  library(clusterProfiler)
+  library(org.Hs.eg.db)
+  library(msigdbr)
+  library(enrichplot)
+  library(DOSE)
+  library(grid)
+  library(gridExtra)
+  library(ggupset)
+  library(VennDiagram)
+  library(NCmisc)
+  library(RColorBrewer)
+  library(EnhancedVolcano)
+  library(textshaping)
+  library(wordcloud)
+  library(pathview)
+  library(workflowr)
+})
+
+```
+
+
+```{r load merged file}
+## load merged file 
+seuratM <- readRDS("~/Desktop/Emily/Myocarditis snRNAseq/data/01 Merged Seurat files/Myocarditis_allfiltered_V3_15.11.2024.rds")
+
+table(seuratM$RNA_snn_res.0.25)
+table(seuratM$patient)
+table(seuratM$orig.ident)
+
+```
+
+
+```{r original clusterName}
+
+## name Clusters
+seuratM$clusterName <- "clusterName"
+Idents(seuratM) <- seuratM$clusterName
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "0" )] <- "Fb1"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "1" )] <- "BEC1"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "2" )] <- "PeriFb1"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "3" )] <- "Cardiomyocyte"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "4" )] <- "MCP1"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "5" )] <- "TC"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "6" )] <- "MCP2"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "7" )] <- "BEC2"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "8" )] <- "VSMC"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "9" )] <- "NC"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "10" )] <- "INT1"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "11" )] <- "Fb2"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "12" )] <- "Fb3"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "13" )] <- "PeriFb2"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "14" )] <- "AdipoC"
+
+
+colclusterName <- c("#D53E4F", "#f4a582", "#FEE08B","#feb24c","#67001f", "#01665e","#66C2A5","#c7eae5","#BEAED4", "#355C7D","#3288BD","#8c510a" ,"#fde0dd","#B45B5C","#dd1c77")
+
+                    
+names(colclusterName) <- c("Cardiomyocyte","Fb1","Fb2","Fb3", "INT1", "PeriFb1", "PeriFb2", "VSMC","NC", "BEC1","BEC2", "AdipoC", "MCP1","MCP2","TC")
+
+colpat_sub<- c("#dfc27d","#BE3144","#355C7D", "#779d8d")
+
+seuratM$clusterName <- factor(seuratM$clusterName, levels=c("Cardiomyocyte", "Fb1", "Fb2", "Fb3", "INT1","PeriFb1", "PeriFb2", "VSMC", "NC", "BEC1", "BEC2", "AdipoC", "MCP1", "MCP2", "TC"))
+
+
+Idents(seuratM) <- seuratM$clusterName
+DimPlot(seuratM, reduction = "umap", pt.size = 0.1, label = TRUE, cols = colclusterName)
+
+table(seuratM$patient, seuratM$TC)
+
+```
+
+
+
+
+
+
+```{r select inflammatory cells}
+
+## Subset from AM cohort, inflammatory clusters
+
+seurat_immun <- subset(seuratM, clusterName %in% c("MCP1", "MCP2","TC"))
+table(seurat_immun$orig.ident)
+table(seurat_immun$patient, seurat_immun$clusterName)
+table(seurat_immun$TC, seurat_immun$sex)
+
+Idents(seurat_immun) <- seurat_immun$sex
+
+colsex <- c("#dd1c77","#355C7D")
+names(colsex) <- c("female", "male")
+            
+
+colcluster<- c( "#fde0dd","#B45B5C","#dd1c77")
+
+                    
+names(colcluster) <- c("MCP1","MCP2","TC")
+
+Idents(seurat_immun) <- seurat_immun$clusterName
+
+DimPlot(seurat_immun, reduction = "umap", cols = colcluster, pt.size = 0.3)
+
+table(seuratM$clusterName)
+
+
+```
+
+```{r perform GSEA}
+
+## GSEA and Normalization
+seurat_immun <- NormalizeData (object = seurat_immun)
+seurat_immun <- FindVariableFeatures(object = seurat_immun)
+seurat_immun <- ScaleData(object = seurat_immun, verbose = TRUE)
+seurat_immun <- RunPCA(object=seurat_immun, npcs = 30, verbose = FALSE)
+seurat_immun <- RunTSNE(object=seurat_immun, reduction="pca", dims = 1:20)
+seurat_immun <- RunUMAP(object=seurat_immun, reduction="pca", dims = 1:20)
+seurat_immun <- FindNeighbors(object = seurat_immun, reduction = "pca", dims= 1:20)
+
+res <- c(0.25, 0.6, 0.8, 0.4, 0.3)
+for (i in 1:length(res)) {
+  seurat_immun <- FindClusters(object = seurat_immun, resolution = res[i], random.seed = 1234)
+}
+
+table(seurat_immun$orig.ident)
+table(seurat_immun$clusterName)
+
+```
+
+
+```{r Umap different resolutions}
+
+## Different resolutions
+Idents (seurat_immun) <- seurat_immun$clusterName
+
+DimPlot(seurat_immun, reduction = "umap", pt.size = 0.3, label = TRUE)
+
+
+Idents (seurat_immun) <- seurat_immun$RNA_snn_res.0.25
+
+DimPlot(seurat_immun, reduction = "umap", pt.size = 0.3, label = TRUE)
+
+
+Idents (seurat_immun) <- seurat_immun$RNA_snn_res.0.3
+
+DimPlot(seurat_immun, reduction = "umap", pt.size = 0.3, label = TRUE)
+
+Idents (seurat_immun) <- seurat_immun$RNA_snn_res.0.4
+
+DimPlot(seurat_immun, reduction = "umap", pt.size = 0.3, label = TRUE)
+
+Idents (seurat_immun) <- seurat_immun$RNA_snn_res.0.6
+
+DimPlot(seurat_immun, reduction = "umap", pt.size = 0.3, label = TRUE)
+
+Idents (seurat_immun) <- seurat_immun$RNA_snn_res.0.8
+
+DimPlot(seurat_immun, reduction = "umap", pt.size = 0.3, label = TRUE)
+
+```
+
+
+
+
+```{r Umap by patient, fig.width = 10, fig.height = 6}
+
+## Immun cell clusters by patient
+Idents (seurat_immun) <- (seurat_immun$patient)
+DimPlot(seurat_immun, reduction = "umap", pt.size = 0.3)
+
+
+```
+
+
+```{r, fig.width = 10, fig.height = 6}
+
+## Nuclei number per patient and cluster
+table(seurat_immun$patient, seurat_immun$RNA_snn_res.0.3)
+
+## Total nuclei number
+table(seurat_immun$orig.ident)
+
+# Total nuclei per patient
+table(seurat_immun$patient)
+
+```
+
+
+
+```{r TC condition for immun cell clusters }
+
+## TC condition for immun cell clusters
+Idents (seurat_immun) <- (seurat_immun$TC)
+
+colTC <- c("#BE3144","#de2d26","#fc9272", "#fee0d2")
+names(colTC) <- c("Tcell High", "Tcell Intermediate", "Tcell Low", "Tcell Very Low")
+
+DimPlot(seurat_immun, reduction = "umap", pt.size = 0.3, cols = colTC)
+
+```
+
+
+
+
+
+
+
+
+```{r Res 0.6 find all markers for immune cells }
+
+Idents(seurat_immun) <- seurat_immun$RNA_snn_res.0.3
+
+DimPlot(seurat_immun, reduction = "umap", pt.size = 0.3, label = TRUE)
+
+## Find all markers within AM cohort, only positive
+DEGenesimmun <- FindAllMarkers (seurat_immun, only.pos = TRUE, logfc.threshold = 0.2) %>%
+                                      dplyr::filter(p_val_adj < 0.01)
+
+
+#write.table(DEGenesimmun, file= "/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/docs/Markers/DEGenesimmune", sep="\t",quote=F,row.names=F,col.names=T)
+
+
+table(seurat_immun$clusterName)
+table(seurat_immun$RNA_snn_res.0.3)
+
+head(DEGenesimmun)
+
+#View(DEGenesimmun)
+
+```
+
+```{r Feature plots with markers}
+
+## Marker Genes 
+
+get_full_gene_name <- function(gene, obj){
+  return(grep(gene,rownames(obj), value =TRUE))
+}
+get_full_gene_name("XIST",seurat_immun) 
+
+FeaturePlot(seuratM, features = get_full_gene_name("XIST",seuratM) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# NK
+FeaturePlot(seurat_immun, features = "ENSG00000081237.PTPRC", pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seurat_immun, features = "ENSG00000168685.IL7R", pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seurat_immun, features = "ENSG00000010610.CD4", pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seurat_immun, features = "ENSG00000172116.CD8B", pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seurat_immun, features = get_full_gene_name("CD8A",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+FeaturePlot(seurat_immun, features = "ENSG00000116824.CD2", pt.size = 1, cols = c("lightgrey", "#BE3144"))
+
+FeaturePlot(seurat_immun, features = "ENSG00000167286.CD3D", pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seurat_immun, features = "ENSG00000198851.CD3E", pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seurat_immun, features = "ENSG00000178562.CD28", pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seurat_immun, features = get_full_gene_name("CD96",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+FeaturePlot(seurat_immun, features = get_full_gene_name("RIPOR2",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+FeaturePlot(seurat_immun, features = "ENSG00000227507.LTB", pt.size = 1, cols = c("lightgrey", "#BE3144"))# Cluster 1 spec
+FeaturePlot(seurat_immun, features = "ENSG00000069667.RORA", pt.size = 1, cols = c("lightgrey", "#BE3144"))# Cluster 1
+FeaturePlot(seurat_immun, features = get_full_gene_name("PATJ",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+
+#cl 6: CD8+ T cells proliferating ASPM, RRM2, KNL1, FANC; TOP2A, CEP152, DIAPH3, KIF18B, KIF14, CDCA3, TROAP, SAC3D1, MS4A7, ZNF683, GEN1, SAC8D1, SKA3, RAD54L, UWOMT. SPC25, BRACA1, BUB1B, Gen1, FoxM1, SKA3, CCNB1, SAC8D1, FANCI, CIT, SPAG5, ZNF683, E2F2, ZWINT
+
+
+FeaturePlot(seurat_immun, features = "ENSG00000163599.CTLA4", pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seurat_immun, features = get_full_gene_name("LAG3",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# exhaustion
+FeaturePlot(seurat_immun, features = get_full_gene_name("TIGIT",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+FeaturePlot(seurat_immun, features = get_full_gene_name("PDCD1",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+FeaturePlot(seurat_immun, features = get_full_gene_name("HAVCR2",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+
+FeaturePlot(seurat_immun, features = get_full_gene_name("FOXP3",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# Tregs
+FeaturePlot(seurat_immun, features = "ENSG00000136634.IL10", pt.size = 1, cols = c("lightgrey", "#BE3144"))
+
+FeaturePlot(seurat_immun, features = get_full_gene_name("TGFB1",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+FeaturePlot(seurat_immun, features = get_full_gene_name("STAT5A",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+FeaturePlot(seurat_immun, features = get_full_gene_name("STAT5B",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+
+FeaturePlot(seurat_immun, features = get_full_gene_name("RORC",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# Th17 (and also IL3)
+FeaturePlot(seurat_immun, features = get_full_gene_name("IL22",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+FeaturePlot(seurat_immun, features = get_full_gene_name("STAT3",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+FeaturePlot(seurat_immun, features = get_full_gene_name("IL17RA",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# did not find IL17A, only R
+FeaturePlot(seurat_immun, features = get_full_gene_name("CCR6",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seurat_immun, features = "ENSG00000162594.IL23R", pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seurat_immun, features = "ENSG00000138795.LEF1", pt.size = 1, cols = c("lightgrey", "#BE3144"))
+
+
+FeaturePlot(seurat_immun, features = "ENSG00000109906.ZBTB16", pt.size = 1, cols = c("lightgrey", "#BE3144"))	
+FeaturePlot(seurat_immun, features = "ENSG00000165810.BTNL9", pt.size = 1, cols = c("lightgrey", "#BE3144"))	# MAIT
+
+
+FeaturePlot(seurat_immun, features = get_full_gene_name("TBX21",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# Th1
+FeaturePlot(seurat_immun, features = get_full_gene_name("IFNG",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+FeaturePlot(seurat_immun, features = get_full_gene_name("IL12RB1",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))#
+FeaturePlot(seurat_immun, features = get_full_gene_name("CXCR3",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+FeaturePlot(seurat_immun, features = get_full_gene_name("STAT4",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+
+FeaturePlot(seurat_immun, features = get_full_gene_name("GATA3",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# Th2
+
+FeaturePlot(seurat_immun, features = get_full_gene_name("BCL6",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# Tfh
+FeaturePlot(seurat_immun, features = get_full_gene_name("IL21",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+FeaturePlot(seurat_immun, features = "ENSG00000163600.ICOS", pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seurat_immun, features = get_full_gene_name("CCR5",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))
+
+FeaturePlot(seurat_immun, features = "ENSG00000172116.CD8B", pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seurat_immun, features = get_full_gene_name("KIR2",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+FeaturePlot(seurat_immun, features = get_full_gene_name("GZMB",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+FeaturePlot(seurat_immun, features = get_full_gene_name("PRF1",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+FeaturePlot(seurat_immun, features = "ENSG00000104970.KIR3DX1", pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seurat_immun, features = "ENSG00000111537.IFNG", pt.size = 1, cols = c("lightgrey", "#BE3144"))
+
+FeaturePlot(seurat_immun, features = get_full_gene_name("TRGV9",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144")) #yd Tcells
+FeaturePlot(seurat_immun, features = get_full_gene_name("TRDV2",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144")) # 
+FeaturePlot(seurat_immun, features = get_full_gene_name("TRGC1",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144")) 
+
+FeaturePlot(seurat_immun, features = get_full_gene_name("KIR3DL1",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# NK
+FeaturePlot(seurat_immun, features = get_full_gene_name("TXK",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+FeaturePlot(seurat_immun, features = get_full_gene_name("NCAM1",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144")) #CD56,NK marker
+FeaturePlot(seurat_immun, features = get_full_gene_name("KLRD1",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144")) # CD94
+FeaturePlot(seurat_immun, features = get_full_gene_name("FCGR3A",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144")) #CD16
+FeaturePlot(seurat_immun, features = get_full_gene_name("GZMB",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seurat_immun, features = get_full_gene_name("NCR1",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# NK
+FeaturePlot(seurat_immun, features = "ENSG00000189430.NCR1", pt.size = 1, cols = c("lightgrey", "#BE3144"))
+
+FeaturePlot(seurat_immun, features = "ENSG00000004468.CD38", pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seurat_immun, features = get_full_gene_name("JCHAIN",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# plasma cells
+FeaturePlot(seurat_immun, features = "ENSG00000057657.PRDM1", pt.size = 1, cols = c("lightgrey", "#BE3144"))
+
+
+FeaturePlot(seurat_immun, features = "ENSG00000211899.IGHM", pt.size = 1, cols = c("lightgrey", "#BE3144"))## proliferating cells 
+FeaturePlot(seurat_immun, features = "ENSG00000156738.MS4A1", pt.size = 1, cols = c("lightgrey", "#BE3144")) # CD20
+FeaturePlot(seurat_immun, features = get_full_gene_name("CD19",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+
+FeaturePlot(seurat_immun, features = "ENSG00000148773.MKI67", pt.size = 1, cols = c("lightgrey", "#BE3144"))## proliferating cells
+FeaturePlot(seurat_immun, features = get_full_gene_name("TOP2A",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))
+
+FeaturePlot(seurat_immun, features = get_full_gene_name("SELL",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144")) # SELL = CD62L# naive
+FeaturePlot(seurat_immun, features = get_full_gene_name("PTPRC",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144")) #CD45
+FeaturePlot(seurat_immun, features = get_full_gene_name("CCR7",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seurat_immun, features = get_full_gene_name("CXCL12",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))
+
+FeaturePlot(seurat_immun, features = "ENSG00000110448.CD5", pt.size = 1, cols = c("lightgrey", "#BE3144"))
+#FeaturePlot(seurat_immun, features = "ENSG00000197471.SPN", pt.size = 1, cols = c("lightgrey", "#BE3144")) # CD43 (sialoprotein of leukos, regulates T cell traffickinig to LN)
+
+FeaturePlot(seurat_immun, features = get_full_gene_name("CLEC9A",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# DC
+FeaturePlot(seurat_immun, features = get_full_gene_name("XCR1",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+FeaturePlot(seurat_immun, features = get_full_gene_name("SEPTIN3",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+FeaturePlot(seurat_immun, features = get_full_gene_name("WDFY4",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+FeaturePlot(seurat_immun, features = get_full_gene_name("CCR9",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+FeaturePlot(seurat_immun, features = get_full_gene_name("PACSIN1",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+
+FeaturePlot(seurat_immun, features = "ENSG00000182578.CSF1R", pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seurat_immun, features = get_full_gene_name("VCAM1",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+FeaturePlot(seurat_immun, features = get_full_gene_name("MERTK",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+FeaturePlot(seurat_immun, features = get_full_gene_name("MS4A4A",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+FeaturePlot(seurat_immun, features = get_full_gene_name("FKBP5",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+
+FeaturePlot(seurat_immun, features = get_full_gene_name("ITGAM",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144")) # CD11b
+FeaturePlot(seurat_immun, features = get_full_gene_name("STAT1",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))
+
+FeaturePlot(seurat_immun, features = get_full_gene_name("TIMD4",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# TLFpos res.Macrophages
+FeaturePlot(seurat_immun, features = "ENSG00000177575.CD163", pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seurat_immun, features = get_full_gene_name("LYVE1",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+FeaturePlot(seurat_immun, features = get_full_gene_name("FOLR2",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+FeaturePlot(seurat_immun, features = get_full_gene_name("GAS6",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+FeaturePlot(seurat_immun, features = get_full_gene_name("NINJ1",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+FeaturePlot(seurat_immun, features = get_full_gene_name("MRC1",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+FeaturePlot(seurat_immun, features = get_full_gene_name("IGF1",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))#
+FeaturePlot(seurat_immun, features = get_full_gene_name("SELENOP",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+FeaturePlot(seurat_immun, features = get_full_gene_name("IGFBP4",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))#
+
+## features of resident mph cluster 2 vs. cluster 1 (LYVE1+): SLC40A1 (iron transport), ITGAX (integrin), FCN1 (PRR), CD300E, ITGA4 (integrin), SPN, UICLM, CD1C, CLEC4F (pDCs), PCNX2, SOX4 Cluster 2 resident mph
+
+FeaturePlot(seurat_immun, features = get_full_gene_name("SLC40A1",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+FeaturePlot(seurat_immun, features = get_full_gene_name("ITGAX",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+FeaturePlot(seurat_immun, features = get_full_gene_name("FCN1",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+FeaturePlot(seurat_immun, features = get_full_gene_name("CD1C",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))#
+FeaturePlot(seurat_immun, features = get_full_gene_name("CLEC4F",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+FeaturePlot(seurat_immun, features = get_full_gene_name("PCNX2",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+FeaturePlot(seurat_immun, features = get_full_gene_name("SOX4",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))#
+
+
+FeaturePlot(seurat_immun, features = get_full_gene_name("APOE",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# MHC-II hi res. MCPs
+FeaturePlot(seurat_immun, features = get_full_gene_name("CD14",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+FeaturePlot(seurat_immun, features = get_full_gene_name("CST3",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+FeaturePlot(seurat_immun, features = get_full_gene_name("TREM2",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+FeaturePlot(seurat_immun, features = get_full_gene_name("LILRA5",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+FeaturePlot(seurat_immun, features = get_full_gene_name("C5orf1",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+FeaturePlot(seurat_immun, features = get_full_gene_name("STAB1",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+
+FeaturePlot(seurat_immun, features = get_full_gene_name("CCR2",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# CCR2+ MCP
+FeaturePlot(seurat_immun, features = get_full_gene_name("CD52",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+FeaturePlot(seurat_immun, features = get_full_gene_name("HLA-DMB",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seurat_immun, features = get_full_gene_name("HLA-A",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seurat_immun, features = get_full_gene_name("HLA-DQB1",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seurat_immun, features = get_full_gene_name("S100A6",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+FeaturePlot(seurat_immun, features = "ENSG00000163191.S100A11", pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seurat_immun, features = get_full_gene_name("CORO1A",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))#
+FeaturePlot(seurat_immun, features = get_full_gene_name("TMEM119",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))#
+
+FeaturePlot(seurat_immun, features = "ENSG00000163508.EOMES", pt.size = 1, cols = c("lightgrey", "#BE3144"))	
+	
+FeaturePlot(seurat_immun, features = "ENSG00000170458.CD14", pt.size = 1, cols = c("lightgrey", "#BE3144"))
+
+FeaturePlot(seurat_immun, features = get_full_gene_name("CXCR3",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+FeaturePlot(seurat_immun, features = get_full_gene_name("CXCL9",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# inflammatory macrophages
+FeaturePlot(seurat_immun, features = get_full_gene_name("CXCL10",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+FeaturePlot(seurat_immun, features = get_full_gene_name("CXCL11",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+FeaturePlot(seurat_immun, features = get_full_gene_name("IL23A",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+FeaturePlot(seurat_immun, features = get_full_gene_name("TREM2",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+FeaturePlot(seurat_immun, features = get_full_gene_name("MMP9",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+FeaturePlot(seurat_immun, features = get_full_gene_name("IL1B",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+FeaturePlot(seurat_immun, features = get_full_gene_name("IL6R",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))#
+FeaturePlot(seurat_immun, features = "ENSG00000232810.TNF", pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seurat_immun, features = "ENSG00000136244.IL6", pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seurat_immun, features = get_full_gene_name("TLR4",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# 
+
+FeaturePlot(seurat_immun, features = get_full_gene_name("XIST",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seurat_immun, features = get_full_gene_name("IL32",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))
+
+FeaturePlot(seurat_immun, features = "ENSG00000183160.TMEM119", pt.size = 1, cols = c("lightgrey", "#BE3144")) # also found on microglia
+
+FeaturePlot(seurat_immun, features = get_full_gene_name("CCL18",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seurat_immun, features = get_full_gene_name("CPM",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seurat_immun, features = get_full_gene_name("ZBTB16",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seurat_immun, features = get_full_gene_name("ALOX15B",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seurat_immun, features = get_full_gene_name("HCLS1",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seurat_immun, features = get_full_gene_name("ADAMTS2",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seurat_immun, features = get_full_gene_name("TBC1D16",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seurat_immun, features = get_full_gene_name("SLC31A2",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144")) # copper transporter
+FeaturePlot(seurat_immun, features = get_full_gene_name("LPAR6",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144")) # 
+FeaturePlot(seurat_immun, features = get_full_gene_name("SPRED1",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# inhibits growth factor activation, negatively regulates HSC 
+FeaturePlot(seurat_immun, features = get_full_gene_name("ABCA6",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144")) # macrophage lipid transport
+
+## DE genes resident macrophages cl 2 and 7
+## cl 7 ZBTB16, CPM, PDK4, ALOX15B, CCL18, SLCA3, KCNMA1, ADAMTS2, HCLS1, APOE1, ZNF812P, HCLS1, TBC1D16, SLC31A2, TFBI, 
+## cl2: LPAR6, ABCA6, SPRED1          
+
+## ZBTB16 Acts as a transcriptional repressor (PubMed:10688654, 24359566). Transcriptional repression may be mediated through recruitment of histone deacetylases to target promoters (PubMed:10688654). May play a role in myeloid maturation and in the development and/or maintenance of other differentiated tissues. Probable substrate-recognition component of an E3 ubiquitin-protein ligase complex which mediates the ubiquitination and subsequent proteasomal degradation of target proteins
+
+
+FeaturePlot(seurat_immun, features = get_full_gene_name("CD72",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144")) # activated macrophages, cluster 0
+FeaturePlot(seurat_immun, features = get_full_gene_name("LY86",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seurat_immun, features = get_full_gene_name("SIRPA",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seurat_immun, features = get_full_gene_name("IL10RA",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seurat_immun, features = "ENSG00000112799.LY86", pt.size = 1, cols = c("lightgrey", "#BE3144")) 
+
+# cluster activated macrophages vs. inflammatory do not express CXCL10 and 9; FAM118A, HLADRB5, HLA-V --> activated macrophages
+#0 vs.4: CXCL9, CXCL10, MT2A, CXCL11, CCL8, CD274, MT1G, HLA-DQA2, TIPA, C3, IL31RA, CALHM6, MT1H, MT1G, MT1X, WARS1, GBP1
+
+
+FeaturePlot(seurat_immun, features = get_full_gene_name("DAB2",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))
+
+
+
+FeaturePlot(seurat_immun, features = get_full_gene_name("CD274",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144")) # inflammatory mch, cl4
+FeaturePlot(seurat_immun, features = get_full_gene_name("MT1H",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144")) # glucocroticoid reg.metallothioneins
+FeaturePlot(seurat_immun, features = get_full_gene_name("CCL8",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seurat_immun, features = get_full_gene_name("WARS1",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))#stress response, angiogenesis
+FeaturePlot(seurat_immun, features = "ENSG00000117228.GBP1", pt.size = 1, cols = c("lightgrey", "#BE3144")) 
+FeaturePlot(seurat_immun, features = "ENSG00000125148.MT2A", pt.size = 1, cols = c("lightgrey", "#BE3144")) 
+
+
+FeaturePlot(seurat_immun, features = get_full_gene_name("FAM118A",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144")) # membrane; cl0
+FeaturePlot(seurat_immun, features = get_full_gene_name("HLA-V",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))# cl0
+FeaturePlot(seurat_immun, features = get_full_gene_name("HLA-DRB5",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))
+
+
+## Eosinophilic markers
+FeaturePlot(seurat_immun, features = get_full_gene_name("EOMES",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))#also CD8, MBP1, CD193 not found
+FeaturePlot(seurat_immun, features = "ENSG00000172156.CCL11", pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seurat_immun, features = "ENSG00000105366.SIGLEC8", pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seurat_immun, features = get_full_gene_name("IL5RA",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seurat_immun, features = get_full_gene_name("CCL24",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seurat_immun, features = get_full_gene_name("CCR3",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seurat_immun, features = get_full_gene_name("PRG2",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seurat_immun, features = get_full_gene_name("GATA1",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))
+
+
+
+## Mast cells # KIT/SLC18A2/GATA2/RAB44/ENPP3/BTK/ADGRE2, NDST2
+
+FeaturePlot(seurat_immun, features = get_full_gene_name("RAB44",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seurat_immun, features = get_full_gene_name("BTK",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seurat_immun, features = get_full_gene_name("SLC18A2",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seurat_immun, features = get_full_gene_name("GATA2",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seurat_immun, features = get_full_gene_name("NDST2",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seurat_immun, features = get_full_gene_name("ADGRE2",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seurat_immun, features = get_full_gene_name("ENPP3",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))
+FeaturePlot(seurat_immun, features = get_full_gene_name("KIT",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144")) # CD117
+FeaturePlot(seurat_immun, features = get_full_gene_name("TPSAB1",seurat_immun) , pt.size = 1, cols = c("lightgrey", "#BE3144"))
+
+
+```
+
+
+```{r Gene Set Enrichtment Analysis rename clusters with UMAP }
+
+
+## GSEA embedding of immune cells
+Idents(seurat_immun) <- seurat_immun$RNA_snn_res.0.3
+
+seurat_immun$clusterName <- "clusterName"
+Idents(seurat_immun) <- seurat_immun$clusterName
+seurat_immun$clusterName[which(seurat_immun$RNA_snn_res.0.3 %in% "0" )] <- "Tcells"
+seurat_immun$clusterName[which(seurat_immun$RNA_snn_res.0.3 %in% "1" )] <- "LYVE1pos TRM"
+seurat_immun$clusterName[which(seurat_immun$RNA_snn_res.0.3 %in% "2" )] <- "LYVE1neg TRM"
+seurat_immun$clusterName[which(seurat_immun$RNA_snn_res.0.3 %in% "3" )] <- "inflammatory MPH1"
+seurat_immun$clusterName[which(seurat_immun$RNA_snn_res.0.3 %in% "4" )] <- "prolif Tcells"
+seurat_immun$clusterName[which(seurat_immun$RNA_snn_res.0.3 %in% "5" )] <- "inflammatory MPH2"
+seurat_immun$clusterName[which(seurat_immun$RNA_snn_res.0.3 %in% "6" )] <- "Fb"
+seurat_immun$clusterName[which(seurat_immun$RNA_snn_res.0.3 %in% "7" )] <- "BEC"
+seurat_immun$clusterName[which(seurat_immun$RNA_snn_res.0.3 %in% "8" )] <- "NK"
+seurat_immun$clusterName[which(seurat_immun$RNA_snn_res.0.3 %in% "9" )] <- "Mural cells"
+seurat_immun$clusterName[which(seurat_immun$RNA_snn_res.0.3 %in% "10" )] <- "Bcells"
+seurat_immun$clusterName[which(seurat_immun$RNA_snn_res.0.3 %in% "11" )] <- "DC"
+seurat_immun$clusterName[which(seurat_immun$RNA_snn_res.0.3 %in% "12" )] <- "Mast cells"
+
+
+colclusterName<- c("#dd1c77","#fa9fb5", "#fde0dd", "#66C2A5", "#c7eae5", "#2c7fb8","#b3cde3",  "darkblue", "#D53E4F", "orange","#bcbddc", "#756bb1", "#8c510a")
+              
+             
+names(colclusterName) <- c("Tcells","prolif Tcells","NK", "Bcells","DC", "LYVE1pos TRM", "LYVE1neg TRM", "inflammatory MPH1", "inflammatory MPH2", "Fb","Mural cells", "BEC", "Mast cells")
+
+colpat_sub<- c("#dfc27d","#BE3144","#355C7D", "#779d8d")
+
+seurat_immun$clusterName <- factor(seurat_immun$clusterName, levels = c("Tcells","prolif Tcells","NK", "Bcells","DC", "LYVE1pos TRM", "LYVE1neg TRM", "inflammatory MPH1", "inflammatory MPH2", "Fb","Mural cells", "BEC","Mast cells"))
+
+Idents(seurat_immun) <- seurat_immun$RNA_snn_res.0.3
+DimPlot(seurat_immun, reduction = "umap", pt.size = 0.1, label = TRUE)
+
+Idents(seurat_immun) <- seurat_immun$clusterName
+DimPlot(seurat_immun, reduction = "umap", pt.size = 0.1, label = TRUE)
+
+
+```
+
+
+
+```{r Heatmap, fig.width = 12, fig.height = 12}
+
+## Create Dotplot/Heatmap
+
+seurat_immun$clusterName <- factor(seurat_immun$clusterName, levels = c("Tcells","prolif Tcells","NK", "Bcells","DC", "LYVE1pos TRM", "LYVE1neg TRM", "inflammatory MPH1", "inflammatory MPH2", "Fb","Mural cells", "BEC","Mast cells"))
+
+genes <- data.frame(gene=rownames(seurat_immun)) %>% 
+  mutate(geneID=gsub("^.*\\.", "", gene))
+
+selGenes <- data.frame(geneID=rev(c("IL7R", "CD2", "CD3E", "CD4", "MKI67", "TOP2A", "CD8A","CD8B", "GZMB", "TBX21", "IFGN", "STAT4", "CTLA4", "PDCD1", "TIGIT", "NCAM1", "KLRG1", "TXK", "LAG3", "RORA", "FOXP3", "IKZF2", "RORC", "IL17A", "CCR6", "TRGV9", "GATA3", "SELL", "CXCR5", "BCL6", "IGHM", "MS4A1", "CD79A", "JCHAIN", "CLEC9A", "XCR1", "CD163", "HLA-DMB", "HLA-A", "MRC1", "STAB1", "CSF1R", "MERTK", "LYVE1", "IL23A", "IL6R", "CD14", "GBP5", "IL10RA", "CXCL9", "CXCL10", "EOMES", "IL5RA", "CEACAM8", "ITGB2", "XIST", "COL6A3", "C7", "PDGFRA", "PDGFRB","ITGA7","RGS5", "CDH19", "VWF", "SLC18A2", "KIT")))  %>% left_join(., genes, by="geneID") %>% distinct(geneID, .keep_all = TRUE)
+
+DotPlot(seurat_immun, features = selGenes, group.by= "clusterName") + RotatedAxis() + scale_color_viridis(option="T") + coord_flip()
+
+```
+
+
+
+
+```{r Relative abundance}
+
+## Relative abundance per disease condition
+datList <- NULL
+for(con in unique(seurat_immun$pat_sub)){
+  seuratSub <- subset(seurat_immun, pat_sub==con)
+  print(dim(seuratSub))
+  dat_con <- as.data.frame(table(seuratSub$clusterName)) %>%
+  mutate(percent=Freq/ncol(seuratSub)) %>% mutate(diseaseCond=con)
+  datList[[con]] <- dat_con
+  
+}
+
+dat_all <- do.call("rbind", datList)
+
+order_patsub <- c("Healthy", "AM", "CMP", "Sarcoidosis")
+
+ggbarplot(dat_all, x = "diseaseCond", y = "percent", fill = "Var1", palette = colclusterName, legend = "right", legend.titel = "cluster", xlab = "condition", ylab = "frequency") +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + 
+  scale_x_discrete(limits = order_patsub)
+
+
+```
+
+
+```{r relative abundance per patient}
+
+## Relative abundance per patient
+datList <- NULL
+for(con in unique(seurat_immun$patient)){
+  seuratSub <- subset(seurat_immun, patient==con)
+  print(dim(seuratSub))
+  dat_con <- as.data.frame(table(seuratSub$clusterName)) %>%
+  mutate(percent=Freq/ncol(seuratSub)) %>% mutate(patient=con)
+  datList[[con]] <- dat_con
+}
+
+
+dat_all <- do.call("rbind", datList)
+
+## Order of patient levels 
+patient_order <- c("Healthy 01", "Healthy 02", "Healthy 03", "Healthy 04", "Healthy 05", 
+                   "Healthy 06", "Healthy 07", "Healthy 08", "AM 01", "AM 02", 
+                   "AM 03", "AM 04", "AM 05", "AM 06", "AM 07", 
+                   "AM 08", "AM 09", "AM 10", "AM 11", "AM 12", "AM 13", "AM 14", 
+                   "AM 15", "AM 16", "AM 17", "AM 18", "CMP 01", "CMP 02", "CMP 03", 
+                   "CMP 04", "CMP 05", "CMP 06", "CMP 07", "CMP 08", "CMP 09", 
+                   "CMP 10", "CMP 11", "CMP 12", "CMP 13", "Sarcoidosis 01", "Sarcoidosis 02")
+
+#View(dat_all)
+
+
+
+## Convert the patient column to a factor with the desired order
+dat_all$patient <- factor(dat_all$patient, levels = patient_order)
+
+## plot abundance
+ggbarplot(dat_all, x= "patient", y= "percent", fill = "Var1", legend = "right", legend.titel = "cluster", ylab = "frequency", palette = colclusterName )  + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+
+
+
+```
+
+
+
+
+
+```{r DE genes for clustered immune cells, find markers pos and neg}
+
+## DE Genes immune cells, find all markers, positive and negative
+Idents(seurat_immun) <- seurat_immun$RNA_snn_res.0.3
+
+DEGenes_IC <- FindAllMarkers(seurat_immun, only.pos = F, logfc.threshold = 0.2) %>%
+                                      dplyr::filter(p_val_adj < 0.01)
+
+DEGenes_IC <- DEGenes_IC %>% 
+  mutate(Gene=gene) %>%
+  mutate(gene=gsub("^.*\\.", "", Gene))  %>%
+  mutate(EnsID=gsub("\\..*","", Gene))
+
+#View(DEGenes_IC)
+
+
+```
+
+
+
+
+```{r, Volcano Plots, fig.width = 10, fig.height = 8}
+
+## Volcano Plot Cluster 0, T cells
+
+cl0 <- DEGenes_IC %>% filter(cluster == "0")
+
+res_0 <- as.data.frame(cl0)
+
+EnhancedVolcano(res_0, 
+                x = 'avg_log2FC',
+                y = 'p_val_adj',
+                lab = res_0$gene,
+                # xlim =c(-6, 6), 
+                title = 'DE Genes T cells',
+                xlab = bquote(~Log[2]~ 'fold change'),
+                pCutoff = 10e-1,
+                FCcutoff = 1.5,
+    cutoffLineType = 'twodash',
+    cutoffLineWidth = 0.8,
+    pointSize = 2.0,
+    labSize = 3.0,
+    # shape = c(1,4, 23,25),
+    colAlpha = 1,
+    legendLabels=c('Not sig.','Log (base 2) FC','p-value',
+      'p-value & Log (base 2) FC'),
+    legendPosition = 'right',
+    legendLabSize = 12,
+    legendIconSize = 5.0,
+    # drawConnectors = TRUE,
+    # widthConnectors = 0.75,
+    # ridlines.major = FALSE,
+    gridlines.minor = FALSE)
+
+
+## IL7R, ETS1, SCML4, DGKA, RIPOR2, MIAT, SYNE2, CD6, SPOCK2, ATP8B2, CAMK4, ITK, TMC8, GOLGA8A, KLRG1, TCF7LCK, STAT4, TRBC2, RBL2, LEF1, CD247, LY9, SYTL2, CASP8, RASGRP2, SAMD3, LTK, CD40LG; ENO2, SIDT1, CASK, GNB5, HELB, KCNA3
+
+```
+
+
+
+```{r, Volcano Plot Cl1 lyve1pos. TRM, fig.width = 10, fig.height = 8}
+
+## Volcano Plot Cluster 1, TRM LYVE1 pos.
+
+cl1 <- DEGenes_IC %>% filter(cluster == "1")
+
+res_1 <- as.data.frame(cl1)
+
+EnhancedVolcano(res_1, 
+                x = 'avg_log2FC',
+                y = 'p_val_adj',
+                lab = res_1$gene,
+                # xlim =c(-6, 6), 
+                title = 'DE Genes LYVE1pos tissue resident macrophages',
+                xlab = bquote(~Log[2]~ 'fold change'),
+                pCutoff = 10e-1,
+                FCcutoff = 1.5,
+    cutoffLineType = 'twodash',
+    cutoffLineWidth = 0.8,
+    pointSize = 2.0,
+    labSize = 3.0,
+    # shape = c(1,4, 23,25),
+    colAlpha = 1,
+    legendLabels=c('Not sig.','Log (base 2) FC','p-value',
+      'p-value & Log (base 2) FC'),
+    legendPosition = 'right',
+    legendLabSize = 12,
+    legendIconSize = 5.0,
+    # drawConnectors = TRUE,
+    # widthConnectors = 0.75,
+    # ridlines.major = FALSE,
+    gridlines.minor = FALSE)
+
+## STAT1, SCO2, SAMD9L, NR1H3, SCO2, CLEC12A, FMNL2, PSTPIP2, MYOF, EPST1, CD1D, RUFY4, PFKFB3, ADA2, DYSF, LILRB4
+
+```
+ 
+
+```{r, Volcano Plot Cl2 macrophage TRM, fig.width = 10, fig.height = 8}
+
+## Volcano Plot Cluster 2: TRM, LYVE1 neg.
+
+cl2 <- DEGenes_IC %>% filter(cluster == "2")
+
+res_2 <- as.data.frame(cl2)
+
+EnhancedVolcano(res_2, 
+                x = 'avg_log2FC',
+                y = 'p_val_adj',
+                lab = res_2$gene,
+                # xlim =c(-6, 6), 
+                title = 'DE Genes LYVE1 neg tissue resident macrophages',
+                xlab = bquote(~Log[2]~ 'fold change'),
+                pCutoff = 10e-1,
+                FCcutoff = 1.5,
+    cutoffLineType = 'twodash',
+    cutoffLineWidth = 0.8,
+    pointSize = 2.0,
+    labSize = 3.0,
+    # shape = c(1,4, 23,25),
+    colAlpha = 1,
+    legendLabels=c('Not sig.','Log (base 2) FC','p-value',
+      'p-value & Log (base 2) FC'),
+    legendPosition = 'right',
+    legendLabSize = 12,
+    legendIconSize = 5.0,
+    # drawConnectors = TRUE,
+    # widthConnectors = 0.75,
+    # ridlines.major = FALSE,
+    gridlines.minor = FALSE)
+
+## DAB2, FRMD4B, WWP1, NRP1, SLC40A1, LTC4S, HRH1, CD163L1, MS4A4A, IGF1, HRH1, CCDC152, FOLR2, NAV2, PLEKHG5, HPGDS, ARHGAP24, ABCA6, MEGF6, RENBP, KCNJ5, GGTA1, PID1, FAM177B, CNRIP1, KHDRBS2, CRHBP, RENBP, GAS2L3 
+
+
+```
+
+```{r, Volcano Plot Cl3 , fig.width = 10, fig.height = 8}
+## Volcano Plot Cluster 3: activated inflammatory Macrophages, IL-6 regulation high
+
+cl3 <- DEGenes_IC %>% filter(cluster == "3")
+
+res_3 <- as.data.frame(cl3)
+
+EnhancedVolcano(res_3, 
+                x = 'avg_log2FC',
+                y = 'p_val_adj',
+                lab = res_3$gene,
+                # xlim =c(-6, 6), 
+                title = 'DE Genes activated macrophages (CXCL9 neg)',
+                xlab = bquote(~Log[2]~ 'fold change'),
+                pCutoff = 10e-1,
+                FCcutoff = 1.5,
+    cutoffLineType = 'twodash',
+    cutoffLineWidth = 0.8,
+    pointSize = 2.0,
+    labSize = 3.0,
+    # shape = c(1,4, 23,25),
+    colAlpha = 1,
+    legendLabels=c('Not sig.','Log (base 2) FC','p-value',
+      'p-value & Log (base 2) FC'),
+    legendPosition = 'right',
+    legendLabSize = 12,
+    legendIconSize = 5.0,
+    # drawConnectors = TRUE,
+    # widthConnectors = 0.75,
+    # ridlines.major = FALSE,
+    gridlines.minor = FALSE)
+
+
+# MRC1, MS4A
+
+```
+
+
+```{r, Volcano Plot Cl4 , fig.width = 10, fig.height = 8}
+## Volcano Plot Cluster 4: proliferating T cells
+
+cl4 <- DEGenes_IC %>% filter(cluster == "4")
+
+res_4 <- as.data.frame(cl4)
+
+EnhancedVolcano(res_4, 
+                x = 'avg_log2FC',
+                y = 'p_val_adj',
+                lab = res_4$gene,
+                # xlim =c(-6, 6), 
+                title = 'DE Genes Proliferating T cells',
+                xlab = bquote(~Log[2]~ 'fold change'),
+                pCutoff = 10e-1,
+                FCcutoff = 1.5,
+    cutoffLineType = 'twodash',
+    cutoffLineWidth = 0.8,
+    pointSize = 2.0,
+    labSize = 3.0,
+    # shape = c(1,4, 23,25),
+    colAlpha = 1,
+    legendLabels=c('Not sig.','Log (base 2) FC','p-value',
+      'p-value & Log (base 2) FC'),
+    legendPosition = 'right',
+    legendLabSize = 12,
+    legendIconSize = 5.0,
+    # drawConnectors = TRUE,
+    # widthConnectors = 0.75,
+    # ridlines.major = FALSE,
+    gridlines.minor = FALSE)
+
+
+```
+
+
+
+
+```{r, Volcano Plot Cl5 , fig.width = 10, fig.height = 8}
+
+## Volcano Plot: inflammatory macrophages, CXCL9 pos.
+
+cl5 <- DEGenes_IC %>% filter(cluster == "5")
+
+res_5 <- as.data.frame(cl5)
+
+EnhancedVolcano(res_5, 
+                x = 'avg_log2FC',
+                y = 'p_val_adj',
+                lab = res_5$gene,
+                # xlim =c(-6, 6), 
+                title = 'DE Genes Inflammatory Macrophages, CXCL9 pos.',
+                xlab = bquote(~Log[2]~ 'fold change'),
+                pCutoff = 10e-1,
+                FCcutoff = 1.5,
+    cutoffLineType = 'twodash',
+    cutoffLineWidth = 0.8,
+    pointSize = 2.0,
+    labSize = 3.0,
+    # shape = c(1,4, 23,25),
+    colAlpha = 1,
+    legendLabels=c('Not sig.','Log (base 2) FC','p-value',
+      'p-value & Log (base 2) FC'),
+    legendPosition = 'right',
+    legendLabSize = 12,
+    legendIconSize = 5.0,
+    # drawConnectors = TRUE,
+    # widthConnectors = 0.75,
+    # ridlines.major = FALSE,
+    gridlines.minor = FALSE)
+
+
+
+```
+
+
+```{r, Volcano Plot Cl6 , fig.width = 10, fig.height = 8}
+
+## Volcano Plot Fibroblasts: 
+
+cl6 <- DEGenes_IC %>% filter(cluster == "6")
+
+res_6 <- as.data.frame(cl6)
+
+EnhancedVolcano(res_6, 
+                x = 'avg_log2FC',
+                y = 'p_val_adj',
+                lab = res_6$gene,
+                # xlim =c(-6, 6), 
+                title = 'DE Genes Fibroblasts',
+                xlab = bquote(~Log[2]~ 'fold change'),
+                pCutoff = 10e-1,
+                FCcutoff = 1.5,
+    cutoffLineType = 'twodash',
+    cutoffLineWidth = 0.8,
+    pointSize = 2.0,
+    labSize = 3.0,
+    # shape = c(1,4, 23,25),
+    colAlpha = 1,
+    legendLabels=c('Not sig.','Log (base 2) FC','p-value',
+      'p-value & Log (base 2) FC'),
+    legendPosition = 'right',
+    legendLabSize = 12,
+    legendIconSize = 5.0,
+    # drawConnectors = TRUE,
+    # widthConnectors = 0.75,
+    # ridlines.major = FALSE,
+    gridlines.minor = FALSE)
+
+
+# ABCA9, APCDD1, COL6A11, MEG3, FREM1, DIO3OS, DNM3O", PRELP, COL4A1, PDGFRB, PXDN, HIF3A, VCAN, NFIB, SVEP1, NFATC4, LAMC2, TIMP3, FOXP2, GFPT2, RGR, FAT1, CNBD1TM6SF2, PLEHHA5, VCAN, SPRY1 LAMC1
+
+```
+
+```{r, Volcano Plot Cl7, BEC , fig.width = 10, fig.height = 8}
+
+## Volcano Plot Cluster 7: Endothelial cells
+
+cl7 <- DEGenes_IC %>% filter(cluster == "7")
+
+res_7 <- as.data.frame(cl7)
+
+EnhancedVolcano(res_7, 
+                x = 'avg_log2FC',
+                y = 'p_val_adj',
+                lab = res_7$gene,
+                # xlim =c(-6, 6), 
+                title = 'DE Genes Endothelial cells',
+                xlab = bquote(~Log[2]~ 'fold change'),
+                pCutoff = 10e-1,
+                FCcutoff = 1.5,
+    cutoffLineType = 'twodash',
+    cutoffLineWidth = 0.8,
+    pointSize = 2.0,
+    labSize = 3.0,
+    # shape = c(1,4, 23,25),
+    colAlpha = 1,
+    legendLabels=c('Not sig.','Log (base 2) FC','p-value',
+      'p-value & Log (base 2) FC'),
+    legendPosition = 'right',
+    legendLabSize = 12,
+    legendIconSize = 5.0,
+    # drawConnectors = TRUE,
+    # widthConnectors = 0.75,
+    # ridlines.major = FALSE,
+    gridlines.minor = FALSE)
+
+
+
+```
+
+
+```{r, Volcano Plot Cl8 NK, fig.width = 10, fig.height = 8}
+
+## Volcano Plot Cluster 8: NK cells
+
+cl8 <- DEGenes_IC %>% filter(cluster == "8")
+
+res_8 <- as.data.frame(cl8)
+
+EnhancedVolcano(res_8, 
+                x = 'avg_log2FC',
+                y = 'p_val_adj',
+                lab = res_8$gene,
+                # xlim =c(-6, 6), 
+                title = 'DE Genes NK cells',
+                xlab = bquote(~Log[2]~ 'fold change'),
+                pCutoff = 10e-1,
+                FCcutoff = 1.5,
+    cutoffLineType = 'twodash',
+    cutoffLineWidth = 0.8,
+    pointSize = 2.0,
+    labSize = 3.0,
+    # shape = c(1,4, 23,25),
+    colAlpha = 1,
+    legendLabels=c('Not sig.','Log (base 2) FC','p-value',
+      'p-value & Log (base 2) FC'),
+    legendPosition = 'right',
+    legendLabSize = 12,
+    legendIconSize = 5.0,
+    # drawConnectors = TRUE,
+    # widthConnectors = 0.75,
+    # ridlines.major = FALSE,
+    gridlines.minor = FALSE)
+
+
+
+```
+
+```{r, Volcano Plot Cl9, mural cells, fig.width = 10, fig.height = 8}
+
+## Volcano Plot Cluster 9: Mural cells: VSMC markers and Pericyte markers
+
+cl9 <- DEGenes_IC %>% filter(cluster == "9")
+
+res_9 <- as.data.frame(cl9)
+
+EnhancedVolcano(res_9, 
+                x = 'avg_log2FC',
+                y = 'p_val_adj',
+                lab = res_9$gene,
+                # xlim =c(-6, 6), 
+                title = 'DE Genes Mural cells',
+                xlab = bquote(~Log[2]~ 'fold change'),
+                pCutoff = 10e-1,
+                FCcutoff = 1.5,
+    cutoffLineType = 'twodash',
+    cutoffLineWidth = 0.8,
+    pointSize = 2.0,
+    labSize = 3.0,
+    # shape = c(1,4, 23,25),
+    colAlpha = 1,
+    legendLabels=c('Not sig.','Log (base 2) FC','p-value',
+      'p-value & Log (base 2) FC'),
+    legendPosition = 'right',
+    legendLabSize = 12,
+    legendIconSize = 5.0,
+    # drawConnectors = TRUE,
+    # widthConnectors = 0.75,
+    # ridlines.major = FALSE,
+    gridlines.minor = FALSE)
+
+
+
+```
+
+
+```{r, Volcano Plot Cl10 , B cells, fig.width = 10, fig.height = 8}
+
+## Volcano Plot Cluster 10: B cells
+
+cl10 <- DEGenes_IC %>% filter(cluster == "10")
+
+res_10 <- as.data.frame(cl10)
+
+EnhancedVolcano(res_10, 
+                x = 'avg_log2FC',
+                y = 'p_val_adj',
+                lab = res_10$gene,
+                # xlim =c(-6, 6), 
+                title = 'DE Genes B cells',
+                xlab = bquote(~Log[2]~ 'fold change'),
+                pCutoff = 10e-1,
+                FCcutoff = 1.5,
+    cutoffLineType = 'twodash',
+    cutoffLineWidth = 0.8,
+    pointSize = 2.0,
+    labSize = 3.0,
+    # shape = c(1,4, 23,25),
+    colAlpha = 1,
+    legendLabels=c('Not sig.','Log (base 2) FC','p-value',
+      'p-value & Log (base 2) FC'),
+    legendPosition = 'right',
+    legendLabSize = 12,
+    legendIconSize = 5.0,
+    # drawConnectors = TRUE,
+    # widthConnectors = 0.75,
+    # ridlines.major = FALSE,
+    gridlines.minor = FALSE)
+
+
+```
+
+```{r, Volcano Plot Cl11, Dendritic cells, fig.width = 10, fig.height = 8}
+
+## Volcano Plot Cluster 11: Dendritic cells
+
+cl11 <- DEGenes_IC %>% filter(cluster == "11")
+
+res_11 <- as.data.frame(cl10)
+
+EnhancedVolcano(res_11, 
+                x = 'avg_log2FC',
+                y = 'p_val_adj',
+                lab = res_11$gene,
+                # xlim =c(-6, 6), 
+                title = 'DE Genes Cluster DCs',
+                xlab = bquote(~Log[2]~ 'fold change'),
+                pCutoff = 10e-1,
+                FCcutoff = 1.5,
+    cutoffLineType = 'twodash',
+    cutoffLineWidth = 0.8,
+    pointSize = 2.0,
+    labSize = 3.0,
+    # shape = c(1,4, 23,25),
+    colAlpha = 1,
+    legendLabels=c('Not sig.','Log (base 2) FC','p-value',
+      'p-value & Log (base 2) FC'),
+    legendPosition = 'right',
+    legendLabSize = 12,
+    legendIconSize = 5.0,
+    # drawConnectors = TRUE,
+    # widthConnectors = 0.75,
+    # ridlines.major = FALSE,
+    gridlines.minor = FALSE)
+
+
+```
+
+
+
+```{r, Volcano Plot Cl12 mast cells, fig.width = 10, fig.height = 8}
+
+## Volcano Plot Cluster 12: Mast cells
+
+cl12 <- DEGenes_IC %>% filter(cluster == "12")
+
+res_12 <- as.data.frame(cl12)
+
+EnhancedVolcano(res_12, 
+                x = 'avg_log2FC',
+                y = 'p_val_adj',
+                lab = res_12$gene,
+                # xlim =c(-6, 6), 
+                title = 'DE Genes Mast cells',
+                xlab = bquote(~Log[2]~ 'fold change'),
+                pCutoff = 10e-1,
+                FCcutoff = 1.5,
+    cutoffLineType = 'twodash',
+    cutoffLineWidth = 0.8,
+    pointSize = 2.0,
+    labSize = 3.0,
+    # shape = c(1,4, 23,25),
+    colAlpha = 1,
+    legendLabels=c('Not sig.','Log (base 2) FC','p-value',
+      'p-value & Log (base 2) FC'),
+    legendPosition = 'right',
+    legendLabSize = 12,
+    legendIconSize = 5.0,
+    # drawConnectors = TRUE,
+    # widthConnectors = 0.75,
+    # ridlines.major = FALSE,
+    gridlines.minor = FALSE)
+
+
+
+```
+
+```{r}
+
+## DE Genes immune cells, find all markers, positive and negative
+Idents(seurat_immun) <- seurat_immun$RNA_snn_res.0.3
+
+DEGenes_IC <- FindAllMarkers(seurat_immun, only.pos = F, logfc.threshold = 0.2) %>%
+                                      dplyr::filter(p_val_adj < 0.01)
+
+DEGenes_IC <- DEGenes_IC %>% 
+  mutate(Gene=gene) %>%
+  mutate(gene=gsub("^.*\\.", "", Gene))  %>%
+  mutate(EnsID=gsub("\\..*","", Gene))
+
+#View(DEGenes_IC)
+
+```
+
+
+
+
+
+
+```{r, Volcano Plot DEGenes resident mph, fig.width = 10, fig.height = 8}
+
+## Difference between resident macrophages: Clusters 1 and 2
+res_mph <- subset(seurat_immun, RNA_snn_res.0.3 %in% c("1", "2")) 
+
+res_mph <- FindAllMarkers(res_mph, only.pos = F, logfc.threshold = 0.2) %>%
+                                      dplyr::filter(p_val_adj < 0.01)
+
+res_mph <- res_mph %>% 
+  mutate(Gene=gene) %>%
+  mutate(gene=gsub("^.*\\.", "", Gene))  %>%
+  mutate(EnsID=gsub("\\..*","", Gene))
+
+#View(res_mph)
+
+
+res_mph2 <- res_mph %>% filter(cluster == "1")
+
+res_2 <- as.data.frame(res_mph2)
+
+## Plot DE Genes between resident macrophages
+
+EnhancedVolcano(res_2, 
+                x = 'avg_log2FC',
+                y = 'p_val_adj',
+                lab = res_2$gene,
+                # xlim =c(-6, 6), 
+                title = 'DE Genes Resident Macrophages Cluster 1 vs. Cluster 2',
+                xlab = bquote(~Log[2]~ 'fold change'),
+                pCutoff = 10e-1,
+                FCcutoff = 1.5,
+    cutoffLineType = 'twodash',
+    cutoffLineWidth = 0.8,
+    pointSize = 2.0,
+    labSize = 3.0,
+    # shape = c(1,4, 23,25),
+    colAlpha = 1,
+    legendLabels=c('Not sig.','Log (base 2) FC','p-value',
+      'p-value & Log (base 2) FC'),
+    legendPosition = 'right',
+    legendLabSize = 12,
+    legendIconSize = 5.0,
+    # drawConnectors = TRUE,
+    # widthConnectors = 0.75,
+    # ridlines.major = FALSE,
+    gridlines.minor = FALSE)
+
+## Cluster 2 SLC40A1, ITGAX, FCN1, CD300E, ITGA4, SPN, UICLM, CD1C, CLEC4F, PCNX2, SOX4
+## Cluster 1 is LYVE1 positive, Cluster 2 is not; Cluster 2 has more phagocytotic activitiy
+
+```
+
+```{r, Volcano Plot DE genes between resident mph, fig.width = 10, fig.height = 8}
+
+## Difference between T cells: Clusters 8 and 4
+res_tcell <- subset(seurat_immun, RNA_snn_res.0.3 %in% c("8", "4")) 
+
+res_tcell <- FindAllMarkers(res_tcell, only.pos = F, logfc.threshold = 0.2) %>%
+                                      dplyr::filter(p_val_adj < 0.01)
+
+res_tcell <- res_tcell %>% 
+  mutate(Gene=gene) %>%
+  mutate(gene=gsub("^.*\\.", "", Gene))  %>%
+  mutate(EnsID=gsub("\\..*","", Gene))
+
+#View(res_mph)
+
+
+res_tcell8 <- res_tcell %>% filter(cluster == "8")
+
+res_tcell8 <- as.data.frame(res_tcell8)
+
+EnhancedVolcano(res_tcell8, 
+                x = 'avg_log2FC',
+                y = 'p_val_adj',
+                lab = res_tcell8$gene,
+                # xlim =c(-6, 6), 
+                title = 'DE Genes T cells Cluster 8 vs. Cluster 4',
+                xlab = bquote(~Log[2]~ 'fold change'),
+                pCutoff = 10e-1,
+                FCcutoff = 1.5,
+    cutoffLineType = 'twodash',
+    cutoffLineWidth = 0.8,
+    pointSize = 2.0,
+    labSize = 3.0,
+    # shape = c(1,4, 23,25),
+    colAlpha = 1,
+    legendLabels=c('Not sig.','Log (base 2) FC','p-value',
+      'p-value & Log (base 2) FC'),
+    legendPosition = 'right',
+    legendLabSize = 12,
+    legendIconSize = 5.0,
+    # drawConnectors = TRUE,
+    # widthConnectors = 0.75,
+    # ridlines.major = FALSE,
+    gridlines.minor = FALSE)
+
+## Cluster 2 SLC40A1, ITGAX, FCN1, CD300E, ITGA4, SPN, UICLM, CD1C, CLEC4F, PCNX2, SOX4
+## Cluster 1 is LYVE1 positive, Cluster 2 is not; Cluster 2 has more phagocytotic activitiy
+
+```
+
+
+
+```{r DE genes immune cells, find markers pos and neg}
+
+## DE Genes immune cells, find all markers, positive and negative
+
+Idents(seurat_immun) <- seurat_immun$RNA_snn_res.0.3
+DEGenes_ICall <- FindAllMarkers(seurat_immun, only.pos = T, logfc.threshold = 0.2) %>%
+                                      dplyr::filter(p_val_adj < 0.01)
+
+DEGenes_IC <- DEGenes_ICall %>% 
+  mutate(Gene=gene) %>%
+  mutate(gene=gsub("^.*\\.", "", Gene))  %>%
+  mutate(EnsID=gsub("\\..*","", Gene))
+
+#View(DEGenes_IC)
+
+
+```
+
+```{r Gene Ontology and GSEA, fig.width = 10, fig.height = 8}
+
+## DE Genes T cells Dotplot
+DEGenes0 <- DEGenes_IC %>% filter(cluster == "0")
+
+ego0 <- enrichGO(gene = unique(DEGenes0$EnsID),
+                          OrgDb = org.Hs.eg.db,
+                          keyType = 'ENSEMBL',
+                          ont = "BP",
+                          pAdjustMethod = "BH",
+                          pvalueCutoff = 0.05,
+                          qvalueCutoff = 0.05)
+
+ego0 <- setReadable(ego0, OrgDb = org.Hs.eg.db)
+
+
+dotplot(ego0, showCategory=20, title = "Cluster 0", font.size = 10)
+
+```
+
+
+```{r GSEA Cluster 0 T cells, barplot}
+
+## DE Genes T cells Barplot
+barplot(ego0, 
+        drop = TRUE, 
+        showCategory = 5, 
+        title = "Cluster 0",
+        font.size = 10)
+
+
+```
+
+```{r GSEA Cluster 1 resident mcp, dotplot, fig.width = 10, fig.height = 8}
+
+## DE Genes resident macrophages, Dotplot
+DEGenes1 <- DEGenes_IC %>% filter(cluster == "1")
+
+ego1 <- enrichGO(gene = unique(DEGenes1$EnsID),
+                          OrgDb = org.Hs.eg.db,
+                          keyType = 'ENSEMBL',
+                          ont = "BP",
+                          pAdjustMethod = "BH",
+                          pvalueCutoff = 0.05,
+                          qvalueCutoff = 0.05)
+
+ego1 <- setReadable(ego1, OrgDb = org.Hs.eg.db)
+
+dotplot(ego1, showCategory=20, title = "Tissue resident macrophages 1: LYVE1 pos.", font.size = 10)
+
+```
+
+
+```{r GSEA Cluster 1 resident mcp, barplot}
+
+## DE Genes resident macrophages, barplot
+barplot(ego1, 
+        drop = TRUE, 
+        showCategory = 5, 
+        title = "Tissue resident macrophages 1: LYVE1 pos.",
+        font.size = 10)
+
+```
+
+
+
+```{r GSEA Cluster 2 resident mcp dotplot, dig.width = 10, fig.height = 8}
+
+## resident macrophages Cluster 2, Dotplot
+DEGenes2 <- DEGenes_IC %>% filter(cluster == "2")
+
+ego2 <- enrichGO(gene = unique(DEGenes2$EnsID),
+                          OrgDb = org.Hs.eg.db,
+                          keyType = 'ENSEMBL',
+                          ont = "BP",
+                          pAdjustMethod = "BH",
+                          pvalueCutoff = 0.05,
+                          qvalueCutoff = 0.05)
+
+ego2 <- setReadable(ego2, OrgDb = org.Hs.eg.db)
+
+dotplot(ego2, showCategory=20, title = "Tissue resident macrophages 2: LYVE1neg", font.size = 10)
+
+```
+
+
+```{r GSEA Cluster 2 resident mcp barplot}
+
+## resident macrophages Cluster 2, Dotplot
+barplot(ego2, 
+        drop = TRUE, 
+        showCategory = 5, 
+        title = "Tissue resident macrophages 2: LYVE1neg",
+        font.size = 10)
+
+```
+
+```{r GSEA Cluster 3 activated macrophages, fig.width = 10, fig.height = 8}
+
+## activated macrophages with Dotplot
+
+DEGenes3 <- DEGenes_IC %>% filter(cluster == "3")
+
+ego3 <- enrichGO(gene = unique(DEGenes3$EnsID),
+                          OrgDb = org.Hs.eg.db,
+                          keyType = 'ENSEMBL',
+                          ont = "BP",
+                          pAdjustMethod = "BH",
+                          pvalueCutoff = 0.05,
+                          qvalueCutoff = 0.05)
+
+ego3 <- setReadable(ego3, OrgDb = org.Hs.eg.db)
+
+#View(ego3)
+
+dotplot(ego3, showCategory=20, title = "Inflammatory macrophages, regulation of IL-6 production", font.size = 10)
+
+# IL6 pathway associated genes CD74/LILRB2/P2RX7/BTK/CLEC7A/LGALS9/SCIMP/IL17RA/SIGLEC16/IFIH1/CARD9/CYBA/AIF1/TLR2/ARHGEF2/MYD88/UNC93B1/NOD2/POU2F2/IL6R/RIGI/TYROBP/TMEM106A/TLR6/TLR8/PTAFR/TLR1/NOD1/TNF/TLR4/TLR7/STAT3/SYK
+
+```
+
+
+```{r GSEA Cluster 3 activated macrophages Barplot}
+
+## activated macrophages barplot
+barplot(ego3, 
+        drop = TRUE, 
+        showCategory = 5, 
+        title = "IL-6 producing activated macrophages",
+        font.size = 10)
+
+```
+
+
+```{r GSEA Cluster 4, proliferating inflammatory T cells, dotplot, fig.width = 10, fig.height = 8}
+
+## DE Genes Proliferating T cells with Dotplot
+DEGenes4 <- DEGenes_IC %>% filter(cluster == "4")
+
+ego4 <- enrichGO(gene = unique(DEGenes4$EnsID),
+                          OrgDb = org.Hs.eg.db,
+                          keyType = 'ENSEMBL',
+                          ont = "BP",
+                          pAdjustMethod = "BH",
+                          pvalueCutoff = 0.05,
+                          qvalueCutoff = 0.05)
+
+ego4 <- setReadable(ego4, OrgDb = org.Hs.eg.db)
+
+dotplot(ego4, showCategory=20, title = "Proliferating T cells", font.size = 10)
+
+```
+
+
+```{r GSEA Cluster 4, barplot proliferating inflammatory T cells}
+
+## DE Genes Proliferating T cells with barplot
+barplot(ego4, 
+        drop = TRUE, 
+        showCategory = 5, 
+        title = "Proliferating T cells: mixed Th1 and CD8+",
+        font.size = 10)
+
+```
+
+
+
+```{r GSEA Cluster inflammatory mph dotplot, fig.width = 10, fig.height = 8}
+
+## DE Genes inflammatory macrophages with Dotplot
+DEGenes5 <- DEGenes_IC %>% filter(cluster == "5")
+
+ego5 <- enrichGO(gene = unique(DEGenes5$EnsID),
+                          OrgDb = org.Hs.eg.db,
+                          keyType = 'ENSEMBL',
+                          ont = "BP",
+                          pAdjustMethod = "BH",
+                          pvalueCutoff = 0.05,
+                          qvalueCutoff = 0.05)
+
+ego5 <- setReadable(ego5, OrgDb = org.Hs.eg.db)
+
+#View(ego5@result)
+
+dotplot(ego5, showCategory=20, title = "CXCL9+ Inflammatory Macrophages", font.size = 10)
+
+```
+
+
+```{r GSEA Cluster 5 barplot inflammatory macrophages}
+
+## DE Genes inflammatory macrophages
+barplot(ego5, 
+        drop = TRUE, 
+        showCategory = 7, 
+        title = "CXCL9+ Inflammatory Macrophages",
+        font.size = 10)
+
+```
+
+
+
+```{r GSEA Cluster 6}
+
+## DE Genes Fibroblasts
+
+DEGenes6 <- DEGenes_IC %>% filter(cluster == "6")
+
+ego6 <- enrichGO(gene = unique(DEGenes6$EnsID),
+                          OrgDb = org.Hs.eg.db,
+                          keyType = 'ENSEMBL',
+                          ont = "BP",
+                          pAdjustMethod = "BH",
+                          pvalueCutoff = 0.05,
+                          qvalueCutoff = 0.05)
+
+ego6 <- setReadable(ego6, OrgDb = org.Hs.eg.db)
+
+
+#dotplot(ego6, showCategory=30, title = "Fibroblasts", font.size = 10)
+
+barplot(ego6, 
+        drop = TRUE, 
+        showCategory = 5, 
+        title = "Fibroblasts",
+        font.size = 10)
+
+```
+
+
+
+```{r GSEA cl7}
+
+## DE Genes BECs
+DEGenes7 <- DEGenes_IC %>% filter(cluster == "7")
+
+ego7 <- enrichGO(gene = unique(DEGenes7$EnsID),
+                          OrgDb = org.Hs.eg.db,
+                          keyType = 'ENSEMBL',
+                          ont = "BP",
+                          pAdjustMethod = "BH",
+                          pvalueCutoff = 0.05,
+                          qvalueCutoff = 0.05)
+
+ego7 <- setReadable(ego7, OrgDb = org.Hs.eg.db)
+
+#dotplot(ego7, showCategory=20, title = "Cluster 7", font.size = 10)
+
+barplot(ego7, 
+        drop = TRUE, 
+        showCategory = 10, 
+        title = "Endothelial Cells",
+        font.size = 10)
+
+```
+
+
+```{r GSEA Cluster 8 Dotplot NK, fig.width = 10, fig.height = 8}
+
+## DE Genes Natural Killer Cells
+DEGenes8 <- DEGenes_IC %>% filter(cluster == "8")
+
+ego8 <- enrichGO(gene = unique(DEGenes8$EnsID),
+                          OrgDb = org.Hs.eg.db,
+                          keyType = 'ENSEMBL',
+                          ont = "BP",
+                          pAdjustMethod = "BH",
+                          pvalueCutoff = 0.05,
+                          qvalueCutoff = 0.05)
+
+ego8 <- setReadable(ego8, OrgDb = org.Hs.eg.db)
+
+dotplot(ego8, showCategory=20, title = "NKs", font.size = 10)
+
+```
+
+
+```{r GSEA Cluster 8 barplot NK, fig.width = 10, fig.height = 8}
+
+barplot(ego8, 
+        drop = TRUE, 
+        showCategory = 10, 
+        title = "Natural Killer cells",
+        font.size = 10)
+
+```
+
+```{r GSEA Cluster 9}
+
+## DE Genes Mural Cells (pericytes and VSMC)
+DEGenes9 <- DEGenes_IC %>% filter(cluster == "9")
+
+ego9 <- enrichGO(gene = unique(DEGenes9$EnsID),
+                          OrgDb = org.Hs.eg.db,
+                          keyType = 'ENSEMBL',
+                          ont = "BP",
+                          pAdjustMethod = "BH",
+                          pvalueCutoff = 0.05,
+                          qvalueCutoff = 0.05)
+
+ego9 <- setReadable(ego9, OrgDb = org.Hs.eg.db)
+
+#dotplot(ego9, showCategory=20, title = "Cluster 9", font.size = 10)
+
+barplot(ego1, 
+        drop = TRUE, 
+        showCategory = 5, 
+        title = "Mural Cells",
+        font.size = 10)
+
+```
+
+
+```{r GSEA Cluster 10}
+
+## DE Genes B cells
+DEGenes10 <- DEGenes_IC %>% filter(cluster == "10")
+
+ego10 <- enrichGO(gene = unique(DEGenes10$EnsID),
+                          OrgDb = org.Hs.eg.db,
+                          keyType = 'ENSEMBL',
+                          ont = "BP",
+                          pAdjustMethod = "BH",
+                          pvalueCutoff = 0.05,
+                          qvalueCutoff = 0.05)
+
+ego10 <- setReadable(ego10, OrgDb = org.Hs.eg.db)
+
+#dotplot(ego1, showCategory=20, title = "Cluster 10", font.size = 10)
+
+barplot(ego10, 
+        drop = TRUE, 
+        showCategory = 5, 
+        title = "B cells",
+        font.size = 10)
+
+```
+
+
+
+```{r GSEA Cluster 11}
+
+## DE Genes Dendritic Cells
+DEGenes11 <- DEGenes_IC %>% filter(cluster == "11")
+
+ego11 <- enrichGO(gene = unique(DEGenes11$EnsID),
+                          OrgDb = org.Hs.eg.db,
+                          keyType = 'ENSEMBL',
+                          ont = "BP",
+                          pAdjustMethod = "BH",
+                          pvalueCutoff = 0.05,
+                          qvalueCutoff = 0.05)
+
+ego11 <- setReadable(ego11, OrgDb = org.Hs.eg.db)
+
+#dotplot(ego11, showCategory=20, title = "Cluster 11", font.size = 10)
+
+barplot(ego11, 
+        drop = TRUE, 
+        showCategory = 5, 
+        title = "Dendritic cells",
+        font.size = 10)
+
+```
+
+```{r GSEA Cluster 12}
+
+## DE Genes Mast Cells
+DEGenes12 <- DEGenes_IC %>% filter(cluster == "12")
+
+ego12 <- enrichGO(gene = unique(DEGenes12$EnsID),
+                          OrgDb = org.Hs.eg.db,
+                          keyType = 'ENSEMBL',
+                          ont = "BP",
+                          pAdjustMethod = "BH",
+                          pvalueCutoff = 0.05,
+                          qvalueCutoff = 0.05)
+
+ego12 <- setReadable(ego12, OrgDb = org.Hs.eg.db)
+
+dotplot(ego12, showCategory=20, title = "Cluster 12", font.size = 10)
+
+barplot(ego12, 
+        drop = T, 
+        showCategory = 7, 
+        title = "Mast cells",
+        font.size = 10)
+
+#View(ego12)
+
+# KIT/SLC18A2/GATA2/RAB44/ENPP3/BTK/ADGRE2, NDST2
+
+
+```
+
+
+
+
+
+
+```{r create Single Cell Experiment}
+
+## Convert seurat_immun to single cell experiment (sce)
+sce <- as.SingleCellExperiment(seurat_immun)
+genes <- data.frame(geneID=rownames(sce)) %>% mutate(gene=gsub(".*\\.", "", geneID))
+pal = colorRampPalette(c("#053061", "#2166ac", "#f7f7f7", "#f4a582","orange", "#d95f0e","#b2183c")) 
+
+
+```
+
+
+```{r create Single Cell Experiment, subset Healthy}
+## Subset healthy and convert seurat_Healthy to sce
+seurat_Healthy <- subset(seurat_immun, pat_sub == "Healthy")
+table(seurat_Healthy$pat_sub)
+
+sceHealthy <- as.SingleCellExperiment(seurat_Healthy)
+
+```
+
+
+
+```{r create Single Cell Experiment, subset AM}
+
+## subset Acute Myocarditis (AM) from all disease conditions and convert seurat object to sce 
+seuratAM <- subset(seurat_immun, pat_sub == "AM")
+table(seuratAM$pat_sub)
+sceAM <- as.SingleCellExperiment(seuratAM)
+
+## subgroup AM into different T cell conditions and convert into sce
+
+seuratAM_TChigh <- subset(seurat_immun, TC == "Tcell High")
+table(seuratAM_TChigh$TC)
+sceAM_TChigh <- as.SingleCellExperiment(seuratAM_TChigh)
+
+seuratAM_TCint <- subset(seurat_immun, TC == "Tcell Intermediate")
+table(seuratAM_TCint$TC)
+sceAM_TCint <- as.SingleCellExperiment(seuratAM_TCint)
+
+seuratAM_TClow <- subset(seurat_immun, TC == "Tcell Low")
+table(seuratAM_TClow$TC)
+sceAM_TClow <- as.SingleCellExperiment(seuratAM_TClow)
+
+seuratAM_TCvlow <- subset(seurat_immun, TC == "Tcell Very Low")
+table(seuratAM_TCvlow$TC)
+sceAM_TCvlow <- as.SingleCellExperiment(seuratAM_TCvlow)
+
+```
+
+```{r create Single Cell Experiment, subset CMP}
+
+## subset Cardiomyopathy (CMP) and convert seurat object to sce 
+seuratCMP <- subset(seurat_immun, pat_sub == "CMP")
+table(seuratCMP$pat_sub)
+sceCMP <- as.SingleCellExperiment(seuratCMP)
+
+
+```
+
+```{r create Single Cell Experiment, subset Sarcoidosis}
+
+## subset Sarcoidosis and convert seurat object to sce 
+seuratSarco <- subset(seurat_immun, pat_sub == "Sarcoidosis")
+table(seuratSarco$pat_sub)
+sceSarco <- as.SingleCellExperiment(seuratSarco)
+
+```
+
+
+
+
+```{r SCE lymphocyte differentiation all}
+
+## Filter lymphocyte differentiation T cell GSEA, redundant terms are listed 
+ego0 <- dplyr::filter(ego0@result, ego0@result$Description %in% c(
+  "T cell differentiation",
+  "lymphocyte differentiation",
+  "T cell receptor signaling pathway",
+  "alpha-beta T cell activation",
+  "T cell differentiation in thymus",
+  "T cell selection",
+  "positive regulation of T cell activation",
+  "alpha-beta T cell differentiation",
+  "positive regulation of lymphocyte activation",
+  "regulation of T cell differentiation",
+  "regulation of lymphocyte differentiation",
+  "positive T cell selection",
+  "lymphocyte proliferation",
+  "thymic T cell selection",
+  "T cell proliferation",
+  "CD4-positive, alpha-beta T cell activation",
+  "lymphocyte activation involved in immune response",
+  "T cell migration",
+  "T cell costimulation",
+  "alpha-beta T cell activation involved in immune response",
+  "alpha-beta T cell differentiation involved in immune response",
+  "CD4-positive, alpha-beta T cell differentiation",
+  "T cell differentiation involved in immune response",
+  "T-helper cell differentiation",
+  "regulation of lymphocyte proliferation",
+  "CD4-positive, alpha-beta T cell differentiation involved in immune response",
+  "positive regulation of T cell differentiation"))
+
+## geneID extraction
+g0 <- ego0$geneID
+Str <- unlist(strsplit(g0, "/"))
+df <- as.data.frame(Str)
+colnames(df) <- c("gene")
+
+## signature Genes in count matrix
+signGenes <- genes %>% dplyr::filter(gene %in% df$gene)
+if (nrow(signGenes) == 0) stop("No signature genes found.")
+
+## sce object for signature genes
+sceSub <- sce[rownames(sce) %in% unique(signGenes$geneID), ]
+if (nrow(sceSub) == 0) stop("No matching genes found in sce.")
+
+## gene signature matrix
+cntMat <- rowSums(t(as.matrix(sceSub@assays@data$logcounts))) / nrow(signGenes)
+if (length(cntMat) != ncol(sceSub)) stop("Mismatch between cntMat and sceSub dimensions.")
+
+sceSub$sign <- cntMat
+sceSub$sign2 <- sceSub$sign
+
+sceSub$sign2[which(sceSub$sign > 2)] <- 2
+
+## umap of cells affected by T lymphocyte activation, proliferation and differentiation
+sc <- scale_colour_gradientn(colours = pal(100), limits = c(0, 2))
+plotUMAP(sceSub, colour_by = "sign2", point_size = 0.5) + sc 
+
+
+
+```
+
+```{r, SCE healthy only}
+
+
+## Healthy
+sceHealthySub <- sceHealthy[which(rownames(sceHealthy) %in% signGenes$geneID),]
+cntMat <- rowSums(t(as.matrix(
+    sceHealthySub@assays@data$logcounts)))/nrow(signGenes)
+sceHealthySub$sign <- cntMat
+sceHealthySub$sign2 <- sceHealthySub$sign
+##check max and min values
+##max(sceSub$sign)
+sc <- scale_colour_gradientn(colours = pal(100), limits=c(0, 1))
+sceHealthySub$sign2[which(sceHealthySub$sign > 1)] <- 1
+plotUMAP(sceHealthySub, colour_by = "sign2", point_size = 0.5) + sc +
+  theme(legend.position = "none")
+
+
+```
+
+
+
+```{r, SCE AM only lympho activation}
+
+## AM all, single cell experiment with high expression of lymphocyte activation markers
+sceAMSub <- sceAM[which(rownames(sceAM) %in% signGenes$geneID),]
+cntMat <- rowSums(t(as.matrix(
+    sceAMSub@assays@data$logcounts)))/nrow(signGenes)
+sceAMSub$sign <- cntMat
+sceAMSub$sign2 <- sceAMSub$sign
+##check max and min values
+##max(sceSub$sign)
+sc <- scale_colour_gradientn(colours = pal(100), limits=c(0, 1))
+sceAMSub$sign2[which(sceAMSub$sign > 1)] <- 1
+plotUMAP(sceAMSub, colour_by = "sign2", point_size = 0.5) + sc +
+  theme(legend.position = "none")
+
+```
+
+
+```{r, SCE AM Tc high lympho activation}
+
+## AM TC high lymphocyte activation
+sceAMSubhigh <- sceAM_TChigh[which(rownames(sceAM) %in% signGenes$geneID),]
+cntMat <- rowSums(t(as.matrix(
+    sceAMSubhigh@assays@data$logcounts)))/nrow(signGenes)
+sceAMSubhigh$sign <- cntMat
+sceAMSubhigh$sign2 <- sceAMSubhigh$sign
+##check max and min values
+##max(sceSub$sign)
+sc <- scale_colour_gradientn(colours = pal(100), limits=c(0, 1))
+sceAMSubhigh$sign2[which(sceAMSubhigh$sign > 1)] <- 1
+plotUMAP(sceAMSubhigh, colour_by = "sign2", point_size = 0.5) + sc +
+  theme(legend.position = "none")
+
+```
+
+
+```{r, SCE AM Tc int lympho activation}
+
+## AM TC int lymphocyte activation
+sceAMSubint <- sceAM_TCint[which(rownames(sceAM_TCint) %in% signGenes$geneID),]
+cntMat <- rowSums(t(as.matrix(
+    sceAMSubint@assays@data$logcounts)))/nrow(signGenes)
+sceAMSubint$sign <- cntMat
+sceAMSubint$sign2 <- sceAMSubint$sign
+##check max and min values
+##max(sceSub$sign)
+sc <- scale_colour_gradientn(colours = pal(100), limits=c(0, 1))
+sceAMSubint$sign2[which(sceAMSubint$sign > 1)] <- 1
+plotUMAP(sceAMSubint, colour_by = "sign2", point_size = 0.5) + sc +
+  theme(legend.position = "none")
+
+```
+
+
+```{r, SCE AM Tc low and vlow lympho activation}
+
+## AM TC low lymphocyte activation
+sceAMSublow <- sceAM_TClow[which(rownames(sceAM_TClow) %in% signGenes$geneID),]
+cntMat <- rowSums(t(as.matrix(
+    sceAMSublow@assays@data$logcounts)))/nrow(signGenes)
+sceAMSublow$sign <- cntMat
+sceAMSublow$sign2 <- sceAMSublow$sign
+##check max and min values
+##max(sceSub$sign)
+sc <- scale_colour_gradientn(colours = pal(100), limits=c(0, 1))
+sceAMSublow$sign2[which(sceAMSublow$sign > 1)] <- 1
+plotUMAP(sceAMSublow, colour_by = "sign2", point_size = 0.5) + sc +
+  theme(legend.position = "none")
+
+## AM TC vlow lymphocyte activation
+sceAMSubvlow <- sceAM_TCvlow[which(rownames(sceAM_TCvlow) %in% signGenes$geneID),]
+cntMat <- rowSums(t(as.matrix(
+    sceAMSubvlow@assays@data$logcounts)))/nrow(signGenes)
+sceAMSubvlow$sign <- cntMat
+sceAMSubvlow$sign2 <- sceAMSubvlow$sign
+##check max and min values
+##max(sceSub$sign)
+sc <- scale_colour_gradientn(colours = pal(100), limits=c(0, 1))
+sceAMSubvlow$sign2[which(sceAMSubvlow$sign > 1)] <- 1
+plotUMAP(sceAMSubvlow, colour_by = "sign2", point_size = 0.5) + sc +
+  theme(legend.position = "none")
+
+
+```
+
+```{r SCE CMP sce lymphocyte activation}
+
+## CMP lymphocyte activation
+sceCMPSub <- sceCMP[which(rownames(sceCMP) %in% signGenes$geneID),]
+cntMat <- rowSums(t(as.matrix(
+    sceCMPSub@assays@data$logcounts)))/nrow(signGenes)
+sceCMPSub$sign <- cntMat
+sceCMPSub$sign2 <- sceCMPSub$sign
+##check max and min values
+##max(sceSub$sign)
+sc <- scale_colour_gradientn(colours = pal(100), limits=c(0, 1))
+sceCMPSub$sign2[which(sceCMPSub$sign > 1)] <- 1
+plotUMAP(sceCMPSub, colour_by = "sign2", point_size = 0.5) + sc +
+  theme(legend.position = "none")
+
+```
+
+
+```{r, SCE Sarcoidosis sce lymphocyte activation}
+
+## Sarcoidosis lymphocyte activation
+sceSarcoSub <- sceSarco[which(rownames(sceSarco) %in% signGenes$geneID),]
+cntMat <- rowSums(t(as.matrix(
+    sceSarcoSub@assays@data$logcounts)))/nrow(signGenes)
+sceSarcoSub$sign <- cntMat
+sceSarcoSub$sign2 <- sceSarcoSub$sign
+##check max and min values
+##max(sceSub$sign)
+sc <- scale_colour_gradientn(colours = pal(100), limits=c(0, 1))
+sceSarcoSub$sign2[which(sceSarcoSub$sign > 1)] <- 1
+plotUMAP(sceSarcoSub, colour_by = "sign2", point_size = 0.5) + sc +
+  theme(legend.position = "none")
+
+```
+
+
+
+```{r response type II interferon, all immuno clusters}
+
+## response to type II interferon
+ego5 <- dplyr::filter(ego5@result,ego5@result$Description=="response to type II interferon")
+g5 <- ego5$geneID
+Str <-(g5)
+StrSub <- strsplit(Str, "/")
+df <- as.data.frame(StrSub)
+colnames(df) <- c("gene")
+
+## Count matrix of signature genes
+signGenes <- genes %>% dplyr::filter(gene %in% df$gene)
+
+sceSub <- sce[which(rownames(sce) %in% signGenes$geneID),]
+cntMat <- rowSums(t(as.matrix(
+    sceSub@assays@data$logcounts)))/nrow(signGenes)
+sceSub$sign <- cntMat
+sceSub$sign2 <- sceSub$sign
+
+##  max and min values
+##max(sceSub$sign)
+sc <- scale_colour_gradientn(colours = pal(100), limits=c(0, 2))
+sceSub$sign2[which(sceSub$sign > 2)] <- 2
+plotUMAP(sceSub, colour_by = "sign2", point_size = 0.5) + sc +
+  theme(legend.position = "none")
+
+
+```
+
+```{r SCE Healthy, response to type II interferon}
+
+## SCE Healthy, response to type II interferon
+sceHealthySub <- sceHealthy[which(rownames(sceHealthy) %in% signGenes$geneID),]
+cntMat <- rowSums(t(as.matrix(
+    sceHealthySub@assays@data$logcounts)))/nrow(signGenes)
+sceHealthySub$sign <- cntMat
+sceHealthySub$sign2 <- sceHealthySub$sign
+##check max and min values
+##max(sceSub$sign)
+sc <- scale_colour_gradientn(colours = pal(100), limits=c(0, 1))
+sceHealthySub$sign2[which(sceHealthySub$sign > 1)] <- 1
+plotUMAP(sceHealthySub, colour_by = "sign2", point_size = 0.5) + sc +
+  theme(legend.position = "none")
+
+
+```
+
+
+
+
+
+
+```{r, SCE AM only response type II interferon}
+
+
+## AM all, response type II interferon
+sceAMSub <- sceAM[which(rownames(sceAM) %in% signGenes$geneID),]
+cntMat <- rowSums(t(as.matrix(
+    sceAMSub@assays@data$logcounts)))/nrow(signGenes)
+sceAMSub$sign <- cntMat
+sceAMSub$sign2 <- sceAMSub$sign
+##check max and min values
+##max(sceSub$sign)
+sc <- scale_colour_gradientn(colours = pal(100), limits=c(0, 1))
+sceAMSub$sign2[which(sceAMSub$sign > 1)] <- 1
+plotUMAP(sceAMSub, colour_by = "sign2", point_size = 0.5) + sc +
+  theme(legend.position = "none")
+
+
+```
+
+```{r, SCE AM Tc high response type II interferon}
+
+## AM TC high response type II interferon
+sceAMSubhigh <- sceAM_TChigh[which(rownames(sceAM) %in% signGenes$geneID),]
+cntMat <- rowSums(t(as.matrix(
+    sceAMSubhigh@assays@data$logcounts)))/nrow(signGenes)
+sceAMSubhigh$sign <- cntMat
+sceAMSubhigh$sign2 <- sceAMSubhigh$sign
+##check max and min values
+##max(sceSub$sign)
+sc <- scale_colour_gradientn(colours = pal(100), limits=c(0, 1))
+sceAMSubhigh$sign2[which(sceAMSubhigh$sign > 1)] <- 1
+plotUMAP(sceAMSubhigh, colour_by = "sign2", point_size = 0.5) + sc +
+  theme(legend.position = "none")
+
+```
+
+
+```{r, SCE TCint response type II interferon}
+
+## AM TC int response type II interferon
+sceAMSubint <- sceAM_TCint[which(rownames(sceAM_TCint) %in% signGenes$geneID),]
+cntMat <- rowSums(t(as.matrix(
+    sceAMSubint@assays@data$logcounts)))/nrow(signGenes)
+sceAMSubint$sign <- cntMat
+sceAMSubint$sign2 <- sceAMSubint$sign
+##check max and min values
+##max(sceSub$sign)
+sc <- scale_colour_gradientn(colours = pal(100), limits=c(0, 1))
+sceAMSubint$sign2[which(sceAMSubint$sign > 1)] <- 1
+plotUMAP(sceAMSubint, colour_by = "sign2", point_size = 0.5) + sc +
+  theme(legend.position = "none")
+
+```
+
+
+```{r, SCE AM Tc low response type II interferon}
+
+## AM TC low response type II interferon
+sceAMSublow <- sceAM_TClow[which(rownames(sceAM_TClow) %in% signGenes$geneID),]
+cntMat <- rowSums(t(as.matrix(
+    sceAMSublow@assays@data$logcounts)))/nrow(signGenes)
+sceAMSublow$sign <- cntMat
+sceAMSublow$sign2 <- sceAMSublow$sign
+##check max and min values
+##max(sceSub$sign)
+sc <- scale_colour_gradientn(colours = pal(100), limits=c(0, 1))
+sceAMSublow$sign2[which(sceAMSublow$sign > 1)] <- 1
+plotUMAP(sceAMSublow, colour_by = "sign2", point_size = 0.5) + sc +
+  theme(legend.position = "none")
+
+```
+
+
+```{r, SCE AM Tc vlow response type II interferon}
+
+## AM TC vlow response type II interferon
+sceAMSubvlow <- sceAM_TCvlow[which(rownames(sceAM_TCvlow) %in% signGenes$geneID),]
+cntMat <- rowSums(t(as.matrix(
+    sceAMSubvlow@assays@data$logcounts)))/nrow(signGenes)
+sceAMSubvlow$sign <- cntMat
+sceAMSubvlow$sign2 <- sceAMSubvlow$sign
+##check max and min values
+##max(sceSub$sign)
+sc <- scale_colour_gradientn(colours = pal(100), limits=c(0, 1))
+sceAMSubvlow$sign2[which(sceAMSubvlow$sign > 1)] <- 1
+plotUMAP(sceAMSubvlow, colour_by = "sign2", point_size = 0.5) + sc +
+  theme(legend.position = "none")
+
+
+```
+
+```{r CMP response type II interferon}
+
+## CMP response type II interferon
+sceCMPSub <- sceCMP[which(rownames(sceCMP) %in% signGenes$geneID),]
+cntMat <- rowSums(t(as.matrix(
+    sceCMPSub@assays@data$logcounts)))/nrow(signGenes)
+sceCMPSub$sign <- cntMat
+sceCMPSub$sign2 <- sceCMPSub$sign
+##check max and min values
+##max(sceSub$sign)
+sc <- scale_colour_gradientn(colours = pal(100), limits=c(0, 1))
+sceCMPSub$sign2[which(sceCMPSub$sign > 1)] <- 1
+plotUMAP(sceCMPSub, colour_by = "sign2", point_size = 0.5) + sc +
+  theme(legend.position = "none")
+
+```
+
+
+
+```{r Sarco response type II interferon}
+
+## Sarcoidosis response type II interferon
+sceSarcoSub <- sceSarco[which(rownames(sceSarco) %in% signGenes$geneID),]
+cntMat <- rowSums(t(as.matrix(
+    sceSarcoSub@assays@data$logcounts)))/nrow(signGenes)
+sceSarcoSub$sign <- cntMat
+sceSarcoSub$sign2 <- sceSarcoSub$sign
+##check max and min values
+##max(sceSub$sign)
+sc <- scale_colour_gradientn(colours = pal(100), limits=c(0, 1))
+sceSarcoSub$sign2[which(sceSarcoSub$sign > 1)] <- 1
+plotUMAP(sceSarcoSub, colour_by = "sign2", point_size = 0.5) + sc +
+  theme(legend.position = "none")
+
+```
+
+
+
+
+
+
+```{r, Interleukin-6 production across all clusters}
+
+## Filter Regulation of Interleukin-6 production
+  
+
+ego3 <- dplyr::filter(ego3@result,ego3@result$Description=="positive regulation of interleukin-6 production")
+g3 <- ego3$geneID
+Str <-(g3)
+StrSub <- strsplit(Str, "/")
+df <- as.data.frame(StrSub)
+colnames(df) <- c("gene")
+
+##make a count matrix of signature genes
+signGenes <- genes %>% dplyr::filter(gene %in% df$gene)
+
+sceSub <- sce[which(rownames(sce) %in% signGenes$geneID),]
+cntMat <- rowSums(t(as.matrix(
+    sceSub@assays@data$logcounts)))/nrow(signGenes)
+sceSub$sign <- cntMat
+sceSub$sign2 <- sceSub$sign
+##check max and min values
+##max(sceSub$sign)
+sc <- scale_colour_gradientn(colours = pal(100), limits=c(0, 1))
+sceSub$sign2[which(sceSub$sign > 1)] <- 1
+plotUMAP(sceSub, colour_by = "sign2", point_size = 0.5) + sc +
+theme(legend.position = "none")
+  
+
+```
+
+
+
+
+```{r AM IL6}
+
+## AM all, gradient where IL-6 activation is high
+sceAMSub <- sceAM[which(rownames(sceAM) %in% signGenes$geneID),]
+cntMat <- rowSums(t(as.matrix(
+    sceAMSub@assays@data$logcounts)))/nrow(signGenes)
+sceAMSub$sign <- cntMat
+sceAMSub$sign2 <- sceAMSub$sign
+##check max and min values
+##max(sceSub$sign)
+sc <- scale_colour_gradientn(colours = pal(100), limits=c(0, 1))
+sceAMSub$sign2[which(sceAMSub$sign > 1)] <- 1
+plotUMAP(sceAMSub, colour_by = "sign2", point_size = 0.5) + sc +
+  theme(legend.position = "none")
+
+```
+
+
+
+```{r, SCE AM Tc high IL6 activation}
+
+## AM TC high IL6 activation
+sceAMSubhigh <- sceAM_TChigh[which(rownames(sceAM) %in% signGenes$geneID),]
+cntMat <- rowSums(t(as.matrix(
+    sceAMSubhigh@assays@data$logcounts)))/nrow(signGenes)
+sceAMSubhigh$sign <- cntMat
+sceAMSubhigh$sign2 <- sceAMSubhigh$sign
+##check max and min values
+##max(sceSub$sign)
+sc <- scale_colour_gradientn(colours = pal(100), limits=c(0, 1))
+sceAMSubhigh$sign2[which(sceAMSubhigh$sign > 1)] <- 1
+plotUMAP(sceAMSubhigh, colour_by = "sign2", point_size = 0.5) + sc +
+  theme(legend.position = "none")
+
+```
+
+
+```{r, SCE TCint IL6 activation}
+
+## AM TC int IL6 activation
+sceAMSubint <- sceAM_TCint[which(rownames(sceAM_TCint) %in% signGenes$geneID),]
+cntMat <- rowSums(t(as.matrix(
+    sceAMSubint@assays@data$logcounts)))/nrow(signGenes)
+sceAMSubint$sign <- cntMat
+sceAMSubint$sign2 <- sceAMSubint$sign
+##check max and min values
+##max(sceSub$sign)
+sc <- scale_colour_gradientn(colours = pal(100), limits=c(0, 1))
+sceAMSubint$sign2[which(sceAMSubint$sign > 1)] <- 1
+plotUMAP(sceAMSubint, colour_by = "sign2", point_size = 0.5) + sc +
+  theme(legend.position = "none")
+
+```
+
+
+```{r, SCE AM Tc int IL6}
+
+
+## AM TC low IL6 activation
+sceAMSublow <- sceAM_TClow[which(rownames(sceAM_TClow) %in% signGenes$geneID),]
+cntMat <- rowSums(t(as.matrix(
+    sceAMSublow@assays@data$logcounts)))/nrow(signGenes)
+sceAMSublow$sign <- cntMat
+sceAMSublow$sign2 <- sceAMSublow$sign
+##check max and min values
+##max(sceSub$sign)
+sc <- scale_colour_gradientn(colours = pal(100), limits=c(0, 1))
+sceAMSublow$sign2[which(sceAMSublow$sign > 1)] <- 1
+plotUMAP(sceAMSublow, colour_by = "sign2", point_size = 0.5) + sc +
+  theme(legend.position = "none")
+
+# AM TC vlow lymphocyte activation
+sceAMSubvlow <- sceAM_TCvlow[which(rownames(sceAM_TCvlow) %in% signGenes$geneID),]
+cntMat <- rowSums(t(as.matrix(
+    sceAMSubvlow@assays@data$logcounts)))/nrow(signGenes)
+sceAMSubvlow$sign <- cntMat
+sceAMSubvlow$sign2 <- sceAMSubvlow$sign
+##check max and min values
+##max(sceSub$sign)
+sc <- scale_colour_gradientn(colours = pal(100), limits=c(0, 1))
+sceAMSubvlow$sign2[which(sceAMSubvlow$sign > 1)] <- 1
+plotUMAP(sceAMSubvlow, colour_by = "sign2", point_size = 0.5) + sc +
+  theme(legend.position = "none")
+
+
+```
+
+```{r CMP IL6 activation}
+
+## CMP IL6 activation
+sceCMPSub <- sceCMP[which(rownames(sceCMP) %in% signGenes$geneID),]
+cntMat <- rowSums(t(as.matrix(
+    sceCMPSub@assays@data$logcounts)))/nrow(signGenes)
+sceCMPSub$sign <- cntMat
+sceCMPSub$sign2 <- sceCMPSub$sign
+##check max and min values
+##max(sceSub$sign)
+sc <- scale_colour_gradientn(colours = pal(100), limits=c(0, 1))
+sceCMPSub$sign2[which(sceCMPSub$sign > 1)] <- 1
+plotUMAP(sceCMPSub, colour_by = "sign2", point_size = 0.5) + sc +
+  theme(legend.position = "none")
+
+```
+
+
+
+```{r Sarco IL6}
+
+## Sarcoidosis IL6 activation
+sceSarcoSub <- sceSarco[which(rownames(sceSarco) %in% signGenes$geneID),]
+cntMat <- rowSums(t(as.matrix(
+    sceSarcoSub@assays@data$logcounts)))/nrow(signGenes)
+sceSarcoSub$sign <- cntMat
+sceSarcoSub$sign2 <- sceSarcoSub$sign
+##check max and min values
+##max(sceSub$sign)
+sc <- scale_colour_gradientn(colours = pal(100), limits=c(0, 1))
+sceSarcoSub$sign2[which(sceSarcoSub$sign > 1)] <- 1
+plotUMAP(sceSarcoSub, colour_by = "sign2", point_size = 0.5) + sc +
+  theme(legend.position = "none")
+
+
+
+```
+
+
+
+`
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r Session Info}
+date()
+sessionInfo()
+
+```
+
+
+

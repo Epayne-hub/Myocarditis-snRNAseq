@@ -1,0 +1,87 @@
+---
+title: "Acute and Healthy subsets"
+author: "Emily Payne"
+date: "2024-11-22"
+output: html_document
+---
+
+```{r setup, include = FALSE, fig.path = "custom/path", warning = FALSE, message = FALSE}
+
+options (width = 100)
+knitr::opts_chunk$set(warning = FALSE, echo = TRUE, message = FALSE, dev = c("png", "pdf"))
+seed <- 1234
+
+```
+
+
+```{r load library}
+
+library(ExploreSCdataSeurat3)
+library(runSeurat3)
+library(Seurat)
+library(ggpubr)
+library(pheatmap)
+library(SingleCellExperiment)
+library(dplyr)
+library(tidyverse)
+library(viridis)
+library(muscat)
+library(circlize)
+library(destiny)
+library(scater)
+library(metap)
+library(multtest)
+library(clusterProfiler)
+library(org.Hs.eg.db)
+library(msigdbr)
+library(enrichplot)
+library(DOSE)
+library(grid)
+library(gridExtra)
+library(ggupset)
+library(VennDiagram)
+library(NCmisc)
+
+```
+
+
+```{r}
+
+seuratM <- readRDS("~/Desktop/Emily/Myocarditis snRNAseq/data/01 Merged Seurat files/Myocarditis_allfiltered_12.11.24.rds")
+
+table(seuratM$dataset)
+table(seuratM$RNA_snn_res.0.25)
+table(seuratM$orig.ident)
+
+```
+
+```{r}
+Idents(seuratM) <- seuratM$clusterName
+DimPlot(seuratM, reduction = "umap", pt.size = 0.1, label = TRUE)
+
+unique(seuratM$clusterName)
+```
+
+```{r}
+
+Idents(seuratM) <- seuratM$pat_sub
+seuratAMvsHealthy <- subset(seuratM, pat_sub %in% c("AM", "Healthy"))
+
+
+
+table(seuratAMvsHealthy$orig.ident)
+
+table(seuratAMvsHealthy$pat_sub)
+
+table(seuratAMvsHealthy$clusterName)
+
+```
+
+```{r}
+
+#saveRDS(seuratAMvsHealthy, file = "/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/data/01 Merged Seurat files/seuratAMvsHealthy_22.11.2024.rds")
+
+
+```
+
+

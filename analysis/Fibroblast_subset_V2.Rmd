@@ -600,7 +600,7 @@ Fb_markers <- FindAllMarkers(seuratFb, only.pos=T) %>%
 ```
 
 
-```{r}
+```{r fb rel abundance}
 
 datList <- NULL
 for(con in unique(seuratFb$patient)){

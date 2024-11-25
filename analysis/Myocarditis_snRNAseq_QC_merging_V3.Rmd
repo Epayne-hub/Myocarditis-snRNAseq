@@ -13,7 +13,7 @@ knitr::opts_chunk$set(warning = FALSE, echo = TRUE, message = FALSE, dev = c("pn
 seed <- 1234
 
 ```
-```
+
 
 
 
@@ -368,7 +368,7 @@ table(seuratM$pat_sub)
 
 
 
-`
+
 
 
 
@@ -718,6 +718,7 @@ seuratM$sex[which(seuratM$dataset %in% unknown)] <- "unknown"
 
 
 ```
+
 
 ```{r Type of Ventricle}
 

@@ -1,0 +1,649 @@
+---
+title: "Myocarditis Subgroups vs. Healthy"
+author: "Emily Payne"
+date: "2024-10-25"
+output: html_document
+---
+
+
+```{r setup, include = FALSE}
+options (width = 100)
+knitr::opts_chunk$set(warning = FALSE, echo = TRUE,message = FALSE, dev = c("png", "pdf"),
+                      fig.width=7, fig.height=5)
+seed <- 1234
+
+```
+
+
+
+```{r load libraries, echo=FALSE, message=FALSE, warning=FALSE}
+
+suppressPackageStartupMessages({
+  library(ExploreSCdataSeurat3)
+  library(runSeurat3)
+  library(Seurat)
+  library(ggpubr)
+  library(pheatmap)
+  library(SingleCellExperiment)
+  library(dplyr)
+  library(tidyverse)
+  library(viridis)
+  library(muscat)
+  library(circlize)
+  library(destiny)
+  library(scater)
+  library(metap)
+  library(multtest)
+  library(clusterProfiler)
+  library(org.Hs.eg.db)
+  library(msigdbr)
+  library(enrichplot)
+  library(DOSE)
+  library(grid)
+  library(gridExtra)
+  library(ggupset)
+  library(VennDiagram)
+  library(NCmisc)
+  library(RColorBrewer)
+  library(EnhancedVolcano)
+  library(textshaping)
+  library(wordcloud)
+  library(pathview)
+  library(workflowr)
+})
+
+```
+
+
+
+
+
+```{r load merged file}
+##load merged file 
+seuratM <- readRDS("/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/data/01 Merged Seurat files/Myocarditis_RDS__withTCcondition_20.10.2024.rds")
+
+table(seuratM$dataset)
+table(seuratM$RNA_snn_res.0.25)
+table(seuratM$orig.ident)
+```
+
+
+```{r Plot umap}
+Idents(seuratM) <- seuratM$RNA_snn_res.0.25
+DimPlot(seuratM, reduction = "umap", pt.size = 0.1, label = TRUE)
+
+unique(seuratM$clusterName)
+```
+
+
+
+```{r rename clusters}
+#### Rename clusters
+
+seuratM$clusterName <- "clusterName"
+Idents(seuratM) <- seuratM$clusterName
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "0" )] <- "Fb1"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "1" )] <- "BEC1"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "2" )] <- "PeriFb1"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "3" )] <- "Cardiomyocyte"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "4" )] <- "MCP1"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "5" )] <- "TC"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "6" )] <- "MCP2"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "7" )] <- "BEC2"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "8" )] <- "VSMC"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "9" )] <- "NC"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "10" )] <- "INT1"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "11" )] <- "Fb2"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "12" )] <- "Fb3"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "13" )] <- "PeriFb2"
+seuratM$clusterName[which(seuratM$RNA_snn_res.0.25 %in% "14" )] <- "AdipoC"
+
+
+colclusterName <- c("#D53E4F", "#f4a582", "#FEE08B","#feb24c","#67001f", "#01665e","#66C2A5","#c7eae5","#BEAED4", "#355C7D","#3288BD","#8c510a" ,"#fde0dd","#B45B5C","#dd1c77")
+
+                    
+names(colclusterName) <- c("Cardiomyocyte","Fb1","Fb2","Fb3", "INT1", "PeriFb1", "PeriFb2", "VSMC","NC", "BEC1","BEC2", "AdipoC", "MCP1","MCP2","TC")
+
+colpat_sub<- c("#dfc27d","#BE3144","#355C7D", "#779d8d")
+
+seuratM$clusterName <- factor(seuratM$clusterName, levels=c("Cardiomyocyte", "Fb1", "Fb2", "Fb3", "INT1","PeriFb1", "PeriFb2", "VSMC", "NC", "BEC1", "BEC2", "AdipoC", "MCP1", "MCP2", "TC"))
+
+
+Idents(seuratM) <- seuratM$clusterName
+DimPlot(seuratM, reduction = "umap", pt.size = 0.1, label = TRUE, cols = colclusterName)
+```
+
+
+```{r set identities to disease condition}
+Idents(seuratM) <-seuratM$pat_sub
+
+colpat_sub<- c("#779d8d","#BE3144","#355C7D","#dfc27d")
+names(colpat_sub) <- c("Healthy", "AM", "CMP", "Sarcoidosis")
+
+DimPlot(seuratM, reduction = "umap", cols = colpat_sub)
+
+table(seuratM$pat_sub)
+table(seuratM$patient)
+```
+
+
+```{r set identities to disease condition}
+
+
+#subset AM group in TC High, Intermediate, Low, Vlow
+
+seuratAM <- subset(seuratM, pat_sub == "AM")
+DimPlot(seuratAM, reduction = "umap", pt.size = 0.1, raster=FALSE)
+
+Idents(seuratAM) <- seuratAM$TC
+
+table(seuratAM$TC)
+levels(seuratAM)
+table(seuratAM$patient)
+
+
+DimPlot(seuratAM, reduction = "umap", group.by = "clusterName", cols=colclusterName,
+        split.by = "TC", shuffle = T)+
+  theme_void()
+
+AM_TChigh <- subset(seuratAM, TC == "Tcell High")
+table(AM_TChigh$orig.ident)
+AM_TCint <- subset(seuratAM, TC == "Tcell Intermediate")
+table(AM_TCint$orig.ident)
+AM_TClow <- subset(seuratAM, TC == "Tcell Low")
+table(AM_TClow$orig.ident)
+AM_TCvlow <- subset(seuratAM, TC == "Tcell Very Low")
+table(AM_TCvlow$orig.ident)
+
+
+# seuratM subset for AM and Healthy groups
+seuratAMvsHealthy <- subset(seuratM, pat_sub %in% c("AM", "Healthy"))
+
+# "Healthy" is default
+seuratAMvsHealthy$AMvsHealthy <- "Healthy"  
+
+seuratAMvsHealthy$AMvsHealthy[seuratAMvsHealthy$pat_sub == "AM" & seuratAMvsHealthy$TC == "Tcell High"] <- "AM_TChigh"
+seuratAMvsHealthy$AMvsHealthy[seuratAMvsHealthy$pat_sub == "AM" & seuratAMvsHealthy$TC == "Tcell Intermediate"] <- "AM_TCint"
+seuratAMvsHealthy$AMvsHealthy[seuratAMvsHealthy$pat_sub == "AM" & seuratAMvsHealthy$TC == "Tcell Low"] <- "AM_TClow"
+seuratAMvsHealthy$AMvsHealthy[seuratAMvsHealthy$pat_sub == "AM" & seuratAMvsHealthy$TC == "Tcell Very Low"] <- "AM_TCvlow"
+
+Idents(seuratAMvsHealthy) <- seuratAMvsHealthy$AMvsHealthy
+
+levels(seuratAMvsHealthy)
+table(seuratAMvsHealthy$orig.ident)
+table(seuratAM$orig.ident)
+table(seuratM$pat_sub)
+table(seuratAMvsHealthy$AMvsHealthy)
+
+# New Factor within seuratM
+seuratM$AMvsHealthy <- NA
+seuratM$AMvsHealthy [Cells(seuratAMvsHealthy)] <- seuratAMvsHealthy$AMvsHealthy
+
+table(seuratM$AMvsHealthy)
+table(seuratM$AMvsHealthy, seuratM$patient)
+
+table(seuratM$AMvsHealthy, seuratM$TC)
+
+Idents(seuratM) <- seuratM$AMvsHealthy
+levels(seuratM)
+
+DimPlot(seuratM, reduction = "umap", pt.size = 0.1, raster=FALSE)
+# NA are the other disease conditions
+DimPlot(seuratM, reduction = "umap", pt.size = 0.1, raster=FALSE, split.by = "AMvsHealthy")
+
+
+```
+
+```{r save RDS}
+#saveRDS(seuratM, file = "/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/data/01 Merged Seurat files/seuratM_withAMvsHealthy and TC_con_27.10.2024.rds")
+
+```
+
+
+
+```{r Find marker genes}
+# Find DE genes for AM subgroups (filtered by TC condition) vs. Healthy
+Idents(seuratM) <-seuratM$AMvsHealthy
+
+DEGenes_AMvsHealthy_pos <- FindAllMarkers(seuratM, only.pos = TRUE, logfc.threshold = 0.2) %>%
+  dplyr::filter(p_val_adj < 0.05)
+
+#head(DEGenes_AMvsHealthy_pos)
+
+#write.table(DEGenes_AMvsHealthy_pos, file= "/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/docs/Markers/DEGenes_AMvsHealthy_pos", sep="\t",quote=F,row.names=F,col.names=T)
+
+##adjust table
+DEGenesAM_sub <- DEGenes_AMvsHealthy_pos %>% 
+  mutate(Gene=gene) %>%
+  mutate(gene=gsub("^.*\\.", "", Gene))  %>%
+  mutate(EnsID=gsub("\\..*","", Gene))
+```
+
+
+```{r DE Genes AM T cell high}
+
+
+## DE Genes for AM T cell high
+DEGenesAM_TChigh <- DEGenesAM_sub %>% filter(cluster == "AM_TChigh")
+head(DEGenesAM_TChigh)
+
+egoAM_TChigh <- enrichGO(gene = unique(DEGenesAM_TChigh$EnsID),
+                          OrgDb = org.Hs.eg.db,
+                          keyType = 'ENSEMBL',
+                          ont = "BP",
+                          pAdjustMethod = "BH",
+                          pvalueCutoff = 0.05,
+                          qvalueCutoff = 0.05)
+egoAM_TChigh <- setReadable(egoAM_TChigh, OrgDb = org.Hs.eg.db)
+dotplot(egoAM_TChigh, showCategory=20, title = "Gene Ontology Acute Myocarditis T cell High", font.size = 10)
+barplot(egoAM_TChigh, 
+        drop = TRUE, 
+        showCategory = 7, 
+        title = "Gene Ontology Acute Myocarditis T cell High",
+        font.size = 10)
+
+# head(egoAM_TChigh)
+#View(egoAM_TChigh@result)
+
+# FYB1/PTPRC/HLA-A/GBP1/TRBC2/NCKAP1L/TRAC/LCP2/CYBA/BTN3A2/CD247/HLA-DQB1/MYO1G/ZAP70/PRKCB/KLRC1/ITK/LCK/CLEC7A/BTK/PTPN22/PIK3CD/INPP5D/TNFAIP3/THEMIS/TRBC1/PTPN6/TYROBP/HLA-DRB1/LAT2/LAPTM5/CD3G/CD47/LILRB4/SKAP1/PTPRJ/CD3E/MYD88/IGHM/BTN3A1/CD300A/CD3D/KLRD1/FCN1/CARD11/BTN3A3/MNDA/FCHO1/CYLD/GRB2/CD8B/OAS1/PIK3AP1/CSK/CD226/LAT/FCMR/FGR/PRKCD/NMI/MS4A1/KCNN4/NOD2/HLA-DPB1/LAX1/TLR6/FYN/PAK1/SCIMP/VAV1/BCL2/CD38/PRAM1/TXK/TNIP3/CTLA4/FCER1G/TRAT1/NFAM1/NFKB1/TLR2/NFKBID/UBASH3A/KLHL6/LYN/BLNK/IRAK1/CREBBP/CD8A/SH2D1A/ITGAM/TRGC1/BANK1/SOS1/PTPN2/DENND1B/EP300/RC3H2/SYK/IGKC/TESPA1
+
+#write.table(egoAM_TChigh, file= "/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/docs/Markers/V5 25.10.2024 AMvsHealthy/egoAM_TChigh", sep="\t",quote=F,row.names=F,col.names=T)
+
+```
+
+```{r DE Genes AM T cell intermediate}
+
+## DE Genes for AM T cell intermediate
+DEGenesAM_TCint <- DEGenesAM_sub %>% filter(cluster == "AM_TCint")
+head(DEGenesAM_TCint)
+
+egoAM_TCint <- enrichGO(gene = unique(DEGenesAM_TCint$EnsID),
+                          OrgDb = org.Hs.eg.db,
+                          keyType = 'ENSEMBL',
+                          ont = "BP",
+                          pAdjustMethod = "BH",
+                          pvalueCutoff = 0.05,
+                          qvalueCutoff = 0.05)
+egoAM_TCint <- setReadable(egoAM_TCint, OrgDb = org.Hs.eg.db)
+dotplot(egoAM_TCint, showCategory=20, title = "Gene Ontology Acute Myocarditis T cell Intermediate", font.size = 10)
+barplot(egoAM_TCint, 
+        drop = TRUE, 
+        showCategory = 7, 
+        title = "Gene Ontology Acute Myocarditis T cell Intermediate",
+        font.size = 10)
+
+#head(egoAM_TCint)
+#View(egoAM_TCint@result)
+
+# write.table(egoAM_TCint, file= "/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/docs/Markers/V5 25.10.2024 AMvsHealthy/egoAM_TCint", sep="\t",quote=F,row.names=F,col.names=T)
+
+#PTPRC/FYB1/GBP1/HLA-A/BTN3A2/ITK/NCKAP1L/CYBA/LCK/CD3D/TNFAIP3/MYO1G/PTPN22/FGR/MNDA/CD3E/TRBC2/LAPTM5/ZAP70/CD3G/CD247/CLEC7A/LCP2/TRBC1/FCN1/LILRB4/TRAC/KCNN4/SKAP1/KLRC1/PTPN6/FYN/FCMR/BTK/BTN3A1/CD8A/RBCK1/FCER1G/LAT2/SCIMP/TYROBP/PRKCB/PTPRJ/HLA-DRB1/THEMIS/HLA-DQB1/TRAF3/HLA-DPB1/INPP5D/SOS1/C3AR1/CD226/CD38/CTLA4/SLC39A10/CARD11/KLRK1/LAT/MYD88/NMI/BTN3A3/DGKZ/UBASH3A/PRKCD/IGKC/PRAM1/VAV1/TESPA1/LYN/RAB29/PAK1/GRB2/LPXN/EP300/PIK3AP1/CD47/CD8B/DENND1B/CYLD/TLR2/OAS1/PIK3CD/ITGAM
+
+```
+
+
+```{r DE Genes for AM T cell low}
+
+## DE Genes for AM T cell low
+DEGenesAM_TClow <- DEGenesAM_sub %>% filter(cluster == "AM_TClow")
+head(DEGenesAM_TClow)
+
+egoAM_TClow <- enrichGO(gene = unique(DEGenesAM_TClow$EnsID),
+                          OrgDb = org.Hs.eg.db,
+                          keyType = 'ENSEMBL',
+                          ont = "BP",
+                          pAdjustMethod = "BH",
+                          pvalueCutoff = 0.05,
+                          qvalueCutoff = 0.05)
+egoAM_TClow <- setReadable(egoAM_TClow, OrgDb = org.Hs.eg.db)
+dotplot(egoAM_TClow, showCategory=20, title = "Gene Ontology Acute Myocarditis T cell Low", font.size = 10)
+barplot(egoAM_TClow, 
+        drop = TRUE, 
+        showCategory = 7, 
+        title = "Gene Ontology Acute Myocarditis T cell Low",
+        font.size = 10)
+
+#head(egoAM_TClow)
+#View(egoAM_TClow@result)
+
+#write.table(egoAM_TClow, file= "/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/docs/Markers/V5 25.10.2024 AMvsHealthy/egoAM_TClow", sep="\t",quote=F,row.names=F,col.names=T)
+
+# PTPRC/GBP1/FYB1/HLA-A/NCKAP1L/LCP2/BTN3A2/PRKCB/CYBA/PTPN22/ITK/TRBC2/ZAP70/MYO1G/BTN3A1/LCK/TRBC1/CLEC7A/CD247/LAPTM5/TNFAIP3/MNDA/BTK/TRAC/INPP5D/FCN1/HLA-DQB1/CYLD/CD300A/CD3G/LAT2/CD8A/BTN3A3/PIK3CD/LILRB4/HLA-DRB1/SKAP1/TYROBP/CD38/OAS1/FCMR/FGR/TLR6/PTPN6/CD3D/SCIMP/KLRC1/PAK1/BTN2A2/PTPN2/CD226/LIMK1/PTPRJ/GRB2/HLA-DPB1/UBASH3A/KCNN4/TLR2/FCER1G/KLRD1/FYN/DENND1B/CD3E/CD47/IGKC/TESPA1/CSK/MS4A1/PIK3AP1/SOS1/NMI/EP300/LAT/SYK/LAX1/CARD11/THEMIS/WNK1/TRAF3/ITGAM/DGKZ/LYN/VAV1/BANK1/TLR4/IGHM/NFAM1/MYD88/GATA3/IRAK1/PRAM1/SH2D1A/CTLA4/SLC39A10/RBCK1/PRKCD/TRGC1/TNIP3/SPG21/ZC3H12A/IRAK4/BCL2/WDFY1/FCHO1/TLR1/BLNK/NOD2/TXK/PLCL2/BAX/CCR7/LPXN/MALT1/SLA2/KLRK1/C3AR1/NFATC2/HCK/KLHL6/CD8B/NR1H3/IFI35/RAB29/PLCG2/NFKBID/STK11/NFKB1/TRGC2/PRKCH/PAK3/VAV3/PRKD2/PDE4B
+
+```
+
+
+
+
+
+
+
+
+
+
+
+```{r DE Genes for AM T cell low}
+##DE Genes for AM T cell very low
+DEGenesAM_TCvlow <- DEGenesAM_sub %>% filter(cluster == "AM_TCvlow")
+head(DEGenesAM_TCvlow)
+
+egoAM_TCvlow <- enrichGO(gene = unique(DEGenesAM_TCvlow$EnsID),
+                          OrgDb = org.Hs.eg.db,
+                          keyType = 'ENSEMBL',
+                          ont = "BP",
+                          pAdjustMethod = "BH",
+                          pvalueCutoff = 0.05,
+                          qvalueCutoff = 0.05)
+egoAM_TCvlow <- setReadable(egoAM_TCvlow, OrgDb = org.Hs.eg.db)
+dotplot(egoAM_TCvlow, showCategory=20, title = "Gene Ontology Acute Myocarditis T cell Very Low", font.size = 10)
+barplot(egoAM_TCvlow, 
+        drop = TRUE, 
+        showCategory = 7, 
+        title = "Gene Ontology Acute Myocarditis T cell Very Low",
+        font.size = 10)
+
+#head(egoAM_TCvlow)
+
+#View(egoAM_TCvlow@result)
+
+#write.table(egoAM_TCvlow, file= "/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/docs/Markers/V5 25.10.2024 AMvsHealthy/egoAM_TCvlow", sep="\t",quote=F,row.names=F,col.names=T)
+
+# PTPRC/CD2/IL7R/IKZF1/BCL11B/B2M/IRF1/RUNX3/DOCK10/ITGA4/IKZF3/NCKAP1L/JAK3/DOCK2/HLA-DRA/PTK2B/PTPN22/LAG3/ATM/LCK/FGL2/ITK/CD74/SPN/ZAP70/CD3E/IL2RG/LILRB4/ZBTB16/KLRC1/IRF8/CD3G/SLAMF8/INPP5D/IL4I1/HLA-DRB1/PTPN6/LILRB2/THEMIS/TNFSF13B/CYLD/JAK1/CD8A/PREX1/PTPRJ/RHOH/CAMK4/SLAMF1/EZH2/SASH3/PIK3CD/ACTB/LY9/CD1D/TCIRG1/TBX21/ZNF683/IL12RB1/SPI1/STAT4/SOS1/CD3D/SLAMF6/ADAM8/BTK/CD4/PTPN2/KMT2A/CCR2/MR1/NFKBID/DOCK11/NOTCH2/VAV1/TMEM131L/STAT6/IL15/HLA-DOA/LGALS9/TESPA1/MS4A1/ASCL2/GATA3/FANCA/CARD11/TGFB1/LEF1/ZFP36L2/SOCS1/SEMA4A/LFNG/BLNK/DCLRE1C/CD80/BTN2A2/CD27/TNFRSF9/TOX/CTLA4/PBRM1/NFATC3/MALT1/SMARCA2/BCL2/NFAM1/SYK/FCER1G/PRDM1/TOP2B/BATF/PRKDC/EOMES/ZBTB1/RUNX2/EP300/IRF4/FANCD2/PPP2R3C/STAT5B/RASGRP1/IL6R/IL18R1/CD86/CD83/SMARCC1/RIPK3/RORA/AP3D1/SOS2/PPP3CB/RC3H2/RHOA/NCAPH2/HDAC4/CDK6/CCR7/MAFB/PLCL2/AP3B1/IL15RA/PLCG2/NDFIP1/LIG4/IL18/PTGER4/LIPA/BAX/RSAD2/DROSHA/YY1/SMARCD2/STK11/TNFSF8/ZBTB7B/ZC3H12A/PCID2/PHF10/CD28/MSH2/HHEX/DUSP10/BAK1/KAT5/GPR89B/PNP/RIPK2/RNF41/SART1/MEN1/CMTM7/MDK
+
+```
+
+
+```{r DE Genes for AM T cell low}
+
+## DE Genes for Healthy Controls
+DEGenesHealthy <- DEGenesAM_sub %>% filter(cluster == "Healthy")
+head(DEGenesHealthy)
+
+egoHealthy <- enrichGO(gene = unique(DEGenesHealthy$EnsID),
+                          OrgDb = org.Hs.eg.db,
+                          keyType = 'ENSEMBL',
+                          ont = "BP",
+                          pAdjustMethod = "BH",
+                          pvalueCutoff = 0.05,
+                          qvalueCutoff = 0.05)
+egoHealthy <- setReadable(egoHealthy, OrgDb = org.Hs.eg.db)
+dotplot(egoHealthy, showCategory=20, title = "Gene Ontology Healthy Controls", font.size = 10)
+barplot(egoHealthy, 
+        drop = TRUE, 
+        showCategory = 7, 
+        title = "Gene Ontology Healthy Controls",
+        font.size = 10)
+
+#head(egoHealthy)
+#View(egoHealthy@result)
+
+#write.table(egoHealthy, file= "/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/docs/Markers/V5 25.10.2024 AMvsHealthy/egoHealthy", sep="\t",quote=F,row.names=F,col.names=T)
+
+# TTN/MYH7/CALD1/NR4A1/FGF12/MYL2/MYBPC3/TCAP/KCNE4/MYL3/ATP1A2/SORBS2/RGS2/SCN9A/MYOZ2/CSRP3/PKP2/RNF207/CACNA1C/DES/MLIP/ABCC9/TRDN/TNNC1/CTNNA3/CKMT2/AGT/TPM2/AKAP6/STC1/CRYAB/MYL9/KLF15/PDLIM5/ANKRD2/IGFBP5/PLN/CACNB2/DSP/NKX2-5/KCNJ8/MYL4/HOMER1/PGAM2/CASQ2/LMOD2/TNNI3K/P2RX3/SLC8A1/ADRA2B/ADRA1A/PDE4D/HAND2/PARP2/ATP1B1/DTNA/SMPX/KCND3/PPP1R12B/GJC1/SYNM/ATP1A1/SGCD/RYR1/TMEM38B/GPER1/MEIS1/COL14A1
+
+```
+
+
+
+
+```{r Volcano Plot, Find makers pos. and neg.expression}
+
+#for Volcano Plot, pos. and neg. markers
+DEGenes_AMvsHealthy_all <- FindAllMarkers (seuratM, only.pos = FALSE, logfc.threshold = 0.2) %>%
+                                      dplyr::filter(p_val_adj < 0.05)
+
+#write.table(DEGenes_AMvsHealthy_all, file= "/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/docs/Markers/DEGenes_AMvsHealthy_all", sep="\t",quote=F,row.names=F,col.names=T)
+
+##adjust table
+DEGenes_AMvsHealthy_adj <- DEGenes_AMvsHealthy_all %>% 
+  mutate(Gene=gene) %>%
+  mutate(gene=gsub("^.*\\.", "", Gene))  %>%
+  mutate(EnsID=gsub("\\..*","", Gene))
+
+
+```
+
+```{r}
+
+
+##Volcano Plot for AM with TC high
+DEGenesAM_high <- DEGenes_AMvsHealthy_adj %>% filter(cluster == "AM_TChigh")
+head(DEGenesAM_high)
+
+res_AMhigh <- as.data.frame(DEGenesAM_high)
+
+EnhancedVolcano(res_AMhigh, 
+                x = 'avg_log2FC',
+                y = 'p_val_adj',
+                lab = res_AMlow$gene,
+                # xlim =c(-6, 6), 
+                title = "DE Genes AM T cell High Condition",
+                xlab = bquote(~Log[2]~ 'fold change'),
+                pCutoff = 10e-1,
+                FCcutoff = 1.5,
+    cutoffLineType = 'twodash',
+    cutoffLineWidth = 0.8,
+    pointSize = 2.0,
+    labSize = 4.0,
+    # shape = c(1,4, 23,25),
+    colAlpha = 1,
+    legendLabels=c('Not sig.','Log (base 2) FC','p-value',
+      'p-value & Log (base 2) FC'),
+    legendPosition = 'right',
+    legendLabSize = 12,
+    legendIconSize = 5.0,
+    # drawConnectors = TRUE,
+    # widthConnectors = 0.75,
+    # ridlines.major = FALSE,
+    gridlines.minor = FALSE)
+
+
+top_genes_AM <- DEGenesAM_high %>% 
+  filter(p_val_adj < 0.05, abs(avg_log2FC) > 1) %>% 
+  arrange(p_val_adj) %>% 
+  slice_head(n = 30) %>% 
+  pull(gene)
+
+
+```
+
+
+
+
+```{r}
+
+##Volcano Plot for AM with TC intermediate
+DEGenesAM_int <- DEGenes_AMvsHealthy_adj %>% filter(cluster == "AM_TCint")
+head(DEGenesAM_int)
+
+res_AMint <- as.data.frame(DEGenesAM_int)
+
+EnhancedVolcano(res_AMint, 
+                x = 'avg_log2FC',
+                y = 'p_val_adj',
+                lab = res_AMint$gene,
+                # xlim =c(-6, 6), 
+                title = "DE Genes T cell Intermediate Condition",
+                xlab = bquote(~Log[2]~ 'fold change'),
+                pCutoff = 10e-1,
+                FCcutoff = 1.5,
+    cutoffLineType = 'twodash',
+    cutoffLineWidth = 0.8,
+    pointSize = 2.0,
+    labSize = 4.0,
+    # shape = c(1,4, 23,25),
+    colAlpha = 1,
+    legendLabels=c('Not sig.','Log (base 2) FC','p-value',
+      'p-value & Log (base 2) FC'),
+    legendPosition = 'right',
+    legendLabSize = 12,
+    legendIconSize = 5.0,
+    # drawConnectors = TRUE,
+    # widthConnectors = 0.75,
+    # ridlines.major = FALSE,
+    gridlines.minor = FALSE)
+
+
+top_genes_AM <- DEGenesAM_int %>% 
+  filter(p_val_adj < 0.05, abs(avg_log2FC) > 1) %>% 
+  arrange(p_val_adj) %>% 
+  slice_head(n = 30) %>% 
+  pull(gene)
+
+
+```
+
+
+```{r}
+
+
+##Volcano Plot for AM TC low
+DEGenesAM_low <- DEGenes_AMvsHealthy_adj %>% filter(cluster == "AM_TClow")
+head(DEGenesAM_low)
+
+res_AMlow <- as.data.frame(DEGenesAM_low)
+
+EnhancedVolcano(res_AMlow, 
+                x = 'avg_log2FC',
+                y = 'p_val_adj',
+                lab = res_AMlow$gene,
+                # xlim =c(-6, 6), 
+                title = "DE Genes AM T cell Low Condition",
+                xlab = bquote(~Log[2]~ 'fold change'),
+                pCutoff = 10e-1,
+                FCcutoff = 1.5,
+    cutoffLineType = 'twodash',
+    cutoffLineWidth = 0.8,
+    pointSize = 2.0,
+    labSize = 4.0,
+    # shape = c(1,4, 23,25),
+    colAlpha = 1,
+    legendLabels=c('Not sig.','Log (base 2) FC','p-value',
+      'p-value & Log (base 2) FC'),
+    legendPosition = 'right',
+    legendLabSize = 12,
+    legendIconSize = 5.0,
+    # drawConnectors = TRUE,
+    # widthConnectors = 0.75,
+    # ridlines.major = FALSE,
+    gridlines.minor = FALSE)
+
+
+top_genes_AM <- DEGenesAM_low %>% 
+  filter(p_val_adj < 0.05, abs(avg_log2FC) > 1) %>% 
+  arrange(p_val_adj) %>% 
+  slice_head(n = 30) %>% 
+  pull(gene)
+
+
+```
+
+
+```{r}
+
+
+##Volcano Plot for AM with TC very low
+DEGenesAM_vlow <- DEGenes_AMvsHealthy_adj %>% filter(cluster == "AM_TCvlow")
+head(DEGenesAM_vlow)
+
+res_AMvlow <- as.data.frame(DEGenesAM_vlow)
+
+EnhancedVolcano(res_AMvlow, 
+                x = 'avg_log2FC',
+                y = 'p_val_adj',
+                lab = res_AMvlow$gene,
+                # xlim =c(-6, 6), 
+                title = "DEGenes AM T cell Very Low Condition",
+                xlab = bquote(~Log[2]~ 'fold change'),
+                pCutoff = 10e-1,
+                FCcutoff = 1.5,
+    cutoffLineType = 'twodash',
+    cutoffLineWidth = 0.8,
+    pointSize = 2.0,
+    labSize = 4.0,
+    # shape = c(1,4, 23,25),
+    colAlpha = 1,
+    legendLabels=c('Not sig.','Log (base 2) FC','p-value',
+      'p-value & Log (base 2) FC'),
+    legendPosition = 'right',
+    legendLabSize = 12,
+    legendIconSize = 5.0,
+    # drawConnectors = TRUE,
+    # widthConnectors = 0.75,
+    # ridlines.major = FALSE,
+    gridlines.minor = FALSE)
+
+
+top_genes_AM <- DEGenesAM_vlow %>% 
+  filter(p_val_adj < 0.05, abs(avg_log2FC) > 1) %>% 
+  arrange(p_val_adj) %>% 
+  slice_head(n = 30) %>% 
+  pull(gene)
+
+
+
+
+
+
+```
+
+
+```{r}
+
+
+##Volcano Plot for Healthy Controls
+DEGenesHealthy <- DEGenes_AMvsHealthy_adj %>% filter(cluster == "Healthy")
+head(DEGenesHealthy)
+
+res_Healthy <- as.data.frame(DEGenesHealthy)
+
+EnhancedVolcano(res_Healthy, 
+                x = 'avg_log2FC',
+                y = 'p_val_adj',
+                lab = res_Healthy$gene,
+                # xlim =c(-6, 6), 
+                title = 'DE Genes Healthy Controls',
+                xlab = bquote(~Log[2]~ 'fold change'),
+                pCutoff = 10e-1,
+                FCcutoff = 1.5,
+    cutoffLineType = 'twodash',
+    cutoffLineWidth = 0.8,
+    pointSize = 2.0,
+    labSize = 4.0,
+    # shape = c(1,4, 23,25),
+    colAlpha = 1,
+    legendLabels=c('Not sig.','Log (base 2) FC','p-value',
+      'p-value & Log (base 2) FC'),
+    legendPosition = 'right',
+    legendLabSize = 12,
+    legendIconSize = 5.0,
+    # drawConnectors = TRUE,
+    # widthConnectors = 0.75,
+    # ridlines.major = FALSE,
+    gridlines.minor = FALSE)
+
+
+top_genes_AM <- DEGenesAM_vlow %>% 
+  filter(p_val_adj < 0.05, abs(avg_log2FC) > 1) %>% 
+  arrange(p_val_adj) %>% 
+  slice_head(n = 30) %>% 
+  pull(gene)
+
+```
+
+
+
+
+
+```{r}
+date()
+sessionInfo()
+```
+
+
+
+
+
+
+
+
