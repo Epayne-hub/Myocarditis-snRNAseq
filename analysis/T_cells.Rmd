@@ -219,10 +219,48 @@ DEGenesTcell <- FindAllMarkers (seuratTcell, only.pos = TRUE, logfc.threshold = 
 
 #write.table(DEGenesTcell, file= "/Users/immbio/Desktop/Emily/Myocarditis snRNAseq/docs/Markers/DEGenesTcell", sep="\t",quote=F,row.names=F,col.names=T)
 
-#View(DEGenesTcell)
+View(DEGenesTcell)
+
+
+# cluster 0: naive T cells: CCR7, LTB, LEF1, TCF7
+
+# cluster 1: KDM5D, PRKY, DCN, IKZF1, MYL2, BCL11B (Is a regulator of IL2 promoter and enhances IL2 expression in activated CD4(+) T-lymphocytes), TTN
+
+# cluster 2: CD38, ITGAL, JARID2, ZBTB32, CD74, TNFRSF9
+
+# cluster 5: Foxp3, Cd4, IL2RA, CTLA4
 
 ```
 
+
+```{r clusterName of Tcell GSEA}
+
+## clusterName of Tcell GSEA
+Idents(seuratTcell) <- seuratTcell$RNA_snn_res.0.6
+
+seuratTcell$clusterName <- "clusterName"
+Idents(seuratTc) <- seuratTcell$clusterName
+
+seuratTcell$clusterName[which(seuratTcell$RNA_snn_res.0.6 %in% "0")] <- "naive T cells"
+seuratTcell$clusterName[which(seuratTcell$RNA_snn_res.0.6 %in% "1")] <- " T cells"
+seuratTcell$clusterName[which(seuratTcell$RNA_snn_res.0.6 %in% "2")] <- " T cells"
+seuratTcell$clusterName[which(seuratTcell$RNA_snn_res.0.6 %in% "3")] <- " NKs"
+seuratTcell$clusterName[which(seuratTcell$RNA_snn_res.0.6 %in% "4")] <- " CD8+ T cells, mixed with Th1 signature, proliferating"
+seuratTcell$clusterName[which(seuratTcell$RNA_snn_res.0.6 %in% "5")] <- " T regs"
+seuratTcell$clusterName[which(seuratTcell$RNA_snn_res.0.6 %in% "6")] <- " Neutrophils"
+seuratTcell$clusterName[which(seuratTcell$RNA_snn_res.0.6 %in% "7")] <- " T cells"
+seuratTcell$clusterName[which(seuratTcell$RNA_snn_res.0.6 %in% "8")] <- " T cells"
+seuratTcell$clusterName[which(seuratTcell$RNA_snn_res.0.6 %in% "9")] <- " T cells"
+seuratTcell$clusterName[which(seuratTcell$RNA_snn_res.0.6 %in% "10")] <- "(naive) B cells"
+seuratTcell$clusterName[which(seuratTcell$RNA_snn_res.0.6 %in% "11")] <- " T cells"
+
+colTcell <- c("")
+
+names(colTcell) <- c("naive Tcells", "")
+  
+
+
+```
 
 
 ```{r}
